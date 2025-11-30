@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Template</title>
+    <link rel="stylesheet" href="style/main.css">
+    <link rel="stylesheet" href="style/screen_selection.css">
+    <link rel="stylesheet" href="style/screen_game.css">
+    <link rel="stylesheet" href="style/screen_result.css">
+</head>
+<body>
+    <!-- Selection Screen -->
+    <div class="selection-screen">
+    <h1>Selection Screen</h1>
+    <button onclick="startGame()">Start Game</button>
+    </div>
+    <!-- Game Screen -->
+    <div class="game-screen">
+    <div class="game-container">
+        <textarea id="vomit-box">
+            Game data will appear here.
+        </textarea>
+        <div class="floor-3d">
+            <div class="parent-grid">
+                <!-- XY Section (2x4 grid) -->
+                <div class="section xy-section">
+                    <div class="grid-3d">
+                        <div class="cell">Y1</div>
+                        <div class="cell">Y2</div>
+                        <div class="cell">Y3</div>
+                        <div class="cell">Y4</div>
+                        <div class="cell">X1</div>
+                        <div class="cell">X2</div>
+                        <div class="cell">X3</div>
+                        <div class="cell">X4</div>
+                    </div>
+                </div>
+                <!-- AB Section (2x4 grid) -->
+                <div class="section ab-section">
+                    <div class="grid-3d">
+                        <div class="cell">A1</div>
+                        <div class="cell">A2</div>
+                        <div class="cell">A3</div>
+                        <div class="cell">A4</div>
+                        <div class="cell">B1</div>
+                        <div class="cell">B2</div>
+                        <div class="cell">B3</div>
+                        <div class="cell">B4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="results-container">
+            <h1>Results</h1>
+            <button onclick="viewSelection()">Return to Selection</button>
+        </div>
+        <div class="right-panel">
+            <div id="chat-log" class="chat-log-container"></div>
+            <div>
+                <img src="images\pikita_token.png" alt="Pikita" class="profile-image">
+                <label for="chat-input">Pikita</label>
+                <button onclick="sendMessage()">Send</button>
+            </div>
+            <textarea type="text" id="chat-input" placeholder="Type your message here..."></textarea>
+        </div>
+    </div>
+    <button onclick="endGame()">view result</button>
+    </div>
+
+    
+
+    <script src="javaScript/front.js"></script>
+    <script src="javaScript/back.js"></script>
+</body>
+</html>
+
+

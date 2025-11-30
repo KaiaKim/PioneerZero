@@ -1,0 +1,206 @@
+/* 3D Floor Grid */
+.game-container {
+    margin: 40px 0;
+    /* Focal length: smaller = wider angle (more dramatic), larger = narrower (less dramatic) */
+    perspective: 1200px;
+    /* Viewing point: center center, left top, right bottom, or percentages like 50% 30% */
+    perspective-origin: center center;
+    height: 800px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background-image: url('../images/sky2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.floor-3d {
+    transform-style: preserve-3d;
+    /* Rotation angles: rotateX = tilt up/down, rotateZ = rotation around Z-axis */
+    transform: rotateX(60deg) rotateZ(20deg);
+    width: 400px;
+    height: 400px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.parent-grid {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 50px;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.section {
+    transform-style: preserve-3d;
+}
+
+.grid-3d {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+.xy-section .cell {
+    background: #1e3a8a;
+    color: white;
+
+}
+
+.ab-section .cell {
+    background: #eeeeee;
+    color: black;
+}
+
+.token {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    transform-style: preserve-3d;
+    transform: rotateX(-90deg) rotateY(20deg) translateY(-50%) translateZ(40px);
+    object-fit: contain;
+    pointer-events: none;
+}
+
+/* Common styles for chat and vomit box elements */
+#vomit-box,
+.right-panel,
+#chat-input {
+    border: 1px solid #000;
+    padding: 10px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+#vomit-box {
+    width: 20%;
+    height: 100%;
+    position: absolute;
+    left: 10px;
+}
+
+.right-panel {
+    position: absolute;
+    right: 10px;
+    width: 20%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#chat-log {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.chat-message {
+    border: 1px solid #333;
+    background-color: #1a1a1a;
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chat-message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-message-name {
+    font-weight: bold;
+    color: #4a9eff;
+    font-size: 14px;
+}
+
+.chat-message-time {
+    color: #888;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.chat-message-content {
+    color: #fff;
+    font-size: 14px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.chat-message.system {
+    background-color: #2a2a2a;
+    border-color: #555;
+}
+
+.chat-message.system .chat-message-name {
+    color: #ffaa00;
+}
+
+#chat-input {
+    width: 100%;
+    height: 20%;
+}
+
+.profile-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.right-panel label {
+    color: white;
+    background-color: #000000;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.right-panel > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.right-panel button {
+    margin-left: auto;
+    width: 80px;
+    height: 40px;
+    border-radius: 5%;
+    background-color: #000000;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    border: 1px solid white;
+}
+
