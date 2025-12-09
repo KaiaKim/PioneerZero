@@ -50,6 +50,13 @@ function connectWebSocket() {
         } else if (msg.type === "no_session") {
             console.log('No active session found');
             viewSelection();
+        } else if (msg.type === "chat_history") {
+            // Load all historical messages into chat log
+            if (msg.messages && Array.isArray(msg.messages)) {
+                msg.messages.forEach(message => {
+                    loadChat(message.sender, message.time, message.content, message.message_type === "system_message");
+            });
+    }
         }
          else if (msg.type === "user_chat") {
             // We handle user_chat here so that messages from ALL users (not just this client) are displayed in real-time.

@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from .game import Game
 import json
 import uuid
+from .chat import init_database, save_chat, get_chat_history
 
 app = FastAPI()
 
@@ -36,6 +37,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if message.get("action") == "start_game":
                 session_id = uuid.uuid4().hex[:10].upper() # generate a random session id
                 game_sessions[session_id] = Game(session_id) # create a new game session
+                init_database(session_id)
                 vomit_data = game_sessions[session_id].vomit()
                 await websocket.send_json(vomit_data)
                 await websocket.send_json({
@@ -52,6 +54,17 @@ async def websocket_endpoint(websocket: WebSocket):
                     vomit_data = game.vomit()
                     # session_id is already in vomit_data from Game.vomit()
                     await websocket.send_json(vomit_data)
+
+                    # send chat history
+                    chat_history = get_chat_history(session_id)
+                    for message in chat_history:
+                        await websocket.send_json({
+                            "type": "chat_message",
+                            "sender": message[2],
+                            "time": message[3],
+                            "content": message[4],
+                            "message_type": message[5]
+                        }) #(session_id, sender, time, content, message_type)
                 else:
                     await websocket.send_json({
                         "type": "no_session"
@@ -64,22 +77,26 @@ async def websocket_endpoint(websocket: WebSocket):
                         "type": "system_message",
                         "content": f"Game session {session_id} ended"
                     })
-
-
             elif message.get("type") == "user_chat":
                 content = message.get("content", "")
                 sender = message.get("sender")
+                
                 if content and content[0] == "/":
                     command = content[1:]
-                    if "이동" in command:
+                    if "이동" in command and session_id:
                         system_message = game_sessions[session_id].move_player(sender, command)
                         await websocket.send_json(system_message)
+                        # Save the system message response
+                        if session_id:
+                            save_chat(session_id, "System", message.get("time"), system_message.get("content", ""), "system")
                 else:
                     await websocket.send_json(message)
-
+                    # Save user chat message
+                    if session_id:
+                        save_chat(session_id, sender, message.get("time"), content, "user")
 
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
         pass
-
+    
