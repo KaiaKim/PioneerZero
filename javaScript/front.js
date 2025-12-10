@@ -1,4 +1,4 @@
-function viewGame() {   
+function viewMain() {   
     document.querySelector('.selection-screen').style.display = 'none';
     document.querySelector('.game-screen').style.display = 'block';
     document.querySelector('.floor-3d').style.display = 'block';

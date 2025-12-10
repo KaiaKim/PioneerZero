@@ -44,8 +44,7 @@ class Game():
         target_pos = match.group(1) if match else None
         if target_pos:
             character_obj["pos"] = target_pos
-            print(f"{name} moved to {target_pos}")
-            return {"type": "system_message", "content": f"{name} moved from {current_pos} to {target_pos}"}
+            return f"{name} moved from {current_pos} to {target_pos}"
         else:
-            return {"type": "system_message", "content": f"{name} move failed."}
+            return f"{name} move failed."
 
