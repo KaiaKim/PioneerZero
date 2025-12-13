@@ -19,7 +19,7 @@ function sendMessage() {
     }
 }
 
-function startGame() {    
+function startGame() {
     if (ws && ws.readyState === WebSocket.OPEN) {
         const message = {
             action: 'start_game'
