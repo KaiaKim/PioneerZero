@@ -4,7 +4,73 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Current] - Latest Updates
+## [Latest] - WebSocket Improvements & Game State Management
+
+### Added
+- **Game ID Management**
+  - Game ID stored in localStorage on client side
+  - Game ID validation before sending messages
+  - Automatic game ID retrieval from localStorage
+  - Game ID cleared when game ends
+
+- **Game Creation Confirmation**
+  - Server sends `{type: 'game_created', game_id: '...'}` after game start
+  - Client automatically loads game after receiving game_id
+  - Better game state synchronization
+
+- **Connection Cleanup**
+  - `cleanup_dead_connections()` method in ConnectionManager
+  - Automatic removal of dead WebSocket connections
+  - Improved error handling in broadcast method
+  - Prevents memory leaks from stale connections
+
+- **UI Enhancements**
+  - Dynamic chat character label (`#chat-char`) showing guest number
+  - Improved chat message styling with system/user differentiation
+  - Better visual feedback for chat messages
+  - Enhanced right panel layout and styling
+
+### Changed
+- **WebSocket Message Handling** (`python/websocket.py`)
+  - All game actions now require `game_id` in message
+  - Game ID validation before processing actions
+  - Better error messages and logging
+  - Improved connection state management
+  - Proper cleanup in finally block
+
+- **Client-Side Game Management** (`javaScript/CtoS.js`)
+  - `sendMessage()` now validates game_id before sending
+  - `loadGame()` requires game_id from localStorage
+  - `endGame()` clears game_id from localStorage
+  - Better error handling for missing game state
+
+- **Server-Side Game Management** (`javaScript/StoC.js`)
+  - Helper functions for game_id management (`getGameId()`, `setGameId()`)
+  - Handles `game_created` message type
+  - Updates UI with guest number on assignment
+  - Improved message routing
+
+- **Styling** (`style/screen_game.css`)
+  - Enhanced chat message display
+  - System vs user message visual differentiation
+  - Better layout for chat panel
+  - Improved button and input styling
+
+### Fixed
+- Dead connection cleanup preventing memory leaks
+- Game state synchronization issues
+- Missing game_id validation in chat messages
+- Connection state checking improvements
+
+### Technical Details
+- Game ID is 10-character uppercase hex string
+- Game ID persists in localStorage across page refreshes
+- Server validates game_id exists in sessions before processing
+- Connection cleanup runs automatically on broadcast errors
+
+---
+
+## [Previous] - Authentication System & Documentation
 
 ### Added
 - **Authentication System** (`python/auth.py`)
@@ -16,6 +82,7 @@ All notable changes to this project will be documented in this file.
 - **Documentation Organization**
   - Moved all documentation to `NOTES/` directory
   - Better file organization and structure
+  - Comprehensive technical documentation
 
 ### Changed
 - **WebSocket Connection Flow**
@@ -36,7 +103,7 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Previous] - Code Refactoring & Chat System Enhancement
+## [Earlier] - Code Refactoring & Chat System Enhancement
 
 ### Added
 
@@ -55,6 +122,7 @@ All notable changes to this project will be documented in this file.
     - `chat` - Chat messages (user and system)
     - `no_game` - No active game session
     - `guest_assigned` - Guest number assignment
+    - `game_created` - Game creation confirmation
   - Automatic game loading on connection
 
 #### Python Backend
@@ -129,10 +197,10 @@ All notable changes to this project will be documented in this file.
    - Dataflow documentation
 
 ### Statistics
-- **Files Added:** 5 (CtoS.js, StoC.js, chat.py, auth.py, LOAD.md, NOTE.md)
+- **Files Added:** 6 (CtoS.js, StoC.js, chat.py, auth.py, LOAD.md, NOTE.md)
 - **Files Removed:** 1 (middle.js)
-- **Files Modified:** 5 (index.html, front.js, websocket.py, game.py, .gitignore)
-- **Total Changes:** ~450+ insertions, ~200 deletions
+- **Files Modified:** 8+ (index.html, front.js, websocket.py, game.py, .gitignore, screen_game.css, etc.)
+- **Total Changes:** ~600+ insertions, ~250 deletions
 
 ---
 
@@ -160,6 +228,8 @@ All notable changes to this project will be documented in this file.
 - Game state persistence
 - Character movement visualization
 - Skill system implementation
+- Reconnection handling for dropped connections
+- Game state recovery on reconnect
 
 ### Under Consideration
 - Redis for session management
@@ -167,3 +237,14 @@ All notable changes to this project will be documented in this file.
 - Rate limiting for chat messages
 - Message encryption
 - Admin panel for game management
+- Real-time game state synchronization
+- Player action queue system
+
+---
+
+## Version History Summary
+
+- **Latest**: WebSocket improvements, game state management, connection cleanup
+- **Previous**: Authentication system, documentation organization
+- **Earlier**: Code refactoring, chat system with SQLite
+- **Initial**: Basic project setup
