@@ -60,6 +60,7 @@ function connectWebSocket() {
         const msg = JSON.parse(event.data); //str -> Javascript object
         if (msg.type === "game_created") {
             setGameId(msg.game_id);
+            clearChat();
             loadGame();
         }
         else if (msg.type === "guest_assigned") {
@@ -73,6 +74,16 @@ function connectWebSocket() {
             viewMain();
             document.getElementById('vomit-box').value = JSON.stringify(msg, null, 2);
             loadTokens(msg.characters);
+        }
+        else if (msg.type === "chat_history") {
+            // Load all chat history messages
+            msg.messages.forEach(chatMsg => {
+                if (chatMsg.sort === "user") {
+                    loadChat(chatMsg.sender || "noname", chatMsg.time, chatMsg.content, false);
+                } else if (chatMsg.sort === "system") {
+                    loadChat("System", chatMsg.time, chatMsg.content, true);
+                }
+            });
         }
         else if (msg.type === "chat") {
             // We handle user_chat here so that messages from ALL users (not just this client) are displayed in real-time.

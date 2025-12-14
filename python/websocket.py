@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from .game import Game
 import json
 import uuid
-from .chat import init_database, save_chat
+from .chat import init_database, save_chat, get_chat_history
 from datetime import datetime
 import traceback
 from .auth import get_or_assign_guest_number
@@ -126,6 +126,25 @@ async def websocket_endpoint(websocket: WebSocket):
                 vomit_data = game.vomit()
                 #print("load_game vomit_data: ", vomit_data)
                 await manager.broadcast(vomit_data)
+                
+                # Load and send chat history to the requesting client
+                chat_history_rows = get_chat_history(game_id)
+                chat_messages = []
+                for row in chat_history_rows:
+                    # row format: (id, sender, time, content, sort)
+                    chat_messages.append({
+                        "type": "chat",
+                        "sender": row[1],
+                        "time": row[2],
+                        "content": row[3],
+                        "sort": row[4]
+                    })
+                
+                # Send chat history only to the requesting client
+                await websocket.send_json({
+                    "type": "chat_history",
+                    "messages": chat_messages
+                })
                 continue
             
             # Handle end_game

@@ -26,16 +26,12 @@ function sendMessage() {
 }
 
 function startGame() {
-    console.log("startGame Clicked");
     if (ws && ws.readyState === WebSocket.OPEN) {
         const message = {
             action: 'start_game'
         };
-        console.log("message is~~>>>", message);
         ws.send(JSON.stringify(message));
-        console.log("startGame Executed");
         // loadGame() will be called after game is created and game_id is received
-
     } else {
         console.error('WebSocket not connected');
         connectWebSocket();

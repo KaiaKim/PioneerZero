@@ -15,6 +15,12 @@ function viewSelection() {
     document.querySelector('.selection-screen').style.display = 'block';
 }
 
+function clearChat(){
+    const chatLog = document.getElementById('chat-log');
+    if (chatLog) {
+        chatLog.innerHTML = '';
+    }
+}
 
 function loadChat(sender, time, content, isSystem) {
     const chatLog = document.getElementById('chat-log');

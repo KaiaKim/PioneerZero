@@ -1,250 +1,82 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
----
-
-## [Latest] - WebSocket Improvements & Game State Management
+## [Current] - Chat History Loading & Code Cleanup
 
 ### Added
-- **Game ID Management**
-  - Game ID stored in localStorage on client side
-  - Game ID validation before sending messages
-  - Automatic game ID retrieval from localStorage
-  - Game ID cleared when game ends
-
-- **Game Creation Confirmation**
-  - Server sends `{type: 'game_created', game_id: '...'}` after game start
-  - Client automatically loads game after receiving game_id
-  - Better game state synchronization
-
-- **Connection Cleanup**
-  - `cleanup_dead_connections()` method in ConnectionManager
-  - Automatic removal of dead WebSocket connections
-  - Improved error handling in broadcast method
-  - Prevents memory leaks from stale connections
-
-- **UI Enhancements**
-  - Dynamic chat character label (`#chat-char`) showing guest number
-  - Improved chat message styling with system/user differentiation
-  - Better visual feedback for chat messages
-  - Enhanced right panel layout and styling
+- **Chat History Loading**
+  - Server sends chat history when game loads
+  - Client displays all previous chat messages on game load
+  - Chat history retrieved from SQLite database
+  - `clearChat()` function to reset chat display
 
 ### Changed
-- **WebSocket Message Handling** (`python/websocket.py`)
-  - All game actions now require `game_id` in message
-  - Game ID validation before processing actions
-  - Better error messages and logging
-  - Improved connection state management
-  - Proper cleanup in finally block
+- **WebSocket Message Flow** (`python/websocket.py`)
+  - `load_game` action now sends chat history to requesting client
+  - Chat history formatted and sent as `{type: 'chat_history', messages: [...]}`
+  - Only requesting client receives chat history (not broadcast)
 
-- **Client-Side Game Management** (`javaScript/CtoS.js`)
-  - `sendMessage()` now validates game_id before sending
-  - `loadGame()` requires game_id from localStorage
-  - `endGame()` clears game_id from localStorage
-  - Better error handling for missing game state
+- **Client Message Handling** (`javaScript/StoC.js`)
+  - Handles `chat_history` message type
+  - Automatically loads all historical messages into chat log
+  - Chat cleared when new game is created
 
-- **Server-Side Game Management** (`javaScript/StoC.js`)
-  - Helper functions for game_id management (`getGameId()`, `setGameId()`)
-  - Handles `game_created` message type
-  - Updates UI with guest number on assignment
-  - Improved message routing
-
-- **Styling** (`style/screen_game.css`)
-  - Enhanced chat message display
-  - System vs user message visual differentiation
-  - Better layout for chat panel
-  - Improved button and input styling
-
-### Fixed
-- Dead connection cleanup preventing memory leaks
-- Game state synchronization issues
-- Missing game_id validation in chat messages
-- Connection state checking improvements
-
-### Technical Details
-- Game ID is 10-character uppercase hex string
-- Game ID persists in localStorage across page refreshes
-- Server validates game_id exists in sessions before processing
-- Connection cleanup runs automatically on broadcast errors
+- **Documentation**
+  - Removed `NOTES/NOTE.md` (consolidated into other docs)
 
 ---
 
-## [Previous] - Authentication System & Documentation
+## [Previous] - WebSocket Improvements & Game State Management
+
+### Added
+- Game ID management in localStorage
+- Game creation confirmation (`game_created` message)
+- Connection cleanup for dead WebSocket connections
+- UI enhancements (guest number display, chat styling)
+
+### Changed
+- All game actions require `game_id` in messages
+- Improved error handling and connection state management
+- Better game state synchronization
+
+---
+
+## [Earlier] - Authentication & Architecture Refactoring
 
 ### Added
 - **Authentication System** (`python/auth.py`)
-  - Guest ID management using client-provided UUIDs
-  - Persistent guest number assignment (1, 2, 3, ...)
-  - Guest numbers persist across reconnects for same UUID
-  - Server logs guest connections and reconnections
+  - Guest ID management with persistent guest numbers
+  - UUID-based client identification
 
-- **Documentation Organization**
-  - Moved all documentation to `NOTES/` directory
-  - Better file organization and structure
-  - Comprehensive technical documentation
+- **Modular JavaScript Architecture**
+  - `CtoS.js` - Client-to-server communication
+  - `StoC.js` - Server-to-client message handling
+  - Clear separation of concerns
 
-### Changed
-- **WebSocket Connection Flow**
-  - Added authentication step before normal message handling
-  - Client must send `{action: 'authenticate', guest_id: '...'}` on connection
-  - Server assigns and returns guest number
-  - Improved connection reliability
-
-- **Client-Side Guest Management** (`javaScript/StoC.js`)
-  - Automatic UUID generation and storage in localStorage
-  - Guest ID sent to server on WebSocket connection
-  - Guest number stored in localStorage for display
-
-### Technical Details
-- Guest authentication happens before any game actions
-- Server closes connection if authentication fails
-- Guest numbers are sequential and persistent per UUID
-
----
-
-## [Earlier] - Code Refactoring & Chat System Enhancement
-
-### Added
-
-#### JavaScript Architecture Refactoring
-- **`javaScript/CtoS.js`** (Client-to-Server)
-  - Handles all client-to-server communication
-  - Functions: `sendMessage()`, `startGame()`, `loadGame()`, `endGame()`
-  - Manages WebSocket message sending to server
-  - Clean separation of outgoing message logic
-
-- **`javaScript/StoC.js`** (Server-to-Client)
-  - Handles all server-to-client message receiving
-  - WebSocket connection management
-  - Message parsing and routing:
-    - `vomit_data` - Game state data
-    - `chat` - Chat messages (user and system)
-    - `no_game` - No active game session
-    - `guest_assigned` - Guest number assignment
-    - `game_created` - Game creation confirmation
-  - Automatic game loading on connection
-
-#### Python Backend
-- **`python/chat.py`** - SQLite database operations for chat persistence
-  - `init_database(session_id)` - Creates session-specific chat tables
-  - `save_chat()` - Stores chat messages in database
-  - `get_chat_history()` - Retrieves chat history for a session
-  - `kill_database()` - Utility to clear all chat tables
-  - Session-based table structure (one table per game session)
-
-#### Documentation
-- **`NOTES/LOAD.md`** - Server startup instructions
-  - How to start FastAPI server with uvicorn
-  - Command reference and troubleshooting tips
-  - Network configuration options
-  - Common issues and solutions
-
-- **`NOTES/NOTE.md`** - Technical documentation
-  - Complete architecture documentation
-  - Dataflow diagrams
-  - Database schema documentation
-  - WebSocket message protocol
-  - Integration points and code examples
+- **SQLite Chat Storage** (`python/chat.py`)
+  - Session-based chat tables
+  - Persistent chat messages across server restarts
 
 ### Changed
-
-#### File Structure
-- **Removed:** `javaScript/middle.js` - Replaced by modular structure (CtoS.js and StoC.js)
-- **Modified:** `javaScript/front.js` - Updated to work with new module structure
-- **Modified:** `index.html` - Updated script imports:
-  - Removed: `middle.js`
-  - Added: `CtoS.js`, `StoC.js`
-
-#### Backend Updates
-- **`python/websocket.py`**
-  - Integrated SQLite chat storage
-  - Chat messages now persist across server restarts
-  - Improved message handling with `sort` field (user/system)
-  - Command processing for chat messages starting with `/`
-  - Better error handling and logging
-  - Session-based game management
-
-- **`python/game.py`** - Updates for compatibility with new architecture
-
-#### Configuration
-- **`.gitignore`** - Updated to exclude database files (`*.db`, `*.sqlite`, `*.sqlite3`)
-
-### Improvements
-
-1. **Modular JavaScript Architecture**
-   - Clear separation of concerns (CtoS vs StoC)
-   - Easier to maintain and debug
-   - Better code organization
-   - Single responsibility principle
-
-2. **Persistent Chat Storage**
-   - Chat messages saved to SQLite database
-   - Chat history persists across server restarts
-   - Session-based chat isolation
-   - One table per game session for easy management
-
-3. **Improved Message Handling**
-   - Chat messages now have `sort` field (user/system)
-   - Better message type differentiation
-   - More robust WebSocket communication
-   - Command system for game actions via chat
-
-4. **Better Documentation**
-   - Server setup instructions
-   - Technical implementation details
-   - Code structure explanations
-   - Dataflow documentation
-
-### Statistics
-- **Files Added:** 6 (CtoS.js, StoC.js, chat.py, auth.py, LOAD.md, NOTE.md)
-- **Files Removed:** 1 (middle.js)
-- **Files Modified:** 8+ (index.html, front.js, websocket.py, game.py, .gitignore, screen_game.css, etc.)
-- **Total Changes:** ~600+ insertions, ~250 deletions
+- Replaced `middle.js` with modular structure
+- WebSocket authentication flow
+- Documentation moved to `NOTES/` directory
 
 ---
 
 ## [Initial] - Project Setup
 
-### Added
-- Project structure setup
 - Basic game functionality
 - WebSocket communication
-- Frontend UI components
 - FastAPI server setup
-- Static file serving
-- Basic game session management
+- Frontend UI components
 
 ---
 
 ## Future Improvements
 
-### Planned
-- Load chat history when game loads
 - Multiple concurrent game sessions
 - User accounts and persistent authentication
-- Chat history pagination
-- Better error handling and reconnection logic
 - Game state persistence
 - Character movement visualization
 - Skill system implementation
-- Reconnection handling for dropped connections
-- Game state recovery on reconnect
-
-### Under Consideration
-- Redis for session management
-- WebSocket connection pooling
-- Rate limiting for chat messages
-- Message encryption
-- Admin panel for game management
-- Real-time game state synchronization
-- Player action queue system
-
----
-
-## Version History Summary
-
-- **Latest**: WebSocket improvements, game state management, connection cleanup
-- **Previous**: Authentication system, documentation organization
-- **Earlier**: Code refactoring, chat system with SQLite
-- **Initial**: Basic project setup
+- Reconnection handling
