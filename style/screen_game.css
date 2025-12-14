@@ -179,7 +179,7 @@
     border-radius: 50%;
 }
 
-.right-panel label {
+#chat-char {
     color: white;
     background-color: #000000;
     font-weight: bold;

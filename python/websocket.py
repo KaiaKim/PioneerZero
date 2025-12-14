@@ -33,11 +33,33 @@ class ConnectionManager:
         self.active_connections.append(websocket)
     
     async def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+    
+    def cleanup_dead_connections(self):
+        """Remove dead connections from active_connections list"""
+        dead_connections = []
+        for connection in self.active_connections:
+            try:
+                # Check if connection is still alive by accessing its state
+                if connection.client_state.name == "DISCONNECTED":
+                    dead_connections.append(connection)
+            except Exception:
+                dead_connections.append(connection)
+        
+        for dead_conn in dead_connections:
+            if dead_conn in self.active_connections:
+                self.active_connections.remove(dead_conn)
     
     async def broadcast(self, message: str):
+        """Send message to all active connections"""
         for connection in self.active_connections:
-            await connection.send_json(message)
+            try:
+                await connection.send_json(message)
+            except Exception:
+                # Connection is dead, clean it up
+                self.cleanup_dead_connections()
+                pass
 
 manager = ConnectionManager()
 
@@ -58,6 +80,8 @@ async def websocket_endpoint(websocket: WebSocket):
         if not guest_id or auth_message.get('action') != 'authenticate':
             # Handle error - no guest_id provided
             await websocket.close()
+            print("Error: no guest_id provided")
+            return
         
         # Get or assign guest number
         guest_number = get_or_assign_guest_number(guest_id)
@@ -74,24 +98,29 @@ async def websocket_endpoint(websocket: WebSocket):
             message = await websocket.receive_json()  # Already parses to Python dict (JSON)
             now = datetime.now().isoformat()  # Full ISO format: "2024-01-15T14:30:45.123456"
             
+            print('Server received message:', message)
             # Handle start_game (doesn't need session check)
             if message.get("action") == "start_game":
                 game_id = uuid.uuid4().hex[:10].upper() # generate a random session id
+                print('Server created game id:', game_id)
                 sessions[game_id] = Game(game_id) # create a new game session
                 init_database(game_id)
 
                 msg = save_chat(game_id, "System", now, f"Game {game_id} started.", "system")
                 await manager.broadcast(msg)
-                continue
-            
-            # For all other actions, check if session exists first
-            if not sessions:
-                await manager.broadcast({"type": "no_game"})
+                await websocket.send_json({
+                    'type': 'game_created',
+                    'game_id': game_id
+                })
                 continue
             
             # Get the game_id for this connection
-            game_id, game = next(iter(sessions.items()))
-            
+            game_id = message.get("game_id")
+            if game_id not in sessions:
+                await manager.broadcast({"type": "no_game"})
+                continue
+            game = sessions[game_id]
+
             # Handle load_game
             if message.get("action") == "load_game":
                 vomit_data = game.vomit()
@@ -101,11 +130,9 @@ async def websocket_endpoint(websocket: WebSocket):
             
             # Handle end_game
             if message.get("action") == "end_game":
-                my_id = message.get("game_id")
-                if my_id and my_id in sessions:
-                    del sessions[my_id]
-                    msg = save_chat(my_id, "System", now, f"Game {my_id} ended.", "system")
-                    await manager.broadcast(msg)
+                msg = save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
+                await manager.broadcast(msg)
+                del game
                 continue
             
             # Handle chat
@@ -127,13 +154,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     msg = save_chat(game_id, sender, now, content, "user")
                 await manager.broadcast(msg)
                 continue
-
-    except WebSocketDisconnect:
-        await manager.disconnect(websocket)
-        traceback.print_exc()
-        
     except Exception as e:
         print(f"WebSocket error: {e}")
         traceback.print_exc()
+    finally:
+        # Always disconnect when WebSocket closes
+        await manager.disconnect(websocket)
 
     
