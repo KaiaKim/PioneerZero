@@ -5,7 +5,7 @@ Game Logic - Game session management and initialization
     #object contains: player character, ally characters, enemy characters, game board, turn order, etc.
     #each character has a name, profile image, token image, stats, type, skills, current hp.
 
-from .temp_char import player, ally_A, enemy_A, enemy_B
+from .temp_character import player, ally_A, enemy_A, enemy_B
 import re
 
 class Game():

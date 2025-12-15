@@ -1,63 +1,56 @@
 # Changelog
 
-## [Current] - Multi-Session Lobby & Room System
+## [Current] - Code Refactoring & Modular Architecture
 
 ### Added
-- **Lobby System** (`index.html`)
-  - Game lobby page showing active sessions
-  - "New Game" button to create sessions
-  - Clickable session list to join games
+- **Backend Module Separation**
+  - `_global.py` - Global variables and FastAPI app setup
+  - `game_core.py` - Game logic and session management
+  - `game_chat.py` - Chat database operations
+  - `game_ws.py` - Game WebSocket handlers
+  - `lobby_ws.py` - Lobby WebSocket handlers
+  - `util.py` - ConnectionManager and utility functions
 
-- **Game Room Page** (`room.html`)
-  - Dedicated page for individual game sessions
-  - Opens in new tab with game_id URL parameter
-  - Auto-joins game on load
-
-- **Session Management**
-  - Track active game sessions in lobby
-  - Join/leave game functionality
-  - Per-game connection tracking
+- **Frontend Utilities**
+  - `global.js` - Shared utility functions (game_id, chat helpers)
 
 ### Changed
-- **Connection Management** (`python/websocket.py`)
-  - Connections tracked per game session
-  - `broadcast_to_game()` sends messages only to players in same game
-  - Join/leave game messages
-  - Guest tracking per connection
+- **Code Organization**
+  - Split monolithic `websocket.py` into focused modules
+  - Separated lobby and game WebSocket logic
+  - Better separation of concerns
+  - Improved code maintainability
 
-- **Client Architecture** (`javaScript/`)
-  - Lobby displays active sessions
-  - Room page auto-joins game on load
-  - Session list updates dynamically
-  - Multiple tabs can join different games
+- **File Renames**
+  - `game.py` → `game_core.py`
+  - `temp_char.py` → `temp_character.py`
+  - `chat.py` → `game_chat.py`
 
 ---
 
-## [Previous] - Chat History Loading
+## [Previous] - Multi-Session Lobby & Room System
 
 ### Added
-- Chat history loading on game start
-- `clearChat()` function
-
-### Changed
-- Server sends chat history when game loads
-- Client displays historical messages
+- Lobby system with active session list
+- Game room page (`room.html`)
+- Per-game connection tracking
+- Join/leave game functionality
 
 ---
 
 ## [Earlier] - Core Features
 
-- Authentication system with guest numbers
-- Modular JavaScript (CtoS.js, StoC.js)
+- Authentication system
+- Modular JavaScript architecture
 - SQLite chat storage
-- Game state management
+- Chat history loading
 - WebSocket improvements
 
 ---
 
 ## Future Improvements
 
-- Multiple concurrent game sessions
 - User accounts
 - Game state persistence
 - Character movement visualization
+- Skill system implementation
