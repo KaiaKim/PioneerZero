@@ -1,82 +1,63 @@
 # Changelog
 
-## [Current] - Chat History Loading & Code Cleanup
+## [Current] - Multi-Session Lobby & Room System
 
 ### Added
-- **Chat History Loading**
-  - Server sends chat history when game loads
-  - Client displays all previous chat messages on game load
-  - Chat history retrieved from SQLite database
-  - `clearChat()` function to reset chat display
+- **Lobby System** (`index.html`)
+  - Game lobby page showing active sessions
+  - "New Game" button to create sessions
+  - Clickable session list to join games
+
+- **Game Room Page** (`room.html`)
+  - Dedicated page for individual game sessions
+  - Opens in new tab with game_id URL parameter
+  - Auto-joins game on load
+
+- **Session Management**
+  - Track active game sessions in lobby
+  - Join/leave game functionality
+  - Per-game connection tracking
 
 ### Changed
-- **WebSocket Message Flow** (`python/websocket.py`)
-  - `load_game` action now sends chat history to requesting client
-  - Chat history formatted and sent as `{type: 'chat_history', messages: [...]}`
-  - Only requesting client receives chat history (not broadcast)
+- **Connection Management** (`python/websocket.py`)
+  - Connections tracked per game session
+  - `broadcast_to_game()` sends messages only to players in same game
+  - Join/leave game messages
+  - Guest tracking per connection
 
-- **Client Message Handling** (`javaScript/StoC.js`)
-  - Handles `chat_history` message type
-  - Automatically loads all historical messages into chat log
-  - Chat cleared when new game is created
-
-- **Documentation**
-  - Removed `NOTES/NOTE.md` (consolidated into other docs)
+- **Client Architecture** (`javaScript/`)
+  - Lobby displays active sessions
+  - Room page auto-joins game on load
+  - Session list updates dynamically
+  - Multiple tabs can join different games
 
 ---
 
-## [Previous] - WebSocket Improvements & Game State Management
+## [Previous] - Chat History Loading
 
 ### Added
-- Game ID management in localStorage
-- Game creation confirmation (`game_created` message)
-- Connection cleanup for dead WebSocket connections
-- UI enhancements (guest number display, chat styling)
+- Chat history loading on game start
+- `clearChat()` function
 
 ### Changed
-- All game actions require `game_id` in messages
-- Improved error handling and connection state management
-- Better game state synchronization
+- Server sends chat history when game loads
+- Client displays historical messages
 
 ---
 
-## [Earlier] - Authentication & Architecture Refactoring
+## [Earlier] - Core Features
 
-### Added
-- **Authentication System** (`python/auth.py`)
-  - Guest ID management with persistent guest numbers
-  - UUID-based client identification
-
-- **Modular JavaScript Architecture**
-  - `CtoS.js` - Client-to-server communication
-  - `StoC.js` - Server-to-client message handling
-  - Clear separation of concerns
-
-- **SQLite Chat Storage** (`python/chat.py`)
-  - Session-based chat tables
-  - Persistent chat messages across server restarts
-
-### Changed
-- Replaced `middle.js` with modular structure
-- WebSocket authentication flow
-- Documentation moved to `NOTES/` directory
-
----
-
-## [Initial] - Project Setup
-
-- Basic game functionality
-- WebSocket communication
-- FastAPI server setup
-- Frontend UI components
+- Authentication system with guest numbers
+- Modular JavaScript (CtoS.js, StoC.js)
+- SQLite chat storage
+- Game state management
+- WebSocket improvements
 
 ---
 
 ## Future Improvements
 
 - Multiple concurrent game sessions
-- User accounts and persistent authentication
+- User accounts
 - Game state persistence
 - Character movement visualization
-- Skill system implementation
-- Reconnection handling

@@ -1,0 +1,80 @@
+/* Lobby/Session Selection Screen Styles */
+
+.selection-screen {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.selection-screen h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.selection-screen button {
+    display: block;
+    margin: 0 auto 30px;
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.selection-screen button:hover {
+    background-color: #45a049;
+}
+
+#session-list-container {
+    margin-top: 40px;
+}
+
+#session-list-container h2 {
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+#session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.session-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.session-item:hover {
+    background-color: #f0f0f0;
+}
+
+.session-id {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.join-button {
+    padding: 8px 16px;
+    font-size: 14px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.join-button:hover {
+    background-color: #0b7dda;
+}

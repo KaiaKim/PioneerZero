@@ -31,12 +31,21 @@ function startGame() {
             action: 'start_game'
         };
         ws.send(JSON.stringify(message));
-        // loadGame() will be called after game is created and game_id is received
+        // game_created message will be received in StoC.js, which will add session to list and open room
     } else {
         console.error('WebSocket not connected');
         connectWebSocket();
     }
-    // viewMain() will be called when vomit_data is received in StoC.js
+}
+
+function joinGame(gameId) {
+    if (ws && ws.readyState === WebSocket.OPEN && gameId) {
+        const message = {
+            action: 'join_game',
+            game_id: gameId
+        };
+        ws.send(JSON.stringify(message));
+    }
 }
 
 function loadGame() {

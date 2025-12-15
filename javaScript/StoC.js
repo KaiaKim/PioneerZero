@@ -17,7 +17,24 @@ function setGameId(gameId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // If we're in room.html, extract game_id from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameIdFromUrl = urlParams.get('game_id');
+    if (gameIdFromUrl) {
+        setGameId(gameIdFromUrl);
+        // Show game screen (room.html should show game screen by default)
+        const gameScreen = document.querySelector('.game-screen');
+        if (gameScreen) {
+            gameScreen.style.display = 'block';
+        }
+    }
+    
     connectWebSocket();
+    
+    // Initialize session list display if we're in the lobby
+    if (document.getElementById('session-list')) {
+        updateSessionListDisplay();
+    }
     
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
@@ -52,26 +69,46 @@ function connectWebSocket() {
             action: 'authenticate',
             guest_id: guest_id
         }));
-        loadGame();
+        
+        // Only join and load game if we're in room.html and have a game_id
+        const gameId = getGameId();
+        if (gameId && document.querySelector('.game-screen')) {
+            // We're in room.html with a game_id, join the game first
+            joinGame(gameId);
+        }
         
     };
     
     ws.onmessage = function(event) {
         const msg = JSON.parse(event.data); //str -> Javascript object
         if (msg.type === "game_created") {
-            setGameId(msg.game_id);
-            clearChat();
-            loadGame();
+            const gameId = msg.game_id;
+            setGameId(gameId);
+            // Add session to lobby list
+            addSessionToList(gameId);
+            // Open room in new tab
+            openGameRoom(gameId);
         }
         else if (msg.type === "guest_assigned") {
             // Store guest_number in localStorage for display
             localStorage.setItem('guest_number', msg.guest_number);
             console.log(`You joined as Guest ${msg.guest_number}`);
-            document.querySelector('#chat-char').textContent = `Guest ${msg.guest_number}`;
+            const chatChar = document.querySelector('#chat-char');
+            if (chatChar) {
+                chatChar.textContent = `Guest ${msg.guest_number}`;
+            }
+        }
+        else if (msg.type === "joined_game") {
+            // Successfully joined game, now load it
+            loadGame();
+        }
+        else if (msg.type === "join_failed") {
+            console.error('Failed to join game:', msg.message);
         }
         else if (msg.type === "vomit_data") {
             console.log('Game data received');
-            viewMain();
+            //viewMain(); < depreciated
+            //redirect(hyperlink?) to the game room page.
             document.getElementById('vomit-box').value = JSON.stringify(msg, null, 2);
             loadTokens(msg.characters);
         }
@@ -97,7 +134,7 @@ function connectWebSocket() {
         }
         else if (msg.type === "no_game") {
             console.log('No active game found');
-            viewSelection();
+            //User will just close the window
         }
     };
 
