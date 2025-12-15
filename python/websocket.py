@@ -55,7 +55,6 @@ class ConnectionManager:
     async def leave_game(self, websocket: WebSocket):
         """Remove connection from its game and send leave message"""
         game_id = self.connection_to_game.get(websocket)
-        guest_number = self.connection_to_guest.get(websocket)
         
         if game_id and game_id in self.game_connections:
             if websocket in self.game_connections[game_id]:
@@ -63,12 +62,6 @@ class ConnectionManager:
         
         self.connection_to_game.pop(websocket, None)
         self.connection_to_guest.pop(websocket, None)
-        
-        # Send system chat message if user was in a game
-        if game_id and game_id in sessions and guest_number:
-            now = datetime.now().isoformat()
-            msg = save_chat(game_id, "System", now, f"Guest {guest_number} left the game.", "system")
-            await self.broadcast_to_game(game_id, msg)
     
     async def broadcast_to_game(self, game_id: str, message: dict):
         """Broadcast message only to connections in a specific game"""
@@ -156,11 +149,9 @@ async def websocket_endpoint(websocket: WebSocket):
             message = await websocket.receive_json()  # Already parses to Python dict (JSON)
             now = datetime.now().isoformat()  # Full ISO format: "2024-01-15T14:30:45.123456"
             
-            print('Server received message:', message)
-            # Handle start_game (doesn't need session check)
-            if message.get("action") == "start_game":
+            # print('Server received message:', message)
+            if message.get("action") == "create_game":
                 game_id = uuid.uuid4().hex[:10].upper() # generate a random session id
-                print('Server created game id:', game_id)
                 sessions[game_id] = Game(game_id) # create a new game session
                 init_database(game_id)
                 

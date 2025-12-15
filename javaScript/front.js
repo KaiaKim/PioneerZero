@@ -46,6 +46,10 @@ function updateSessionListDisplay() {
             openGameRoom(gameId);
         };
         
+        const thumb = document.createElement('div');
+        thumb.classList.add('session-thumb');
+        thumb.textContent = 'Preview';
+        
         const sessionId = document.createElement('span');
         sessionId.classList.add('session-id');
         sessionId.textContent = `Game: ${gameId}`;
@@ -58,6 +62,7 @@ function updateSessionListDisplay() {
             openGameRoom(gameId);
         };
         
+        sessionItem.appendChild(thumb);
         sessionItem.appendChild(sessionId);
         sessionItem.appendChild(joinButton);
         sessionList.appendChild(sessionItem);

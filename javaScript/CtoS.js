@@ -25,10 +25,10 @@ function sendMessage() {
     }
 }
 
-function startGame() {
+function createGame() {
     if (ws && ws.readyState === WebSocket.OPEN) {
         const message = {
-            action: 'start_game'
+            action: 'create_game'
         };
         ws.send(JSON.stringify(message));
         // game_created message will be received in StoC.js, which will add session to list and open room

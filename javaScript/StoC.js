@@ -86,8 +86,6 @@ function connectWebSocket() {
             setGameId(gameId);
             // Add session to lobby list
             addSessionToList(gameId);
-            // Open room in new tab
-            openGameRoom(gameId);
         }
         else if (msg.type === "guest_assigned") {
             // Store guest_number in localStorage for display
@@ -107,8 +105,6 @@ function connectWebSocket() {
         }
         else if (msg.type === "vomit_data") {
             console.log('Game data received');
-            //viewMain(); < depreciated
-            //redirect(hyperlink?) to the game room page.
             document.getElementById('vomit-box').value = JSON.stringify(msg, null, 2);
             loadTokens(msg.characters);
         }
