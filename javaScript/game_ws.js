@@ -128,7 +128,7 @@ function sendMessage() {
     }
     const message = {
         type: 'chat',
-        sender: 'Pikita',
+        sender: `Guest ${localStorage.getItem('guest_number')}`,
         content: input,
         game_id: gameId
     };
