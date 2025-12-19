@@ -10,7 +10,7 @@ from .util import manager
 # FastAPI app instance
 app = FastAPI()
 
-# Store active game sessions
+# Store active game sessions # move to DB later
 sessions = {}
 
 # Serve static files
@@ -27,14 +27,6 @@ async def read_root():
 @app.get("/room.html")
 async def read_room():
     return FileResponse("room.html")
-
-@app.get("/api/sessions")
-async def list_sessions():
-    """Return list of active game sessions for the lobby"""
-    # Lazy import to avoid circular dependency
-    from . import lobby_ws
-    return await lobby_ws.list_sessions()
-
 
 # Main WebSocket endpoint - routes messages to appropriate handlers
 @app.websocket("/ws")
@@ -75,7 +67,11 @@ async def websocket_endpoint(websocket: WebSocket):
             if message.get("action") == "create_game":
                 await lobby_ws.handle_create_game(websocket)
                 continue
-            
+
+            if message.get("action") == "list_games":
+                await websocket.send_json(await lobby_ws.list_sessions())
+                continue
+
             if message.get("action") == "join_game":
                 await lobby_ws.handle_join_game(websocket, message)
                 continue

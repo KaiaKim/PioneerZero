@@ -19,6 +19,7 @@ function connectLobbyWebSocket() {
             action: 'authenticate',
             guest_id: guest_id
         }));
+        listGames();
     };
     
     lobbyWs.onmessage = function(event) {
@@ -29,6 +30,11 @@ function connectLobbyWebSocket() {
             setGameId(gameId);
             // Add session to lobby list
             addSessionToList(gameId);
+        }
+        else if (msg.type === "list_games") {
+            for (const session of msg.sessions) {
+                addSessionToList(session.game_id);
+            }
         }
         else if (msg.type === "guest_assigned") {
             // Store guest_number in localStorage for display
@@ -53,7 +59,19 @@ function createGame() {
         };
         lobbyWs.send(JSON.stringify(message));
     } else {
-        console.error('Lobby WebSocket not connected');
+        console.error('Lobby WebSocket not connected 1');
+        connectLobbyWebSocket();
+    }
+}
+
+function listGames() {
+    if (lobbyWs && lobbyWs.readyState === WebSocket.OPEN) {
+        const message = {
+            action: 'list_games'
+        };
+        lobbyWs.send(JSON.stringify(message));
+    } else {
+        console.error('Lobby WebSocket not connected 2');
         connectLobbyWebSocket();
     }
 }

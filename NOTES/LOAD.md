@@ -1,21 +1,21 @@
 How to start your FastAPI server:
 
 Method 1: From your project root (recommended)
-Open a terminal in `F:\2025\Paranoia_Zero\newGame` and run:
+Open a terminal in `F:\2025\Pioneer_Zero\newGame` and run:
 ```bash
-python -m uvicorn python.websocket:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn python._global:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 What each part means:
 - `python -m uvicorn` — runs uvicorn using Python
-- `python.websocket:app` — module path (`python/websocket.py`) and the FastAPI app instance (`app`)
+- `python._global:app` — module path (`python/_global.py`) and the FastAPI app instance (`app`)
 - `--host 0.0.0.0` — listen on all network interfaces (accessible from other devices on your network)
 - `--port 8000` — use port 8000
 - `--reload` — auto-restart on code changes (development only)
 
 Alternative (localhost only):
 ```bash
-python -m uvicorn python.websocket:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn python._global:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 To stop the server:
@@ -33,7 +33,7 @@ Server is currently running (PID: 2404).
 
 **Start server:**
 ```bash
-python -m uvicorn python.websocket:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn python._global:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 **Stop server:**

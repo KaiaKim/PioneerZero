@@ -14,6 +14,7 @@ from .game_chat import init_database, save_chat
 async def list_sessions():
     """Return list of active game sessions for the lobby"""
     return {
+        "type": "list_games",
         "sessions": [
             {
                 "game_id": game_id,
