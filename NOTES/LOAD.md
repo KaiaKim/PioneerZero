@@ -57,5 +57,3 @@ netstat -ano | findstr :8000 | findstr LISTENING
 - "Address already in use" → Port is taken; stop other servers or use a different port
 - "Module not found" → Make sure you're in the project root directory
 - Import errors → Check that all dependencies are installed (`pip install -r requirements.txt`)
-
-Need help with anything specific about running the server?

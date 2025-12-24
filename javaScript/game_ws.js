@@ -2,7 +2,7 @@
 let gameWs = null;
 
 function connectGameWebSocket() {
-    const wsUrl = `ws://localhost:8000/ws`;
+    const wsUrl = `ws://localhost:8000/ws`; //change later
     gameWs = new WebSocket(wsUrl);
     
     // Generate or retrieve guest_id from localStorage

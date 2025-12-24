@@ -2,6 +2,7 @@
 // Store active sessions in memory (for lobby display)
 let activeSessions = [];
 
+
 // Helper functions for game_id in localStorage
 function getGameId() {
     return localStorage.getItem('game_id');
@@ -71,3 +72,6 @@ function loadTokens(characters) {
         cell.appendChild(token);
     });
 }
+
+
+
