@@ -5,20 +5,11 @@ function connectGameWebSocket() {
     const wsUrl = `ws://localhost:8000/ws`; //change later
     gameWs = new WebSocket(wsUrl);
     
-    // Generate or retrieve guest_id from localStorage
-    let guest_id = localStorage.getItem('guest_id');
-    if (!guest_id) {
-        guest_id = crypto.randomUUID();
-        localStorage.setItem('guest_id', guest_id);
-    }
+    let guest_id = getGuestId();
 
     gameWs.onopen = function() {
         console.log('Game WebSocket connected');
-        // Send guest_id to server
-        gameWs.send(JSON.stringify({
-            action: 'authenticate',
-            guest_id: guest_id
-        }));
+        authenticateGuest(guest_id, gameWs);
         
         // Join and load game if we have a game_id
         const gameId = getGameId();

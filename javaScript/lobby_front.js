@@ -1,27 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize session list display
-    updateSessionListDisplay();
-    
-    // Connect to lobby WebSocket
+    // Connect to lobby WebSocket (will trigger list_games and update display)
     connectLobbyWebSocket();
 });
 
-function addSessionToList(gameId) {
-    // Check if session already exists in list
-    if (activeSessions.includes(gameId)) {
-        return;
-    }
-    
-    activeSessions.push(gameId);
-    updateSessionListDisplay();
-}
-
-function removeSessionFromList(gameId) {
-    activeSessions = activeSessions.filter(id => id !== gameId);
-    updateSessionListDisplay();
-}
-
-function updateSessionListDisplay() {
+function updateSessionListDisplay(sessions) {
+    // sessions is array of {game_id, player_count, status} from server
     const sessionList = document.getElementById('session-list');
     if (!sessionList) {
         // We're not in the lobby page, skip
@@ -31,7 +14,7 @@ function updateSessionListDisplay() {
     // Clear existing list
     sessionList.innerHTML = '';
     
-    if (activeSessions.length === 0) {
+    if (!sessions || sessions.length === 0) {
         const emptyMsg = document.createElement('p');
         emptyMsg.textContent = 'No active game sessions. Click "New Game" to create one.';
         emptyMsg.style.color = '#666';
@@ -41,7 +24,8 @@ function updateSessionListDisplay() {
     }
     
     // Create list items for each session
-    activeSessions.forEach(gameId => {
+    sessions.forEach(session => {
+        const gameId = session.game_id;
         const sessionItem = document.createElement('div');
         sessionItem.classList.add('session-item');
         sessionItem.dataset.gameId = gameId;

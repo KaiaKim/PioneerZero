@@ -11,7 +11,7 @@ import os
 
 DATABASE_PATH = 'chat.db'
 
-def init_database(session_id):
+def create_chat_table(session_id):
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute(f'''
@@ -48,7 +48,7 @@ def get_chat_history(session_id, limit=None):
     conn.close()
     return messages
 
-def kill_database():
+def kill_all_chat_tables():
     """Delete all tables in the chat.db database."""
     try:
         # Check if database file exists
@@ -88,5 +88,5 @@ def kill_database():
 
 if __name__ == "__main__":
     print("Killing all chat tables in database...")
-    kill_database()
+    kill_all_chat_tables()
     print("All done.")

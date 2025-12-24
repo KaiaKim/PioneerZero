@@ -4,7 +4,7 @@ Game WebSocket handlers
 from fastapi import WebSocket
 from datetime import datetime
 from .util import manager
-from ._global import sessions
+from .main import sessions
 from .game_chat import save_chat, get_chat_history
 
 

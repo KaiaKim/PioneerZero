@@ -4,21 +4,12 @@ let lobbyWs = null;
 function connectLobbyWebSocket() {
     const wsUrl = `ws://localhost:8000/ws`;
     lobbyWs = new WebSocket(wsUrl);
-    
-    // Generate or retrieve guest_id from localStorage
-    let guest_id = localStorage.getItem('guest_id');
-    if (!guest_id) {
-        guest_id = crypto.randomUUID();
-        localStorage.setItem('guest_id', guest_id);
-    }
+
+    let guest_id = getGuestId() || genGuestId();
 
     lobbyWs.onopen = function() {
         console.log('Lobby WebSocket connected');
-        // Send guest_id to server
-        lobbyWs.send(JSON.stringify({
-            action: 'authenticate',
-            guest_id: guest_id
-        }));
+        authenticateGuest(guest_id, lobbyWs);
         listGames();
     };
     
@@ -28,15 +19,16 @@ function connectLobbyWebSocket() {
         if (msg.type === "game_created") {
             const gameId = msg.game_id;
             setGameId(gameId);
-            // Add session to lobby list
-            addSessionToList(gameId);
+            // Re-request the list from server to ensure consistency
+            listGames();
         }
         else if (msg.type === "list_games") {
-            for (const session of msg.sessions) {
-                addSessionToList(session.game_id);
-            }
+            // Render directly from server response - no need to store in client state
+            updateSessionListDisplay(msg.sessions);
         }
-        else if (msg.type === "guest_assigned") {
+
+        
+        if (msg.type === "guest_assigned") {
             // Store guest_number in localStorage for display
             localStorage.setItem('guest_number', msg.guest_number);
             console.log(`You joined as Guest ${msg.guest_number}`);
@@ -75,3 +67,4 @@ function listGames() {
         connectLobbyWebSocket();
     }
 }
+

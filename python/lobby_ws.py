@@ -5,9 +5,9 @@ from fastapi import WebSocket
 from datetime import datetime
 import uuid
 from .util import manager
-from ._global import sessions
+from .main import sessions
 from .game_core import Game
-from .game_chat import init_database, save_chat
+from .game_chat import create_chat_table, save_chat
 
 
 # HTTP endpoint for listing active sessions
@@ -31,7 +31,7 @@ async def handle_create_game(websocket: WebSocket):
     """Handle create_game action - creates a new game session"""
     game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
     sessions[game_id] = Game(game_id)  # create a new game session
-    init_database(game_id)
+    create_chat_table(game_id)
     
     # Auto-join creator to the game
     await manager.join_game(websocket, game_id)
