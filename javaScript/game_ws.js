@@ -14,7 +14,7 @@ function connectGameWebSocket() {
         // Join and load game if we have a game_id
         const gameId = getGameId();
         if (gameId) {
-            joinGame(gameId);
+            joinGame(gameId); 
         }
     };
     
@@ -118,7 +118,7 @@ function sendMessage() {
         return;
     }
     const message = {
-        type: 'chat',
+        action: 'chat',
         sender: `Guest ${localStorage.getItem('guest_number')}`,
         content: input,
         game_id: gameId

@@ -1,6 +1,15 @@
 # Changelog
 
-## [Current] - Google OAuth Authentication
+## [Current] - Recent Updates
+
+### Changed
+- Updated authentication flow and WebSocket handlers
+- Improved UI styling and layout
+- Enhanced game and lobby functionality
+
+---
+
+## [Previous] - Google OAuth Authentication
 
 ### Added
 - **Google OAuth Integration**

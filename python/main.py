@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 import traceback
 from dotenv import load_dotenv
 from .util import manager
-from .auth_guest import get_or_assign_guest_number
+from . import auth_guest
 from . import auth_google
 
 # Load environment variables from .env file
@@ -51,61 +51,13 @@ async def websocket_endpoint(websocket: WebSocket):
         # Wait for authentication message first
         auth_message = await websocket.receive_json()
         auth_action = auth_message.get('action')
-        
+
         # Handle Google OAuth authentication
         if auth_action == 'authenticate_google':
-            session_id = auth_message.get('session_id')
-            token_data = auth_google.verify_google_token(session_id) if session_id else None
-            
-            if token_data:
-                user_info = auth_google.get_user_info_from_token(token_data)
-                if user_info:
-                    # Store user info with connection
-                    manager.set_guest_number(websocket, user_info.get('id', 'unknown'))
-                    await websocket.send_json({
-                        'type': 'google_auth_success',
-                        'user_info': {
-                            'id': user_info.get('id'),
-                            'email': user_info.get('email'),
-                            'name': user_info.get('name'),
-                            'picture': user_info.get('picture')
-                        }
-                    })
-                    # Continue to message loop after successful auth
-                else:
-                    await websocket.send_json({
-                        'type': 'google_auth_error',
-                        'message': 'Failed to get user info'
-                    })
-                    await websocket.close()
-                    return
-            else:
-                await websocket.send_json({
-                    'type': 'google_auth_error',
-                    'message': 'Invalid session or token expired'
-                })
-                await websocket.close()
-                return
-        
+            await auth_google.handle_google_auth(websocket, auth_message)
         # Handle guest authentication (existing flow)
         elif auth_action == 'authenticate_guest':
-            guest_id = auth_message.get('guest_id')
-            
-            if not guest_id:
-                # Handle error - no guest_id provided
-                await websocket.close()
-                print("Error: no guest_id provided")
-                return
-            
-            # Get or assign guest number
-            guest_number = get_or_assign_guest_number(guest_id)
-            manager.set_guest_number(websocket, guest_number)
-            
-            # Send guest_number back to client (optional, for display)
-            await websocket.send_json({
-                'type': 'guest_assigned',
-                'guest_number': guest_number
-            })
+            await auth_guest.handle_guest_auth(websocket, auth_message)
         else:
             await websocket.close()
             print("Error: invalid authentication action")
@@ -115,6 +67,8 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_json()
             action = message.get("action")
+
+            print("main.py: Message received:", message)
             
             # Route lobby actions
             if action == "create_game":

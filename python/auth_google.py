@@ -1,7 +1,7 @@
 """
 Google OAuth authentication handlers
 """
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, WebSocket
 from fastapi.responses import RedirectResponse, HTMLResponse
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
@@ -9,6 +9,10 @@ import os
 import secrets
 from typing import Dict, Optional
 from dotenv import load_dotenv
+from .util import manager
+
+# allowed member (later move to DB)
+member_list = ["kaiakim0727@gmail.com"]
 
 # Load environment variables from .env file
 load_dotenv()
@@ -233,3 +237,44 @@ def get_user_info_from_token(token_data: dict) -> Optional[dict]:
         print(f"Error getting user info: {e}")
         return None
 
+async def handle_google_auth(websocket: WebSocket, auth_message: dict):
+    session_id = auth_message.get('session_id')
+    token_data = verify_google_token(session_id) if session_id else None
+    
+    if token_data:
+        user_info = get_user_info_from_token(token_data)
+        if user_info:
+            # Store user info with connection
+            if user_info.get('email') in member_list:
+                manager.set_guest_number(websocket, user_info.get('id', 'unknown'))
+                await websocket.send_json({
+                    'type': 'google_auth_success',
+                    'user_info': {
+                        'id': user_info.get('id'),
+                        'email': user_info.get('email'),
+                        'name': user_info.get('name'),
+                        'picture': user_info.get('picture')
+                    }
+                })
+                # Continue to message loop after successful auth
+            else:
+                await websocket.send_json({
+                    'type': 'google_auth_error',
+                    'message': "You're not a community member"
+                })
+                await websocket.close()
+                return
+        else:
+            await websocket.send_json({
+                'type': 'google_auth_error',
+                'message': 'Failed to get user info'
+            })
+            await websocket.close()
+            return
+    else:
+        await websocket.send_json({
+            'type': 'google_auth_error',
+            'message': 'Invalid session or token expired'
+        })
+        await websocket.close()
+        return

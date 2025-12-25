@@ -79,9 +79,9 @@ function loginSIWG() {
         
         if (event.data.type === 'oauth_success') {
             // Close popup
-            if (popup) {
-                popup.close();
-            }
+            //if (popup) {
+            //    popup.close();
+            //}
             
             // Connect WebSocket if not connected
             if (!authWs || authWs.readyState !== WebSocket.OPEN) {
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const user = JSON.parse(googleUser);
             const app = document.getElementById('app');
             if (app) {
-                app.innerHTML = `<h3>Hi ${user.name || user.email} 👋</h3>`;
+                app.innerHTML = `<h3>관리자: ${user.name || user.email} 👋</h3>`;
             }
         } catch (e) {
             console.error('Error parsing stored user:', e);

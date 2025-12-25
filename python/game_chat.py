@@ -27,6 +27,7 @@ def create_chat_table(session_id):
     conn.close()
 
 def save_chat(session_id, sender, time, content, sort):
+    print("Saving chat:", session_id, sender, time, content, sort)
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute(f'''

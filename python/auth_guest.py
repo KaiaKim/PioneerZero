@@ -2,7 +2,9 @@
 Authentication utility functions for guest session management
 Uses client-provided guest_id (from localStorage) to assign persistent guest numbers
 """
+from fastapi import WebSocket
 from typing import Dict, Optional
+from .util import manager
 
 # Global mappings
 _guest_id_to_number: Dict[str, int] = {}  # Maps client guest_id -> guest_number
@@ -65,3 +67,21 @@ def remove_guest(guest_id: str) -> None:
     if guest_number:
         print(f"Guest {guest_number} disconnected (guest_id: {guest_id})")
 
+async def handle_guest_auth(websocket: WebSocket, auth_message: dict):
+    guest_id = auth_message.get('guest_id')
+
+    if not guest_id:
+        # Handle error - no guest_id provided
+        await websocket.close()
+        print("Error: no guest_id provided")
+        return
+    
+    # Get or assign guest number
+    guest_number = get_or_assign_guest_number(guest_id)
+    manager.set_guest_number(websocket, guest_number)
+    
+    # Send guest_number back to client (optional, for display)
+    await websocket.send_json({
+        'type': 'guest_assigned',
+        'guest_number': guest_number
+    })

@@ -102,6 +102,12 @@
     background-color: #0b7dda;
 }
 
+#app {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
 #btn-siwg{
     display: flex;
     justify-content: space-between;
