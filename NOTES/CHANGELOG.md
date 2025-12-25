@@ -1,11 +1,24 @@
 # Changelog
 
-## [Current] - Recent Updates
+## [Current] - Authentication & UI Improvements
 
 ### Changed
-- Updated authentication flow and WebSocket handlers
-- Improved UI styling and layout
-- Enhanced game and lobby functionality
+- **Authentication System**
+  - Enhanced Google OAuth flow with improved error handling
+  - Updated guest authentication with better session management
+  - Improved WebSocket authentication integration
+  - Refined token verification and user info retrieval
+
+- **UI & Styling**
+  - Updated lobby and room page layouts
+  - Enhanced global CSS styles
+  - Improved button styling and visual consistency
+  - Better user interface responsiveness
+
+- **Backend**
+  - Streamlined `main.py` with cleaner router organization
+  - Enhanced chat functionality integration
+  - Improved WebSocket connection handling
 
 ---
 
@@ -17,6 +30,7 @@
   - `javaScript/auth_google.js` - Frontend OAuth flow with popup window
   - Google OAuth login button in lobby (`index.html`)
   - Google logo image (`images/google2.png`)
+  - `.env.example` - Environment variable template
 
 - **Authentication Features**
   - Google Sign-In with OAuth 2.0 flow
@@ -33,6 +47,7 @@
   - Modified `javaScript/lobby_ws.js` to support authenticated sessions
   - Updated `javaScript/game_ws.js` for authenticated game connections
   - Improved `javaScript/global.js` with auth utilities
+  - Renamed `python/auth.py` → `python/auth_guest.py`
 
 - **UI Updates**
   - Added "Sign in with Google" button to lobby interface
@@ -51,7 +66,6 @@
 
 ### Added
 - **Backend Module Separation**
-  - `_global.py` - Global variables and FastAPI app setup
   - `game_core.py` - Game logic and session management
   - `game_chat.py` - Chat database operations
   - `game_ws.py` - Game WebSocket handlers
