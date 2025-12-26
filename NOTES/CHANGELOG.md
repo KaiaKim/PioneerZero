@@ -4,38 +4,47 @@
 
 ### Fixed
 - **Critical Bug: Game ID Storage Conflict**
-  - Fixed issue where multiple game tabs shared the same `game_id` from localStorage
-  - Chat messages from one tab were incorrectly sent to other games
-  - Changed `getGameId()` to read from URL parameter instead of localStorage
-  - Each tab now operates independently based on its URL parameter
+  - Fixed critical issue where multiple game tabs shared the same `game_id` from localStorage
+  - Resolved bug where chat messages from one tab were incorrectly sent to other games
+  - Changed `getGameId()` function to read from URL parameter instead of localStorage
+  - Each browser tab now operates independently based on its URL parameter (`room.html?game_id=XXX`)
 
-- **Backend Game ID Handling**
-  - Backend now only uses `game_id` from message, never from connection tracking
-  - All game actions now require `game_id` in the message
-  - Improved error handling for missing game_id
+- **Backend Game ID Validation**
+  - Backend now exclusively uses `game_id` from message payload, never from connection tracking
+  - All game actions (`load_game`, `chat`, `end_game`, `join_game`) now require `game_id` in message
+  - Improved error handling with clear messages for missing or invalid `game_id`
 
 - **Game End Behavior**
-  - `end_game` now only broadcasts "Game ended" message
-  - Removed player disconnection on game end (archival requirement)
-  - Games remain accessible in memory and database after ending
+  - `end_game` action now only broadcasts "Game ended" message to all players
+  - Removed automatic player disconnection on game end (archival requirement)
+  - Games remain fully accessible in memory and database after ending
+  - All game data is preserved for historical access
 
 ### Changed
 - **Frontend Game ID Management**
-  - `getGameId()` now reads from URL parameter: `room.html?game_id=XXX`
-  - Removed `setGameId()` function and all localStorage operations for game_id
-  - Game creation now opens room directly with URL parameter
-  - Removed localStorage cleanup from `endGame()`
+  - `getGameId()` function now reads from URL search parameters instead of localStorage
+  - Removed `setGameId()` function and all localStorage operations for `game_id`
+  - Game creation flow now opens room page directly with `game_id` in URL parameter
+  - Removed localStorage cleanup from `endGame()` function
+  - `game_front.js` no longer stores `game_id` in localStorage on page load
 
 - **Backend Action Routing**
-  - Unified game_id retrieval: all actions require `game_id` in message
-  - Improved action routing order in `main.py`
-  - Better error messages for missing game_id
+  - Unified `game_id` retrieval pattern: all actions require `game_id` in message
+  - Improved action routing order in `main.py` WebSocket handler
+  - Better error messages: `"no_game_id"` for missing game_id, `"game_not_found"` for invalid game_id
+  - `join_game` action now follows same pattern as other game actions
+
+- **Game Creation Flow**
+  - Game creation now automatically opens new tab with game room URL
+  - Removed localStorage dependency for game navigation
+  - Direct URL-based game access for better multi-tab support
 
 ### Technical Details
-- Each browser tab maintains its own game_id from URL parameter
-- No shared state between tabs for game_id
-- Backend validates game_id presence before processing actions
-- Games are archived (not deleted) when ended
+- Each browser tab maintains its own `game_id` from URL parameter
+- No shared state between tabs for `game_id` management
+- Backend validates `game_id` presence before processing any game action
+- Games are archived (not deleted) when ended, maintaining full history
+- URL-based game identification enables proper multi-tab functionality
 
 ---
 
