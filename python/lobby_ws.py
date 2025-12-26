@@ -9,11 +9,13 @@ from .game_core import Game
 from .main import sessions
 
 # HTTP endpoint for listing active sessions
-async def handle_list_sessions(websocket: WebSocket, sessions: list[str]):
+async def handle_list_sessions(websocket: WebSocket, chat_tables: list[str]):
     """Return list of active game sessions for the lobby"""
+    # Convert list of game IDs to list of session objects
+    session_list = [{"game_id": game_id} for game_id in chat_tables]
     await websocket.send_json({
         "type": "list_games",
-        "sessions": sessions
+        "session_ids": session_list
     })
 
 
@@ -39,15 +41,30 @@ async def handle_create_game(websocket: WebSocket):
 async def handle_join_game(websocket: WebSocket, message: dict):
     """Handle join_game action - joins a client to an existing game"""
     game_id = message.get("game_id")
-    if game_id and game_id in sessions:
-        await conmanager.join_game(websocket, game_id)
-        await websocket.send_json({
-            'type': 'joined_game',
-            'game_id': game_id
-        })
-    else:
+    if not game_id:
         await websocket.send_json({
             'type': 'join_failed',
-            'message': 'Game not found'
+            'message': 'Game ID not provided'
         })
+        return
+    
+    # Load game from database if not in sessions (lazy loading)
+    if game_id not in sessions:
+        # Check if game exists in database
+        chat_tables = dbmanager.get_chat_tables()
+        if game_id in chat_tables:
+            # Load game from database
+            sessions[game_id] = dbmanager.load_game_from_chat(game_id)
+        else:
+            await websocket.send_json({
+                'type': 'join_failed',
+                'message': 'Game not found'
+            })
+            return
+    
+    await conmanager.join_game(websocket, game_id)
+    await websocket.send_json({
+        'type': 'joined_game',
+        'game_id': game_id
+    })
 

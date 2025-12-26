@@ -16,8 +16,8 @@ from . import auth_google
 load_dotenv()
 
 # Global game sessions dictionary: {game_id: Game object}
-sessions_ids = dbmanager.get_chat_tables()
-sessions = [dbmanager.load_game_from_chat(i) for i in sessions_ids]
+# Games are loaded lazily from the database when accessed
+sessions = {}
 
 # FastAPI app instance
 app = FastAPI()
@@ -70,7 +70,10 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_json()
             action = message.get("action")
-            
+            if action == "kill_db":
+                dbmanager.kill_all_chat_tables()
+                continue
+
             # Route lobby actions
             if action == "create_game":
                 await lobby_ws.handle_create_game(websocket)
@@ -78,6 +81,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if action == "list_games":
                 chat_tables = dbmanager.get_chat_tables()
+                print("chat_tables: ", chat_tables)
                 await lobby_ws.handle_list_sessions(websocket, chat_tables)
                 continue
 
@@ -87,9 +91,21 @@ async def websocket_endpoint(websocket: WebSocket):
             
             # Get the game_id for this connection (from message or connection tracking)
             game_id = message.get("game_id") or conmanager.get_game_id(websocket)
-            if not game_id or game_id not in sessions:
+            if not game_id:
                 await websocket.send_json({"type": "no_game"})
                 continue
+            
+            # Load game from database if not in sessions (lazy loading)
+            if game_id not in sessions:
+                # Check if game exists in database
+                chat_tables = dbmanager.get_chat_tables()
+                if game_id in chat_tables:
+                    # Load game from database
+                    sessions[game_id] = dbmanager.load_game_from_chat(game_id)
+                else:
+                    await websocket.send_json({"type": "no_game"})
+                    continue
+            
             game = sessions[game_id]
 
             # Route game actions

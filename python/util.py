@@ -1,9 +1,11 @@
 """
 Utility functions and classes for the FastAPI server
 """
+
 from fastapi import WebSocket
 import sqlite3
 import os
+
 
 class ConnectionManager:
     """Manages WebSocket connections and game assignments"""
@@ -113,8 +115,11 @@ class DatabaseManager:
         return messages
 
     def load_game_from_chat(self, session_id):
-        chat_history = self.get_chat_history(session_id)
-        return 'game loaded from chat(temp)'
+        """Load a Game object from chat history. For now, creates a new Game instance."""
+        from .game_core import Game
+        # TODO: Reconstruct Game state from chat_history if needed
+        # For now, return a new Game instance with the session_id
+        return Game(session_id)
 
     def kill_all_chat_tables(self):
         """Delete all tables in the chat.db database."""
@@ -153,9 +158,4 @@ class DatabaseManager:
 # class instance
 dbmanager = DatabaseManager()
 conmanager = ConnectionManager()
-
-if __name__ == "__main__":
-    print("Killing all chat tables in database...")
-    dbmanager.kill_all_chat_tables()
-    print("All done.")
 

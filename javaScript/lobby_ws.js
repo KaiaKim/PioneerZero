@@ -68,3 +68,14 @@ function listGames() {
     }
 }
 
+function killDB() {
+    if (lobbyWs && lobbyWs.readyState === WebSocket.OPEN) {
+        const message = {
+            action: 'kill_db'
+        };
+        lobbyWs.send(JSON.stringify(message));
+    } else {
+        console.error('Lobby WebSocket not connected 3');
+        connectLobbyWebSocket();
+    }
+}
