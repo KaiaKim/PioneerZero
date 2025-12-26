@@ -74,6 +74,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "kill_db":
                 #Clean up chat tables for prototype purpose only. Do not use in production.
                 dbmanager.kill_all_chat_tables()
+                sessions.clear()
                 continue
 
             # Route lobby actions
