@@ -4,17 +4,16 @@ Game WebSocket handlers
 from fastapi import WebSocket
 from datetime import datetime
 from .util import conmanager, dbmanager
-from .main import sessions
 
 
-async def handle_load_game(websocket: WebSocket, game_id: str, game):
+async def handle_load_game(websocket: WebSocket, game):
     """Handle load_game action - loads game state and chat history"""
     vomit_data = game.vomit()
     # Send to requesting client only
     await websocket.send_json(vomit_data)
     
     # Load and send chat history to the requesting client
-    chat_history_rows = dbmanager.get_chat_history(game_id)
+    chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []
     for row in chat_history_rows:
         # row format: (id, sender, time, content, sort)
@@ -34,20 +33,13 @@ async def handle_load_game(websocket: WebSocket, game_id: str, game):
 
 
 async def handle_end_game(websocket: WebSocket, game_id: str):
-    """Handle end_game action - ends a game session"""
+    """Send end game message to all clients in the game. Do not delete data or remove connections."""
     now = datetime.now().isoformat()
     msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
     await conmanager.broadcast_to_game(game_id, msg)
-    
-    # Remove all connections from this game
-    connections = conmanager.get_game_connections(game_id)
-    for conn in connections:
-        conmanager.connection_to_game.pop(conn, None)
-    conmanager.game_connections.pop(game_id, None)
-    del sessions[game_id]
 
 
-async def handle_chat(websocket: WebSocket, message: dict, game_id: str):
+async def handle_chat(websocket: WebSocket, message: dict, game):
     """Handle chat messages and commands"""
     now = datetime.now().isoformat()
     content = message.get("content", "")
@@ -58,14 +50,15 @@ async def handle_chat(websocket: WebSocket, message: dict, game_id: str):
         command = content[1:]
         result = "unknown command"
         if "이동" in command:
-            result = sessions[game_id].move_player(sender, command)
+            result = game.move_player(sender, command)
         elif "스킬" in command:
             result = "스킬 사용함"
         elif "행동" in command:
             result = "행동함"
-        msg = dbmanager.save_chat(game_id, "System", now, result, "system")
+        msg = dbmanager.save_chat(game.id, "System", now, result, "system")
     else:
         # Regular chat message
-        msg = dbmanager.save_chat(game_id, sender, now, content, "user")
+        msg = dbmanager.save_chat(game.id, sender, now, content, "user")
     
-    await conmanager.broadcast_to_game(game_id, msg)
+    await conmanager.broadcast_to_game(game.id, msg)
+

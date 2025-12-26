@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from .util import conmanager, dbmanager
 from . import auth_guest
 from . import auth_google
+import uuid
 
 
 
@@ -48,7 +49,6 @@ async def websocket_endpoint(websocket: WebSocket):
     from . import lobby_ws, game_ws
     
     await conmanager.connect(websocket)
-    game_id = None
 
     try:
         # Wait for authentication message first
@@ -70,47 +70,48 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_json()
             action = message.get("action")
+
             if action == "kill_db":
+                #Clean up chat tables for prototype purpose only. Do not use in production.
                 dbmanager.kill_all_chat_tables()
                 continue
 
             # Route lobby actions
             if action == "create_game":
-                await lobby_ws.handle_create_game(websocket)
+                game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
+                sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id)  # create a new game session
                 continue
 
             if action == "list_games":
                 chat_tables = dbmanager.get_chat_tables()
-                print("chat_tables: ", chat_tables)
                 await lobby_ws.handle_list_sessions(websocket, chat_tables)
                 continue
 
+
             if action == "join_game":
-                await lobby_ws.handle_join_game(websocket, message)
-                continue
-            
-            # Get the game_id for this connection (from message or connection tracking)
-            game_id = message.get("game_id") or conmanager.get_game_id(websocket)
-            if not game_id:
-                await websocket.send_json({"type": "no_game"})
-                continue
-            
-            # Load game from database if not in sessions (lazy loading)
-            if game_id not in sessions:
-                # Check if game exists in database
-                chat_tables = dbmanager.get_chat_tables()
-                if game_id in chat_tables:
-                    # Load game from database
-                    sessions[game_id] = dbmanager.load_game_from_chat(game_id)
-                else:
-                    await websocket.send_json({"type": "no_game"})
+                game_id =  message.get("game_id")
+                if not game_id:
+                    await websocket.send_json({"type": "no_game_id"})
                     continue
-            
-            game = sessions[game_id]
+                try:
+                    game = sessions[game_id]
+                except KeyError:
+                    await websocket.send_json({"type": "game_not_found"})
+                    continue
+                await lobby_ws.handle_join_game(websocket, game_id)
+                continue
+
+            # Get the game_id for this connection (from message or connection tracking)
+            game_id =  message.get("game_id") or conmanager.get_game_id(websocket)
+            try:
+                game = sessions[game_id]
+            except KeyError:
+                await websocket.send_json({"type": "game_not_found"})
+                continue
 
             # Route game actions
             if action == "load_game":
-                await game_ws.handle_load_game(websocket, game_id, game)
+                await game_ws.handle_load_game(websocket, game)
                 continue
             
             if action == "end_game":
@@ -118,7 +119,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
             
             if action == "chat":
-                await game_ws.handle_chat(websocket, message, game_id)
+                await game_ws.handle_chat(websocket, message, game)
                 continue
                 
     except Exception as e:

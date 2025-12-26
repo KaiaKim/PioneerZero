@@ -9,8 +9,8 @@ from .temp_character import player, ally_A, enemy_A, enemy_B
 import re
 
 class Game():
-    def __init__(self, session_id):
-        self.session_id = session_id
+    def __init__(self, id):
+        self.id = id
         self.characters = [player, ally_A, enemy_A, enemy_B]
         # Initialize game board as 4x4 grid (4 rows, 4 columns)
         # Row 0: Y1, Y2, Y3, Y4
@@ -23,7 +23,7 @@ class Game():
     def vomit(self):
         data = {
             "type": "vomit_data",
-            "session_id": self.session_id,
+            "id": self.id,
             "names": [char["name"] for char in self.characters],
             "characters": self.characters,
             "game_board": self.game_board,
