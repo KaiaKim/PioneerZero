@@ -24,7 +24,7 @@ function connectLobbyWebSocket() {
         }
         else if (msg.type === "list_games") {
             // Render directly from server response - no need to store in client state
-            updateSessionListDisplay(msg.sessions);
+            updateSessionListDisplay(msg.session_ids);
         }
 
         

@@ -3,9 +3,8 @@ Game WebSocket handlers
 """
 from fastapi import WebSocket
 from datetime import datetime
-from .util import manager
+from .util import conmanager, dbmanager
 from .main import sessions
-from .game_chat import save_chat, get_chat_history
 
 
 async def handle_load_game(websocket: WebSocket, game_id: str, game):
@@ -15,7 +14,7 @@ async def handle_load_game(websocket: WebSocket, game_id: str, game):
     await websocket.send_json(vomit_data)
     
     # Load and send chat history to the requesting client
-    chat_history_rows = get_chat_history(game_id)
+    chat_history_rows = dbmanager.get_chat_history(game_id)
     chat_messages = []
     for row in chat_history_rows:
         # row format: (id, sender, time, content, sort)
@@ -37,14 +36,14 @@ async def handle_load_game(websocket: WebSocket, game_id: str, game):
 async def handle_end_game(websocket: WebSocket, game_id: str):
     """Handle end_game action - ends a game session"""
     now = datetime.now().isoformat()
-    msg = save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
-    await manager.broadcast_to_game(game_id, msg)
+    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
+    await conmanager.broadcast_to_game(game_id, msg)
     
     # Remove all connections from this game
-    connections = manager.get_game_connections(game_id)
+    connections = conmanager.get_game_connections(game_id)
     for conn in connections:
-        manager.connection_to_game.pop(conn, None)
-    manager.game_connections.pop(game_id, None)
+        conmanager.connection_to_game.pop(conn, None)
+    conmanager.game_connections.pop(game_id, None)
     del sessions[game_id]
 
 
@@ -64,9 +63,9 @@ async def handle_chat(websocket: WebSocket, message: dict, game_id: str):
             result = "스킬 사용함"
         elif "행동" in command:
             result = "행동함"
-        msg = save_chat(game_id, "System", now, result, "system")
+        msg = dbmanager.save_chat(game_id, "System", now, result, "system")
     else:
         # Regular chat message
-        msg = save_chat(game_id, sender, now, content, "user")
+        msg = dbmanager.save_chat(game_id, sender, now, content, "user")
     
-    await manager.broadcast_to_game(game_id, msg)
+    await conmanager.broadcast_to_game(game_id, msg)

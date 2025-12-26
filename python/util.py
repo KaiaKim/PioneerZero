@@ -2,7 +2,8 @@
 Utility functions and classes for the FastAPI server
 """
 from fastapi import WebSocket
-
+import sqlite3
+import os
 
 class ConnectionManager:
     """Manages WebSocket connections and game assignments"""
@@ -72,6 +73,89 @@ class ConnectionManager:
         return self.connection_to_game.get(websocket)
 
 
-# Singleton ConnectionManager instance
-manager = ConnectionManager()
+class DatabaseManager:
+    def __init__(self):
+        self.DATABASE_PATH = 'chat.db'
+        self.conn = sqlite3.connect(self.DATABASE_PATH)
+        self.cursor = self.conn.cursor()
+
+    def create_chat_table(self, session_id):
+        self.cursor.execute(f'''
+            CREATE TABLE IF NOT EXISTS "{session_id}" (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT,
+                time TEXT,
+                content TEXT,
+                sort TEXT
+            )
+        ''')
+        self.conn.commit()
+
+    def save_chat(self, session_id, sender, time, content, sort):
+        self.cursor.execute(f'''
+            INSERT INTO "{session_id}" (sender, time, content, sort) 
+            VALUES (?, ?, ?, ?)
+        ''', (sender, time, content, sort))
+        self.conn.commit()
+        return {"type": "chat", "sender": sender, "time": time, "content": content, "sort": sort}
+
+    def get_chat_tables(self):
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+        chat_tables = [row[0] for row in self.cursor.fetchall()]
+        return chat_tables
+
+    def get_chat_history(self, session_id, limit=None):
+        query = f'SELECT * FROM "{session_id}"'
+        if limit:
+            query += f' LIMIT {limit}'
+        self.cursor.execute(query)
+        messages = self.cursor.fetchall()
+        return messages
+
+    def load_game_from_chat(self, session_id):
+        chat_history = self.get_chat_history(session_id)
+        return 'game loaded from chat(temp)'
+
+    def kill_all_chat_tables(self):
+        """Delete all tables in the chat.db database."""
+        try:
+            # Check if database file exists
+            if not os.path.exists(self.DATABASE_PATH):
+                print(f"Database file '{self.DATABASE_PATH}' does not exist.")
+                return
+            
+            # Get all user tables (exclude sqlite system tables)
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+            tables = self.cursor.fetchall()
+            
+            if not tables:
+                print("No tables found in database.")
+                return
+            
+            print(f"Found {len(tables)} table(s) to delete:")
+            deleted_count = 0
+            for table in tables:
+                table_name = table[0]
+                print(f"  - Dropping table: {table_name}")
+                try:
+                    self.cursor.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"    Error dropping table {table_name}: {e}")
+            
+            self.conn.commit()
+            print(f"Successfully deleted {deleted_count} table(s).")
+        except Exception as e:
+            print(f"Error killing database: {e}")
+            import traceback
+            traceback.print_exc()
+
+# class instance
+dbmanager = DatabaseManager()
+conmanager = ConnectionManager()
+
+if __name__ == "__main__":
+    print("Killing all chat tables in database...")
+    dbmanager.kill_all_chat_tables()
+    print("All done.")
 

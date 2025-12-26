@@ -6,13 +6,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import traceback
 from dotenv import load_dotenv
-from .util import manager
+from .util import conmanager, dbmanager
 from . import auth_guest
 from . import auth_google
+
+
 
 # Load environment variables from .env file
 load_dotenv()
 
+# Global game sessions dictionary: {game_id: Game object}
+sessions_ids = dbmanager.get_chat_tables()
+sessions = [dbmanager.load_game_from_chat(i) for i in sessions_ids]
 
 # FastAPI app instance
 app = FastAPI()
@@ -20,8 +25,6 @@ app = FastAPI()
 # Include OAuth router
 app.include_router(auth_google.router)
 
-# Store active game sessions # move to DB later
-sessions = {}
 
 # Serve static files
 app.mount("/style", StaticFiles(directory="style"), name="style")
@@ -44,7 +47,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Lazy imports to avoid circular dependency
     from . import lobby_ws, game_ws
     
-    await manager.connect(websocket)
+    await conmanager.connect(websocket)
     game_id = None
 
     try:
@@ -74,7 +77,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             if action == "list_games":
-                await websocket.send_json(await lobby_ws.list_sessions())
+                chat_tables = dbmanager.get_chat_tables()
+                await lobby_ws.handle_list_sessions(websocket, chat_tables)
                 continue
 
             if action == "join_game":
@@ -82,7 +86,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
             
             # Get the game_id for this connection (from message or connection tracking)
-            game_id = message.get("game_id") or manager.get_game_id(websocket)
+            game_id = message.get("game_id") or conmanager.get_game_id(websocket)
             if not game_id or game_id not in sessions:
                 await websocket.send_json({"type": "no_game"})
                 continue
@@ -106,5 +110,5 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
     finally:
         # Always disconnect when WebSocket closes
-        await manager.disconnect(websocket)
+        await conmanager.disconnect(websocket)
 

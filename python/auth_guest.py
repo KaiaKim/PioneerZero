@@ -4,7 +4,7 @@ Uses client-provided guest_id (from localStorage) to assign persistent guest num
 """
 from fastapi import WebSocket
 from typing import Dict, Optional
-from .util import manager
+from .util import conmanager
 
 # Global mappings
 _guest_id_to_number: Dict[str, int] = {}  # Maps client guest_id -> guest_number
@@ -78,7 +78,7 @@ async def handle_guest_auth(websocket: WebSocket, auth_message: dict):
     
     # Get or assign guest number
     guest_number = get_or_assign_guest_number(guest_id)
-    manager.set_guest_number(websocket, guest_number)
+    conmanager.set_guest_number(websocket, guest_number)
     
     # Send guest_number back to client (optional, for display)
     await websocket.send_json({
