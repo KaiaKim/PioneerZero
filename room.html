@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style/room.css">
 </head>
 <body>
-    <div id="app">
+    <div class="login">
         <button id="btn-siwg"><img src="images/google2.png"/>Sign in with Google</button>
     </div>
     <!-- Game Screen -->
@@ -17,6 +17,8 @@
         <textarea id="vomit-box">
             Game data will appear here.
         </textarea>
+        <audio id="bgm" src="audio\Lookfar - Mineral Hall - 02 Petrified Wood.mp3" controls loop autoplay></audio>
+        <div class="timer">00:00</div>
         <div class="floor-3d">
             <div class="parent-grid">
                 <!-- XY Section (2x4 grid) -->
@@ -61,8 +63,9 @@
 
     
 
-    <script src="javaScript/global.js"></script>
-    <script src="javaScript/auth_google.js"></script>
+    <script src="javaScript/util.js"></script>
+    <script src="javaScript/auth_front.js"></script>
+    <script src="javaScript/auth_ws.js"></script>
     <script src="javaScript/game_front.js"></script>
     <script src="javaScript/game_ws.js"></script>
 </body>

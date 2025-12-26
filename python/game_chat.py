@@ -27,7 +27,6 @@ def create_chat_table(session_id):
     conn.close()
 
 def save_chat(session_id, sender, time, content, sort):
-    print("Saving chat:", session_id, sender, time, content, sort)
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     cursor.execute(f'''
@@ -37,6 +36,14 @@ def save_chat(session_id, sender, time, content, sort):
     conn.commit()
     conn.close()
     return {"type": "chat", "sender": sender, "time": time, "content": content, "sort": sort}
+
+def get_chat_tables():
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+    chat_tables = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return chat_tables
 
 def get_chat_history(session_id, limit=None):
     conn = sqlite3.connect(DATABASE_PATH)

@@ -21,7 +21,7 @@ p {
     margin-bottom: 10px;
 }
 
-#app {
+.login {
     display: flex;
     justify-content: flex-end;
     align-items: center;

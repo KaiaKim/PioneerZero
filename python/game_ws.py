@@ -50,7 +50,6 @@ async def handle_end_game(websocket: WebSocket, game_id: str):
 
 async def handle_chat(websocket: WebSocket, message: dict, game_id: str):
     """Handle chat messages and commands"""
-    print("Handle chat message received:", message)
     now = datetime.now().isoformat()
     content = message.get("content", "")
     sender = message.get("sender")

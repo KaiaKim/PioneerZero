@@ -67,8 +67,6 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_json()
             action = message.get("action")
-
-            print("main.py: Message received:", message)
             
             # Route lobby actions
             if action == "create_game":
