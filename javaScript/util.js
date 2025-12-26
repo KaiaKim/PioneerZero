@@ -1,16 +1,9 @@
 // Global variables
 
-// Helper functions for game_id in localStorage
+// Helper functions for game_id from URL parameter
 function getGameId() {
-    return localStorage.getItem('game_id');
-}
-
-function setGameId(gameId) {
-    if (gameId) {
-        localStorage.setItem('game_id', gameId);
-    } else {
-        localStorage.removeItem('game_id');
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('game_id');
 }
 
 function getGuestId() {

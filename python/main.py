@@ -88,22 +88,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 await lobby_ws.handle_list_sessions(websocket, chat_tables)
                 continue
 
-
-            if action == "join_game":
-                game_id =  message.get("game_id")
-                if not game_id:
-                    await websocket.send_json({"type": "no_game_id"})
-                    continue
-                try:
-                    game = sessions[game_id]
-                except KeyError:
-                    await websocket.send_json({"type": "game_not_found"})
-                    continue
-                await lobby_ws.handle_join_game(websocket, game_id)
+            # Get the game_id from message only (required for all game actions)
+            game_id = message.get("game_id")
+            if not game_id:
+                await websocket.send_json({"type": "no_game_id"})
                 continue
-
-            # Get the game_id for this connection (from message or connection tracking)
-            game_id =  message.get("game_id") or conmanager.get_game_id(websocket)
             try:
                 game = sessions[game_id]
             except KeyError:
@@ -111,6 +100,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             # Route game actions
+            if action == "join_game":
+                await lobby_ws.handle_join_game(websocket, game_id)
+                continue
+
             if action == "load_game":
                 await game_ws.handle_load_game(websocket, game)
                 continue

@@ -1,10 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Extract game_id from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const gameIdFromUrl = urlParams.get('game_id');
-    if (gameIdFromUrl) {
-        setGameId(gameIdFromUrl);
-    }
+    // game_id is now always retrieved from URL parameter via getGameId()
     
     // Set up chat input event listener
     const chatInput = document.getElementById('chat-input');

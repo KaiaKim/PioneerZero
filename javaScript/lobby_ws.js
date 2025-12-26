@@ -18,7 +18,9 @@ function connectLobbyWebSocket() {
         
         if (msg.type === "game_created") {
             const gameId = msg.game_id;
-            setGameId(gameId);
+            // Open game room with game_id in URL parameter
+            const roomUrl = `room.html?game_id=${gameId}`;
+            window.open(roomUrl, '_blank');
             // Re-request the list from server to ensure consistency
             listGames();
         }

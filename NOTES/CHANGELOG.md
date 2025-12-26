@@ -1,6 +1,45 @@
 # Changelog
 
-## [Current] - Authentication & UI Improvements
+## [Current] - Critical Bug Fix: Multi-Tab Game ID Management
+
+### Fixed
+- **Critical Bug: Game ID Storage Conflict**
+  - Fixed issue where multiple game tabs shared the same `game_id` from localStorage
+  - Chat messages from one tab were incorrectly sent to other games
+  - Changed `getGameId()` to read from URL parameter instead of localStorage
+  - Each tab now operates independently based on its URL parameter
+
+- **Backend Game ID Handling**
+  - Backend now only uses `game_id` from message, never from connection tracking
+  - All game actions now require `game_id` in the message
+  - Improved error handling for missing game_id
+
+- **Game End Behavior**
+  - `end_game` now only broadcasts "Game ended" message
+  - Removed player disconnection on game end (archival requirement)
+  - Games remain accessible in memory and database after ending
+
+### Changed
+- **Frontend Game ID Management**
+  - `getGameId()` now reads from URL parameter: `room.html?game_id=XXX`
+  - Removed `setGameId()` function and all localStorage operations for game_id
+  - Game creation now opens room directly with URL parameter
+  - Removed localStorage cleanup from `endGame()`
+
+- **Backend Action Routing**
+  - Unified game_id retrieval: all actions require `game_id` in message
+  - Improved action routing order in `main.py`
+  - Better error messages for missing game_id
+
+### Technical Details
+- Each browser tab maintains its own game_id from URL parameter
+- No shared state between tabs for game_id
+- Backend validates game_id presence before processing actions
+- Games are archived (not deleted) when ended
+
+---
+
+## [Previous] - Authentication & UI Improvements
 
 ### Changed
 - **Authentication System**

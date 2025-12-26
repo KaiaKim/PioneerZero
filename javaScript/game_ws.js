@@ -105,7 +105,6 @@ function endGame() {
             game_id: gameId
         };
         gameWs.send(JSON.stringify(message));
-        localStorage.removeItem('game_id'); // Clear game_id from localStorage
     }
 }
 
