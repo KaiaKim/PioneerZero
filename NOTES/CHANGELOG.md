@@ -1,6 +1,49 @@
 # Changelog
 
-## [Current] - Critical Bug Fix: Multi-Tab Game ID Management
+## [Current] - UI Redesign & Layout Improvements
+
+### Added
+- **New Assets**
+  - Added 4 new background images (`shutterstock_2447343523.jpg`, `shutterstock_2460491637.jpg`, `shutterstock_2493413181.jpg`, `shutterstock_2503971441.jpg`)
+
+- **Chat Filtering System**
+  - Added chat filter checkboxes (All, System, Chat, Story) in room interface
+  - Filter controls for different message types
+
+- **Layout Components**
+  - New left menu bar with Google sign-in button
+  - New right menu bar placeholder
+  - Restructured game screen with grid-based layout
+
+### Changed
+- **Room Page Layout**
+  - Restructured `room.html` with new menu system
+  - Moved Google sign-in button to left menu bar
+  - Changed default display states: waiting room visible, floor-3d hidden
+  - Updated vomit-box styling and positioning
+  - Improved right panel layout and spacing
+
+- **Styling Updates**
+  - Major `room.css` overhaul with grid-based layout system
+  - Added full-screen game screen with background image (`sky2.jpg`)
+  - Updated button color scheme in `global.css` (black background, white text)
+  - Enhanced chat log container styling with black background
+  - Improved right panel styling with new color scheme
+  - Better z-index management for menu overlays
+
+- **Game Frontend**
+  - Commented out BGM autoplay functionality in `game_front.js`
+  - Removed autoplay fallback event listeners
+
+### Technical Details
+- Full viewport grid layout for game screen
+- Fixed positioning for menu bars
+- Improved overflow handling for chat and game containers
+- Better visual hierarchy with z-index layering
+
+---
+
+## [Previous] - Critical Bug Fix: Multi-Tab Game ID Management
 
 ### Fixed
 - **Critical Bug: Game ID Storage Conflict**

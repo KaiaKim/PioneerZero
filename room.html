@@ -8,18 +8,19 @@
     <link rel="stylesheet" href="style/room.css">
 </head>
 <body>
-    <div class="login">
-        <button id="btn-siwg"><img src="images/google2.png"/>Sign in with Google</button>
-    </div>
+
     <!-- Game Screen -->
     <div class="game-screen">
+        <div class="left-menu">
+            <button id="btn-siwg"><img src="images/google2.png"/>Sign in with Google</button>
+        </div>
     <div class="game-container">
-        <textarea id="vomit-box" style="display: none;">
+        <textarea id="vomit-box">
             Game data will appear here.
         </textarea>
-        <audio id="bgm" src="audio/Lookfar - Mineral Hall - 02 Petrified Wood.mp3" controls loop autoplay></audio>
+        <audio id="bgm" src="audio/Lookfar - Mineral Hall - 02 Petrified Wood.mp3" controls loop></audio>
         <h1 class="timer">00:00</h1>
-        <div class="waiting-room" style="display: none;">
+        <div class="waiting-room" style="display: flex;">
             <div class="waiting-grid">
                 <div class="waiting-cell">
                     <div class="waiting-thumbnail">
@@ -79,7 +80,7 @@
                 <!-- Spectator items will be added here -->
             </ul>
         </div>
-        <div class="floor-3d" style="display: block;">
+        <div class="floor-3d" style="display: none;">
             <div class="parent-grid">
                 <!-- XY Section (2x4 grid) -->
                 <div class="section xy-section">
@@ -110,8 +111,17 @@
             </div>
         </div>
     </div>
+    <div class="right-menu">
+        >|
+    </div>
     <div class="right-panel">
         <div id="chat-log" class="chat-log-container"></div>
+        <div>
+            <label><input type="checkbox" id="all-checkbox"> All</label>
+            <label><input type="checkbox" id="system-checkbox"> System</label>
+            <label><input type="checkbox" id="chat-checkbox"> Chat</label>
+            <label><input type="checkbox" id="story-checkbox"> Story</label>
+        </div>
         <div>
             <img src="images\pikita_token.png" alt="character image" class="profile-image">
             <label id="chat-char">noname</label>
@@ -119,7 +129,8 @@
         </div>
         <textarea type="text" id="chat-input" placeholder="Type your message here..."></textarea>
     </div>
-    </div>
+</div>
+
 
     
 
