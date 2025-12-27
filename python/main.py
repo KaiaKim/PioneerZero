@@ -4,12 +4,11 @@ Global variables and core server setup for the FastAPI server
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import uuid
 import traceback
 from dotenv import load_dotenv
+from . import lobby_ws, game_ws, auth_google, auth_guest
 from .util import conmanager, dbmanager
-from . import auth_guest
-from . import auth_google
-import uuid
 
 
 
@@ -31,6 +30,7 @@ app.include_router(auth_google.router)
 app.mount("/style", StaticFiles(directory="style"), name="style")
 app.mount("/images", StaticFiles(directory="images"), name="images")
 app.mount("/javaScript", StaticFiles(directory="javaScript"), name="javaScript")
+app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
 
 # HTTP endpoints for serving HTML files
@@ -45,9 +45,7 @@ async def read_room():
 # Main WebSocket endpoint - routes messages to appropriate handlers
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Lazy imports to avoid circular dependency
-    from . import lobby_ws, game_ws
-    
+
     await conmanager.connect(websocket)
 
     try:

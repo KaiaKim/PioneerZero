@@ -8,8 +8,11 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     color: #e5e5e5;
-    background-color: #1f1f1f; /* Dark grey lobby background */
     padding: 20px;
+    background-image: url('../images/sky2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 h1 {
@@ -19,6 +22,16 @@ h1 {
 
 p {
     margin-bottom: 10px;
+}
+
+button {
+    background-color: #000000;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    border: 1px solid white;
+    border-radius: 5%;
+    padding: 4px 10px;
 }
 
 .login {
@@ -45,3 +58,4 @@ p {
   
     object-fit: contain;
   }
+

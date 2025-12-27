@@ -114,7 +114,7 @@ class DatabaseManager:
         messages = self.cursor.fetchall()
         return messages
 
-    def load_game_from_chat(self, session_id):
+    def restore_game_from_chat(self, session_id):
         """Load a Game object from chat history. For now, creates a new Game instance."""
         from .game_core import Game
         # TODO: Reconstruct Game state from chat_history if needed

@@ -12,14 +12,74 @@
         <button id="btn-siwg"><img src="images/google2.png"/>Sign in with Google</button>
     </div>
     <!-- Game Screen -->
-    <div class="game-screen" style="display: block;">
+    <div class="game-screen">
     <div class="game-container">
-        <textarea id="vomit-box">
+        <textarea id="vomit-box" style="display: none;">
             Game data will appear here.
         </textarea>
-        <audio id="bgm" src="audio\Lookfar - Mineral Hall - 02 Petrified Wood.mp3" controls loop autoplay></audio>
-        <div class="timer">00:00</div>
-        <div class="floor-3d">
+        <audio id="bgm" src="audio/Lookfar - Mineral Hall - 02 Petrified Wood.mp3" controls loop autoplay></audio>
+        <h1 class="timer">00:00</h1>
+        <div class="waiting-room" style="display: none;">
+            <div class="waiting-grid">
+                <div class="waiting-cell">
+                    <div class="waiting-thumbnail">
+                        <button id="player-join-but">Join</button>
+                        <button id="add-robot-but">Bot</button>
+                    </div>
+                    <label class="waiting-name">P1</label>
+                    <label class="waiting-ready-label">
+                        Ready
+                        <input type="checkbox" class="waiting-ready" />
+                    </label>
+                </div>
+                <div class="waiting-cell">
+                    <div class="waiting-thumbnail">
+                        <button id="player-join-but">Join</button>
+                        <button id="add-robot-but">Bot</button>
+                    </div>
+                    <label class="waiting-name">P2</label>
+                    <label class="waiting-ready-label">
+                        Ready
+                        <input type="checkbox" class="waiting-ready" />
+                    </label>
+                </div>
+                <div class="waiting-cell">
+                    <div class="waiting-thumbnail">
+                        <button id="player-join-but">Join</button>
+                        <button id="add-robot-but">Bot</button>
+                    </div>
+                    <label class="waiting-name">P3</label>
+                    <label class="waiting-ready-label">
+                        Ready
+                        <input type="checkbox" class="waiting-ready" />
+                    </label>
+                </div>
+                <div class="waiting-cell">
+                    <div class="waiting-thumbnail">
+                        <button id="player-join-but">Join</button>
+                        <button id="add-robot-but">Bot</button>
+                    </div>
+                    <label class="waiting-name">P4</label>
+                    <label class="waiting-ready-label">
+                        Ready
+                        <input type="checkbox" class="waiting-ready" />
+                    </label>
+                </div>
+            </div>
+            <label class="start-label">Starting in 3...</label>
+        </div>
+        <div class="spectate-list">
+            <label class="spectate-label">Spectate</label>
+            <ul class="spectate-items">
+                <li>P1</li>
+                <li>P2</li>
+                <li>P3</li>
+                <li>P4</li>
+                <li>P5</li>
+                <!-- Spectator items will be added here -->
+            </ul>
+        </div>
+        <div class="floor-3d" style="display: block;">
             <div class="parent-grid">
                 <!-- XY Section (2x4 grid) -->
                 <div class="section xy-section">
@@ -49,15 +109,15 @@
                 </div>
             </div>
         </div>
-        <div class="right-panel">
-            <div id="chat-log" class="chat-log-container"></div>
-            <div>
-                <img src="images\pikita_token.png" alt="character image" class="profile-image">
-                <label id="chat-char">noname</label>
-                <button onclick="sendMessage()">Send</button>
-            </div>
-            <textarea type="text" id="chat-input" placeholder="Type your message here..."></textarea>
+    </div>
+    <div class="right-panel">
+        <div id="chat-log" class="chat-log-container"></div>
+        <div>
+            <img src="images\pikita_token.png" alt="character image" class="profile-image">
+            <label id="chat-char">noname</label>
+            <button onclick="sendMessage()">Send</button>
         </div>
+        <textarea type="text" id="chat-input" placeholder="Type your message here..."></textarea>
     </div>
     </div>
 

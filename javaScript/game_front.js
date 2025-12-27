@@ -1,6 +1,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     // game_id is now always retrieved from URL parameter via getGameId()
     
+    // Set up background music with autoplay fallback
+    const bgm = document.getElementById('bgm');
+    if (bgm) {
+        // Try to play immediately (may fail due to browser autoplay policy)
+        bgm.play().catch(err => {
+            console.log('Autoplay blocked, waiting for user interaction');
+        });
+        
+        // Attempt to play after any user interaction
+        const playBGM = () => {
+            bgm.play().catch(err => console.log('Could not play BGM:', err));
+        };
+        
+        document.addEventListener('click', playBGM, { once: true });
+        document.addEventListener('keydown', playBGM, { once: true });
+    }
+    
     // Set up chat input event listener
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
