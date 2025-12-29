@@ -1,3 +1,4 @@
+/* Reset and Base Styles */
 * {
     margin: 0;
     padding: 0;
@@ -15,8 +16,9 @@ body {
     background-repeat: no-repeat;
 }
 
+/* Typography */
 h1 {
-    color: #ffffff; /* White headings */
+    color: #ffffff;
     margin-bottom: 20px;
 }
 
@@ -24,6 +26,7 @@ p {
     margin-bottom: 10px;
 }
 
+/* Buttons */
 button {
     background-color: #000000;
     color: white;
@@ -34,13 +37,7 @@ button {
     padding: 4px 10px;
 }
 
-.login {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-#btn-siwg{
+#btn-siwg {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -48,14 +45,17 @@ button {
     background-color: #000000;
     color: #ffffff;
     border: 0.5px solid #9d9d9d;
-    /* -webkit-box-shadow: 0px 7px 10px -3px rgba(253,54,110,0.62); 
-    box-shadow: 0px 4px 10px -5px rgba(253,54,110,0.62); */
-  
-  }
-  
-  #btn-siwg img{
+}
+
+#btn-siwg img {
     height: 30px;
-  
     object-fit: contain;
-  }
+}
+
+/* Login */
+.login {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
 

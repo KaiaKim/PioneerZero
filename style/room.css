@@ -1,5 +1,4 @@
-/* 3D Floor Grid */
-
+/* Game Screen Layout */
 .game-screen {
     position: fixed;
     top: 0;
@@ -16,6 +15,7 @@
     background-repeat: no-repeat;
 }
 
+/* Top Menu Bars */
 .left-menu {
     grid-row: 1;
     grid-column: 1 / -1;
@@ -41,13 +41,12 @@
     font-weight: bold;
 }
 
+/* Game Container */
 .game-container {
     grid-row: 2;
     grid-column: 1;
-    margin: 0 0;
-    /* Focal length: smaller = wider angle (more dramatic), larger = narrower (less dramatic) */
+    margin: 0;
     perspective: 1200px;
-    /* Viewing point: center center, left top, right bottom, or percentages like 50% 30% */
     perspective-origin: center center;
     height: 100%;
     flex: 1;
@@ -57,10 +56,171 @@
     position: relative;
 }
 
+/* Vomit Box */
+#vomit-box {
+    display: flex;
+    width: 400px;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: white;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
 
+#vomit-box::-webkit-scrollbar {
+    display: none;
+}
+
+/* Audio */
+#bgm {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+/* Timer */
+.timer {
+    position: absolute;
+    top: 10px;
+}
+
+/* Waiting Room */
+.waiting-room {
+    width: 900px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.waiting-grid {
+    width: 100%;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.waiting-cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    min-height: 250px;
+    gap: 10px;
+}
+
+.waiting-thumbnail {
+    width: 120px;
+    height: 180px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background-color: #4a4a4a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.waiting-cell button {
+    display: block;
+}
+
+.waiting-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+}
+
+.waiting-ready-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.waiting-ready {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.start-label {
+    display: block;
+    width: 800px;
+    margin: 0 auto;
+    margin-top: 20px;
+    background-color: #000000;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    font-size: 22px;
+    padding: 10px 20px;
+    border-radius: 4px;
+}
+
+/* Spectate List */
+.spectate-list {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    height: 200px;
+    margin-left: auto;
+    margin-top: auto;
+    align-self: flex-end;
+}
+
+.spectate-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.spectate-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.spectate-items li {
+    color: #fff;
+    padding: 5px 10px;
+    background-color: rgba(42, 42, 42, 0.8);
+    border-radius: 4px;
+}
+
+/* 3D Floor Grid */
 .floor-3d {
     transform-style: preserve-3d;
-    /* Rotation angles: rotateX = tilt up/down, rotateZ = rotation around Z-axis */
     transform: rotateX(60deg) rotateZ(20deg);
     width: 400px;
     height: 400px;
@@ -89,7 +249,6 @@
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
-    
 }
 
 .cell {
@@ -105,7 +264,6 @@
 .xy-section .cell {
     background: #1e3a8a;
     color: white;
-
 }
 
 .ab-section .cell {
@@ -123,33 +281,7 @@
     pointer-events: none;
 }
 
-/* Common styles for chat and vomit box elements */
-#chat-input {
-    border: 1px solid #000;
-    padding: 10px;
-    font-size: 14px;
-}
-
-#vomit-box {
-    display: flex;
-    width: 400px;
-    height: 100%;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    z-index: 100;
-    border: none;
-    background-color: rgba(0, 0, 0, 0.1);
-    color: white;
-    overflow-y: auto;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-}
-
-#vomit-box::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-}
-
+/* Right Panel */
 .right-panel {
     padding: 8px;
     font-size: 14px;
@@ -171,6 +303,19 @@
     font-size: 15px;
 }
 
+.right-panel > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.right-panel button {
+    margin-left: auto;
+    width: 80px;
+    height: 40px;
+}
+
+/* Chat Log */
 #chat-log {
     width: 100%;
     flex: 1;
@@ -233,11 +378,16 @@
     color: #ffaa00;
 }
 
+/* Chat Input */
 #chat-input {
     width: 100%;
     height: 15%;
+    border: 1px solid #000;
+    padding: 10px;
+    font-size: 14px;
 }
 
+/* Profile */
 .profile-image {
     width: 50px;
     height: 50px;
@@ -246,154 +396,4 @@
 
 #chat-char {
     font-size: 24px;
-}
-
-.right-panel > div {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.right-panel button {
-    margin-left: auto;
-    width: 80px;
-    height: 40px;
-}
-
-#bgm {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 100;
-}
-
-.waiting-room {
-    width: 900px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-}
-
-
-.waiting-grid {
-    width: 100%;
-    margin: auto;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-.waiting-cell {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    border: 2px solid #333;
-    border-radius: 8px;
-    background-color: #2a2a2a;
-    min-height: 250px;
-    gap: 10px;
-}
-
-.waiting-thumbnail {
-    width: 120px;
-    height: 180px;
-    border: 2px solid #555;
-    border-radius: 4px;
-    background-color: #4a4a4a;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-}
-
-.waiting-cell button {
-    display: block;
-}
-
-.waiting-name {
-    font-size: 18px;
-    font-weight: bold;
-    color: #fff;
-    text-align: center;
-}
-
-.waiting-ready-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #fff;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.waiting-ready {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.timer{
-    position: absolute;
-    top:10px;
-}
-
-.spectate-list {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    width: 220px;
-    height: 200px;
-    margin-left: auto;
-    margin-top: auto;
-    align-self: flex-end;
-}
-
-.spectate-label {
-    font-size: 18px;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 10px;
-}
-
-.spectate-items {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.spectate-items li {
-    color: #fff;
-    padding: 5px 10px;
-    background-color: rgba(42, 42, 42, 0.8);
-    border-radius: 4px;
-}
-
-.start-label {
-    display: block;
-    width: 800px;
-    margin: 0 auto;
-    margin-top: 20px;
-    background-color: #000000;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    font-size: 22px;
-    padding: 10px 20px;
-    border-radius: 4px;
 }
