@@ -78,7 +78,7 @@ PioneerZero/
 │   │   └── useGame.js        (game WebSocket logic)
 │   ├── util.js               (migrated utility functions)
 │   ├── App.jsx
-│   ├── main.jsx
+│   ├── main.jsx (vite entry point)
 │   └── index.css
 ├── public/
 │   ├── images/
