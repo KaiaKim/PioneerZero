@@ -66,7 +66,9 @@ export function useLobby() {
 
   const createGame = () => {
     const socket = wsRef.current || lobbyWs;
+
     if (socket && socket.readyState === WebSocket.OPEN) {
+      console.log('socket is connected');
       const message = {
         action: 'create_game'
       };
@@ -97,12 +99,10 @@ export function useLobby() {
   useEffect(() => {
     connectLobbyWebSocket();
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
   }, []);
 
   return { sessions, createGame, killDB, openGameRoom };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import '../style/global.css';
+import '../../style/global.css';
 
 function Auth() {
   const { user, loginSIWG } = useAuth();

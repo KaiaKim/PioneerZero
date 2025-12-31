@@ -134,7 +134,7 @@ export function useGame() {
     connectGameWebSocket();
 
     return () => {
-      if (wsRef.current) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.close();
         wsRef.current = null;
       }

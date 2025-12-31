@@ -152,7 +152,7 @@ export function useAuth() {
 
   useEffect(() => {
     return () => {
-      if (authWs) {
+      if (authWs && authWs.readyState === WebSocket.OPEN) {
         authWs.close();
       }
     };

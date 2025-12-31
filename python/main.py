@@ -27,20 +27,22 @@ app.include_router(auth_google.router)
 
 
 # Serve static files
+# Note: React app is served by Vite dev server, these are for legacy/backup
 app.mount("/style", StaticFiles(directory="style"), name="style")
-app.mount("/images", StaticFiles(directory="images"), name="images")
-app.mount("/javaScript", StaticFiles(directory="javaScript"), name="javaScript")
-app.mount("/audio", StaticFiles(directory="audio"), name="audio")
+app.mount("/images", StaticFiles(directory="public/images"), name="images")
+app.mount("/audio", StaticFiles(directory="public/audio"), name="audio")
 
+# Legacy JavaScript files moved to old/javaScript - no longer needed for React app
+# app.mount("/javaScript", StaticFiles(directory="old/javaScript"), name="javaScript")
 
-# HTTP endpoints for serving HTML files
-@app.get("/")
-async def read_root():
-    return FileResponse("index.html")
+# HTTP endpoints for serving HTML files (legacy - React app uses Vite)
+# @app.get("/")
+# async def read_root():
+#     return FileResponse("old/index.html")
 
-@app.get("/room.html")
-async def read_room():
-    return FileResponse("room.html")
+# @app.get("/room.html")
+# async def read_room():
+#     return FileResponse("old/room.html")
 
 # Main WebSocket endpoint - routes messages to appropriate handlers
 @app.websocket("/ws")

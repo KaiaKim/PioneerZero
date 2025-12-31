@@ -1,8 +1,8 @@
 import React from 'react';
 import { useLobby } from '../hooks/useLobby';
 import Auth from './auth';
-import '../style/global.css';
-import '../style/lobby.css';
+import '../../style/global.css';
+import '../../style/lobby.css';
 
 function Lobby() {
   const { sessions, createGame, killDB, openGameRoom } = useLobby();

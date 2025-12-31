@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import { useAuth } from '../hooks/useAuth';
-import '../style/global.css';
-import '../style/room.css';
+import '../../style/global.css';
+import '../../style/room.css';
 
 function GameRoom() {
   const { gameData, chatMessages, characters, guestNumber, sendMessage, chatLogRef } = useGame();
