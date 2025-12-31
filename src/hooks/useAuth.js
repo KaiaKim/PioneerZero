@@ -1,14 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getGuestId, genGuestId, authenticateGuest } from '../util';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [authWs, setAuthWs] = useState(null);
-  const authResolveRef = useRef(null);
 
-  useEffect(() => {
+  useEffect(() => { //load user info from localStorage on mount
     // Check if already authenticated
-    const googleUser = localStorage.getItem('google_user');
+    const googleUser = localStorage.getItem('user_info');
     if (googleUser) {
       try {
         const userData = JSON.parse(googleUser);
@@ -30,36 +29,18 @@ export function useAuth() {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
 
-      if (msg.type === 'google_auth_success') {
-        console.log('Google authentication successful:', msg.user_info);
-        localStorage.setItem('google_user', JSON.stringify(msg.user_info));
-        localStorage.setItem('auth_type', 'google');
+      if (msg.type === 'user_added') {
+        console.log('User added:', msg.user_info);
+        localStorage.setItem('user_info', JSON.stringify(msg.user_info));
         setUser(msg.user_info);
-
-        if (authResolveRef.current) {
-          authResolveRef.current(msg.user_info);
-          authResolveRef.current = null;
-        }
-      } else if (msg.type === 'google_auth_error') {
-        console.error('Google authentication error:', msg.message);
+      } else if (msg.type === 'auth_error') {
+        console.error('Authentication error:', msg.message);
         alert('Authentication failed: ' + msg.message);
-
-        if (authResolveRef.current) {
-          authResolveRef.current(null);
-          authResolveRef.current = null;
-        }
-      } else if (msg.type === 'guest_assigned') {
-        localStorage.setItem('guest_number', msg.guest_number);
-        console.log(`You joined as Guest ${msg.guest_number}`);
       }
     };
 
     ws.onerror = (error) => {
       console.error('Auth WebSocket error:', error);
-      if (authResolveRef.current) {
-        authResolveRef.current(null);
-        authResolveRef.current = null;
-      }
     };
 
     ws.onclose = () => {
@@ -105,12 +86,12 @@ export function useAuth() {
           wsInstance.onmessage = (e) => {
             const msg = JSON.parse(e.data);
             if (msg.type === 'google_auth_success') {
-              localStorage.setItem('google_user', JSON.stringify(msg.user_info));
+              localStorage.setItem('user_info', JSON.stringify(msg.user_info));
               localStorage.setItem('auth_type', 'google');
               setUser(msg.user_info);
             } else if (msg.type === 'google_auth_error') {
               alert('Authentication failed: ' + msg.message);
-            } else if (msg.type === 'guest_assigned') {
+            } else if (msg.type === 'user_added') {
               localStorage.setItem('guest_number', msg.guest_number);
             }
           };
@@ -150,7 +131,7 @@ export function useAuth() {
     }
   };
 
-  useEffect(() => {
+  useEffect(() => { //close websocket on cleanup
     return () => {
       if (authWs && authWs.readyState === WebSocket.OPEN) {
         authWs.close();

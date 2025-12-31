@@ -2,6 +2,7 @@
 Authentication utility functions for guest session management
 Uses client-provided guest_id (from localStorage) to assign persistent guest numbers
 """
+from contextlib import nullcontext
 from fastapi import WebSocket
 from typing import Dict, Optional
 from .util import conmanager
@@ -82,6 +83,11 @@ async def handle_guest_auth(websocket: WebSocket, auth_message: dict):
     
     # Send guest_number back to client (optional, for display)
     await websocket.send_json({
-        'type': 'guest_assigned',
-        'guest_number': guest_number
+        'type': 'user_added',
+        'user_info': {
+            'id': guest_id,
+            'name': 'Guest' + str(guest_number),
+            'guest_number': guest_number,
+            'isGuest': True
+        }
     })

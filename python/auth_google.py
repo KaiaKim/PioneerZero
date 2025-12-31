@@ -55,10 +55,10 @@ def get_flow():
 
 
 @router.get("/auth/google/login")
-async def google_login(request: Request):
-    """Initiate Google OAuth login"""
-    # Generate state token for CSRF protection
-    state = secrets.token_urlsafe(32)
+async def google_login(request: Request, session_id: Optional[str] = None):
+    """Initiate Google OAuth login - accepts optional session_id from client, otherwise generates one"""
+    # Use provided session_id or generate one for CSRF protection
+    state = session_id if session_id else secrets.token_urlsafe(32)
     
     # Store state (in production, associate with session)
     _oauth_states[state] = state
@@ -77,59 +77,35 @@ async def google_login(request: Request):
 
 @router.get("/auth/google/callback")
 async def google_callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None):
-    """Handle Google OAuth callback"""
+    """Handle Google OAuth callback - stores token and returns minimal HTML to close popup"""
+    # Minimal HTML that just closes the popup
+    close_popup_html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Authentication</title></head>
+    <body>
+        <script>window.close();</script>
+        <p>You can close this window.</p>
+    </body>
+    </html>
+    """
+    
     if error:
-        # OAuth error occurred
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>OAuth Error</title></head>
-        <body>
-            <h1>Authentication Error</h1>
-            <p>{error}</p>
-            <script>
-                window.opener.postMessage({{type: 'oauth_error', error: '{error}'}}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
+        # Store error state for client to retrieve via WebSocket
+        if state:
+            _oauth_tokens[state] = {'error': error}
+        return HTMLResponse(content=close_popup_html)
     
     if not code or not state:
-        html = """
-        <!DOCTYPE html>
-        <html>
-        <head><title>OAuth Error</title></head>
-        <body>
-            <h1>Authentication Error</h1>
-            <p>Missing authorization code or state</p>
-            <script>
-                window.opener.postMessage({type: 'oauth_error', error: 'Missing code or state'}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
+        # Store error state
+        if state:
+            _oauth_tokens[state] = {'error': 'Missing authorization code or state'}
+        return HTMLResponse(content=close_popup_html)
     
     # Verify state
     if state not in _oauth_states:
-        html = """
-        <!DOCTYPE html>
-        <html>
-        <head><title>OAuth Error</title></head>
-        <body>
-            <h1>Authentication Error</h1>
-            <p>Invalid state token</p>
-            <script>
-                window.opener.postMessage({type: 'oauth_error', error: 'Invalid state'}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
+        _oauth_tokens[state] = {'error': 'Invalid state token'}
+        return HTMLResponse(content=close_popup_html)
     
     try:
         # Exchange code for token
@@ -138,6 +114,8 @@ async def google_callback(request: Request, code: Optional[str] = None, state: O
         credentials = flow.credentials
         
         # Store token data (in production, store in DB)
+        # Use state as session_id
+        session_id = state
         token_data = {
             'token': credentials.token,
             'refresh_token': credentials.refresh_token,
@@ -147,67 +125,14 @@ async def google_callback(request: Request, code: Optional[str] = None, state: O
             'scopes': credentials.scopes,
             'id_token': credentials.id_token if hasattr(credentials, 'id_token') else None
         }
-        
-        # Use state as session_id for now
-        session_id = state
         _oauth_tokens[session_id] = token_data
         
-        # Get user info
-        from google.oauth2.credentials import Credentials
-        from googleapiclient.discovery import build
-        import json
-        
-        user_info_service = build('oauth2', 'v2', credentials=credentials)
-        user_info = user_info_service.userinfo().get().execute()
-        
-        # Prepare data for postMessage (properly escaped via JSON)
-        token_data = {
-            'type': 'oauth_success',
-            'token': {
-                'session_id': session_id,
-                'access_token': credentials.token,
-                'user_info': {
-                    'id': user_info.get('id', ''),
-                    'email': user_info.get('email', ''),
-                    'name': user_info.get('name', ''),
-                    'picture': user_info.get('picture', '')
-                }
-            }
-        }
-        
-        # Send token to parent window via postMessage
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>Authentication Successful</title></head>
-        <body>
-            <h1>Authentication Successful!</h1>
-            <p>You can close this window.</p>
-            <script>
-                window.opener.postMessage({json.dumps(token_data)}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
+        return HTMLResponse(content=close_popup_html)
         
     except Exception as e:
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>OAuth Error</title></head>
-        <body>
-            <h1>Authentication Error</h1>
-            <p>Failed to exchange token: {str(e)}</p>
-            <script>
-                window.opener.postMessage({{type: 'oauth_error', error: '{str(e)}'}}, '*');
-                window.close();
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html)
+        # Store error state
+        _oauth_tokens[state] = {'error': f'Failed to exchange token: {str(e)}'}
+        return HTMLResponse(content=close_popup_html)
 
 
 def verify_google_token(session_id: str) -> Optional[dict]:
@@ -238,43 +163,55 @@ def get_user_info_from_token(token_data: dict) -> Optional[dict]:
         return None
 
 async def handle_google_auth(websocket: WebSocket, auth_message: dict):
+    """Handle Google OAuth authentication via WebSocket - sends responses via websocket.send_json"""
     session_id = auth_message.get('session_id')
     token_data = verify_google_token(session_id) if session_id else None
     
-    if token_data:
-        user_info = get_user_info_from_token(token_data)
-        if user_info:
-            # Store user info with connection
-            if user_info.get('email') in member_list:
-                conmanager.set_guest_number(websocket, user_info.get('id', 'unknown'))
-                await websocket.send_json({
-                    'type': 'google_auth_success',
-                    'user_info': {
-                        'id': user_info.get('id'),
-                        'email': user_info.get('email'),
-                        'name': user_info.get('name'),
-                        'picture': user_info.get('picture')
-                    }
-                })
-                # Continue to message loop after successful auth
-            else:
-                await websocket.send_json({
-                    'type': 'google_auth_error',
-                    'message': "You're not a community member"
-                })
-                await websocket.close()
-                return
-        else:
-            await websocket.send_json({
-                'type': 'google_auth_error',
-                'message': 'Failed to get user info'
-            })
-            await websocket.close()
-            return
-    else:
+    if not token_data:
         await websocket.send_json({
             'type': 'google_auth_error',
             'message': 'Invalid session or token expired'
         })
         await websocket.close()
         return
+    
+    # Check if token_data contains an error from the callback
+    if 'error' in token_data:
+        await websocket.send_json({
+            'type': 'google_auth_error',
+            'message': token_data['error']
+        })
+        await websocket.close()
+        return
+    
+    # Get user info from token
+    user_info = get_user_info_from_token(token_data)
+    if not user_info:
+        await websocket.send_json({
+            'type': 'google_auth_error',
+            'message': 'Failed to get user info'
+        })
+        await websocket.close()
+        return
+    
+    # Verify user is in member list
+    if user_info.get('email') not in member_list:
+        await websocket.send_json({
+            'type': 'google_auth_error',
+            'message': "You're not a community member"
+        })
+        await websocket.close()
+        return
+    
+    # Success - store user info with connection and send success message
+    conmanager.set_guest_number(websocket, user_info.get('id', 'unknown'))
+    await websocket.send_json({
+        'type': 'user_added',
+        'user_info': {
+            'id': user_info.get('id'),
+            'email': user_info.get('email'),
+            'name': user_info.get('name'),
+            'picture': user_info.get('picture')
+        }
+    })
+    # Continue to message loop after successful auth
