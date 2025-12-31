@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
-import { useAuth } from '../hooks/useAuth';
+import Auth from './auth';
 import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
   const { gameData, chatMessages, characters, guestNumber, sendMessage, chatLogRef } = useGame();
-  const { loginSIWG } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
   const [showWaitingRoom, setShowWaitingRoom] = useState(true);
@@ -39,10 +38,7 @@ function GameRoom() {
   return (
     <div className="game-screen">
       <div className="left-menu">
-        <button id="btn-siwg" onClick={loginSIWG}>
-          <img src="/images/google2.png" alt="Google" />
-          Sign in with Google
-        </button>
+        <Auth />
       </div>
       <div className="game-container">
         <textarea
