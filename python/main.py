@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 import uuid
 import traceback
 from dotenv import load_dotenv
-from . import lobby_ws, game_ws, auth_google, auth_guest
+from . import lobby_ws, game_ws, auth_google, auth_guest, game_core
 from .util import conmanager, dbmanager
 
 
@@ -78,33 +78,38 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             # Route lobby actions
+            if action == "list_games":
+                chat_tables = dbmanager.get_chat_tables()
+                await lobby_ws.handle_list_sessions(websocket, chat_tables)
+                continue
+            
             if action == "create_game":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
                 sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id)  # create a new game session
                 continue
 
-            if action == "list_games":
-                chat_tables = dbmanager.get_chat_tables()
-                await lobby_ws.handle_list_sessions(websocket, chat_tables)
-                continue
-
             # Get the game_id from message only (required for all game actions)
             game_id = message.get("game_id")
             if not game_id:
-                await websocket.send_json({"type": "no_game_id"})
+                print(f"No game_id")
+                #await websocket.send_json({"type": "no_game_id"})
                 continue
             try:
                 game = sessions[game_id]
             except KeyError:
-                await websocket.send_json({"type": "game_not_found"})
-                continue
+                print(f"Game {game_id} not found")
+                #await websocket.send_json({"type": "game_not_found"})
+                sessions[game_id] = game_core.Game(game_id)
+                game = sessions[game_id]
 
             # Route game actions
             if action == "join_game":
+                print(f"Joining game {game_id}")
                 await lobby_ws.handle_join_game(websocket, game_id)
                 continue
 
             if action == "load_game":
+                print(f"Loading game {game_id}")
                 await game_ws.handle_load_game(websocket, game)
                 continue
             

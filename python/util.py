@@ -119,7 +119,8 @@ class DatabaseManager:
         from .game_core import Game
         # TODO: Reconstruct Game state from chat_history if needed
         # For now, return a new Game instance with the session_id
-        return Game(session_id)
+        game = Game(session_id)
+        return game
 
     def kill_all_chat_tables(self):
         """Delete all tables in the chat.db database."""
