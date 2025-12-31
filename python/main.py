@@ -82,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 chat_tables = dbmanager.get_chat_tables()
                 await lobby_ws.handle_list_sessions(websocket, chat_tables)
                 continue
-            
+
             if action == "create_game":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
                 sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id)  # create a new game session
@@ -106,6 +106,8 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "join_game":
                 print(f"Joining game {game_id}")
                 await lobby_ws.handle_join_game(websocket, game_id)
+                print("conmanager.game_connections:", conmanager.game_connections)
+                # sessions[game_id].add_player_character(websocket.guest_number)
                 continue
 
             if action == "load_game":

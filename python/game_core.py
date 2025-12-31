@@ -11,7 +11,8 @@ import re
 class Game():
     def __init__(self, id):
         self.id = id
-        self.characters = [player, ally_A, enemy_A, enemy_B]
+        self.characters = [] #플레이어 캐릭터 목록
+        self.users = [] #접속자 목록
         # Initialize game board as 4x4 grid (4 rows, 4 columns)
         # Row 0: Y1, Y2, Y3, Y4
         # Row 1: X1, X2, X3, X4
@@ -20,6 +21,15 @@ class Game():
         self.game_board = [[{"occupy": None} for _ in range(4)] for _ in range(4)]
         self.current_round = 0
 
+    def add_player_character(self, player):
+        self.characters.append(player)
+        return f"Player character added."
+
+    def remove_player_character(self, player):
+        if player in self.characters:
+            self.characters.remove(player)
+            return f"Player character removed."
+    
     def vomit(self):
         data = {
             "type": "vomit_data",

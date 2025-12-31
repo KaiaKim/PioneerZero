@@ -12,10 +12,6 @@ function GameRoom() {
   const [showWaitingRoom, setShowWaitingRoom] = useState(true);
   const chatInputRef = useRef(null);
 
-  // Create floor grid cells
-  const xyCells = ['Y1', 'Y2', 'Y3', 'Y4', 'X1', 'X2', 'X3', 'X4'];
-  const abCells = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
-
   // Handle chat input keydown
   const handleChatKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -31,6 +27,14 @@ function GameRoom() {
     // This will be handled by CSS and the characters state
     // Tokens are rendered as part of the floor grid
   }, [characters]);
+
+
+  const users = [
+    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e381', name: 'Baba' },
+    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e382', name: 'Bobo' },
+    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e383', name: 'Charlie' },
+    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e384', name: 'David' },
+  ];
 
   return (
     <div className="game-screen">
@@ -54,80 +58,18 @@ function GameRoom() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingRoom && (
-          <div className="waiting-room" style={{ display: 'flex' }}>
-            <div className="waiting-grid">
-              {[1, 2, 3, 4].map((num) => (
-                <div key={num} className="waiting-cell">
-                  <div className="waiting-thumbnail">
-                    <button id="player-join-but">Join</button>
-                    <button id="add-robot-but">Bot</button>
-                  </div>
-                  <label className="waiting-name">P{num}</label>
-                  <label className="waiting-ready-label">
-                    Ready
-                    <input type="checkbox" className="waiting-ready" />
-                  </label>
-                </div>
-              ))}
-            </div>
-            <label className="start-label">Starting in 3...</label>
-          </div>
-        )}
+        {showWaitingRoom && <WaitingRoom />}
 
-        <div className="spectate-list">
-          <label className="spectate-label">Spectate</label>
-          <ul className="spectate-items">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <li key={num}>P{num}</li>
+        <div className="user-list">
+          <label className="user-label">user</label>
+          <ul className="user-items">
+            {users.map((user) => (
+              <li key={user.id}>{user.name}</li>
             ))}
           </ul>
         </div>
 
-        {showFloor3D && (
-          <div className="floor-3d">
-            <div className="parent-grid">
-              <div className="section xy-section">
-                <div className="grid-3d">
-                  {xyCells.map((cellId) => {
-                    const cellCharacter = characters.find(c => c.pos === cellId);
-                    return (
-                      <div key={cellId} className="cell">
-                        {cellId}
-                        {cellCharacter && (
-                          <img
-                            src={cellCharacter.token_image}
-                            alt={cellCharacter.name}
-                            className="token"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="section ab-section">
-                <div className="grid-3d">
-                  {abCells.map((cellId) => {
-                    const cellCharacter = characters.find(c => c.pos === cellId);
-                    return (
-                      <div key={cellId} className="cell">
-                        {cellId}
-                        {cellCharacter && (
-                          <img
-                            src={cellCharacter.token_image}
-                            alt={cellCharacter.name}
-                            className="token"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {showFloor3D && <Floor3D characters={characters} />}
       </div>
       <div className="right-menu">&gt;|</div>
       <div className="right-panel">
@@ -183,3 +125,77 @@ function GameRoom() {
 
 export default GameRoom;
 
+
+
+function WaitingRoom() {
+  return (
+    <div className="waiting-room" style={{ display: 'flex' }}>
+      <div className="waiting-grid">
+        {[1, 2, 3, 4].map((num) => (
+          <div key={num} className="waiting-cell">
+            <div className="waiting-thumbnail">
+              <button id="player-join-but">Join</button>
+              <button id="add-robot-but">Bot</button>
+            </div>
+            <label className="waiting-name">P{num}</label>
+            <label className="waiting-ready-label">
+              Ready
+              <input type="checkbox" className="waiting-ready" />
+            </label>
+          </div>
+        ))}
+      </div>
+      <label className="start-label">Starting in 3...</label>
+    </div>
+  );
+}
+
+function Floor3D({ characters }) {
+  const xyCells = ['Y1', 'Y2', 'Y3', 'Y4', 'X1', 'X2', 'X3', 'X4'];
+  const abCells = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
+
+  return (
+    <div className="floor-3d">
+      <div className="parent-grid">
+        <div className="section xy-section">
+          <div className="grid-3d">
+            {xyCells.map((cellId) => {
+              const cellCharacter = characters.find(c => c.pos === cellId);
+              return (
+                <div key={cellId} className="cell">
+                  {cellId}
+                  {cellCharacter && (
+                    <img
+                      src={cellCharacter.token_image}
+                      alt={cellCharacter.name}
+                      className="token"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="section ab-section">
+          <div className="grid-3d">
+            {abCells.map((cellId) => {
+              const cellCharacter = characters.find(c => c.pos === cellId);
+              return (
+                <div key={cellId} className="cell">
+                  {cellId}
+                  {cellCharacter && (
+                    <img
+                      src={cellCharacter.token_image}
+                      alt={cellCharacter.name}
+                      className="token"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
