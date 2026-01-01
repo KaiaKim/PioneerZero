@@ -4,7 +4,6 @@ import { getGuestId, genGuestId, authenticateGuest } from '../util';
 
 export function useGame() {
   const { gameId } = useParams();
-  const [gameWs, setGameWs] = useState(null);
   const [gameData, setGameData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
@@ -17,10 +16,11 @@ export function useGame() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    let guest_id = getGuestId() || genGuestId();
 
     ws.onopen = () => {
       console.log('Game WebSocket connected');
+      
+      const guest_id = getGuestId();
       authenticateGuest(guest_id, ws);
 
       if (gameId) {
@@ -70,15 +70,12 @@ export function useGame() {
 
     ws.onclose = () => {
       console.log('Game WebSocket disconnected');
-      setGameWs(null);
       wsRef.current = null;
     };
-
-    setGameWs(ws);
   };
 
   const joinGame = (ws = null, id = gameId) => {
-    const socket = ws || wsRef.current || gameWs;
+    const socket = ws || wsRef.current;
     const game_id = id || gameId;
     if (socket && socket.readyState === WebSocket.OPEN && game_id) {
       const message = {
@@ -90,7 +87,7 @@ export function useGame() {
   };
 
   const loadGame = (ws = null) => {
-    const socket = ws || wsRef.current || gameWs;
+    const socket = ws || wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN && gameId) {
       const message = {
         action: 'load_game',
@@ -113,7 +110,7 @@ export function useGame() {
       game_id: gameId
     };
 
-    const socket = wsRef.current || gameWs;
+    const socket = wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
       return true;

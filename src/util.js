@@ -15,6 +15,9 @@ export function genGuestId() {
 }
 
 export function authenticateGuest(guest_id, ws) {
+    if (!guest_id) {
+        return;
+    }
     const message = {
         action: 'authenticate_guest',
         guest_id: guest_id

@@ -243,7 +243,7 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
     if not token_data:
         print(f"No token data found for session_id: {session_id}")
         await websocket.send_json({
-            'type': 'google_auth_error',
+            'type': 'auth_error',
             'message': 'Invalid session or token expired'
         })
         await websocket.close()
@@ -252,7 +252,7 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
     # Check if token_data contains an error from the callback
     if 'error' in token_data:
         await websocket.send_json({
-            'type': 'google_auth_error',
+            'type': 'auth_error',
             'message': token_data['error']
         })
         await websocket.close()
@@ -262,7 +262,7 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
     user_info = get_user_info_from_token(token_data)
     if not user_info:
         await websocket.send_json({
-            'type': 'google_auth_error',
+            'type': 'auth_error',
             'message': 'Failed to get user info'
         })
         await websocket.close()
@@ -271,7 +271,7 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
     # Verify user is in member list
     if user_info.get('email') not in member_list:
         await websocket.send_json({
-            'type': 'google_auth_error',
+            'type': 'auth_error',
             'message': "You're not a community member"
         })
         await websocket.close()
@@ -280,7 +280,7 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
     # Success - store user info with connection and send success message
     conmanager.set_guest_number(websocket, user_info.get('id', 'unknown'))
     await websocket.send_json({
-        'type': 'user_added',
+        'type': 'auth_success',
         'user_info': {
             'id': user_info.get('id'),
             'email': user_info.get('email'),

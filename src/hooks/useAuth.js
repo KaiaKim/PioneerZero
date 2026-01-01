@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { getGuestId, genGuestId, authenticateGuest } from '../util';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -6,6 +7,20 @@ export function useAuth() {
   const wsRef = useRef(null);
 
   useEffect(() => {
+    connectAuthWebSocket();
+
+    return () => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  const connectAuthWebSocket = () => {
+    const wsUrl = `ws://localhost:8000/ws`;
+    const ws = new WebSocket(wsUrl);
+    let guest_id = null;
+
     // Load user info from localStorage on mount
     const storedUser = localStorage.getItem('user_info');
     if (storedUser) {
@@ -16,45 +31,33 @@ export function useAuth() {
         console.error('Error parsing stored user:', e);
         localStorage.removeItem('user_info');
       }
+    } else {
+      guest_id = getGuestId() || genGuestId();
     }
-  }, []);
-
-  // Cleanup WebSocket on unmount
-  useEffect(() => {
-    return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectWebSocket = () => {
-    // Close existing connection if any
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
-    }
-
-    const wsUrl = `ws://localhost:8000/ws`;
-    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('Auth WebSocket connected');
+      authenticateGuest(guest_id, ws);
+      
     };
 
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
 
-        if (msg.type === 'user_added') {
+        if (msg.type === 'auth_success') {
           console.log('User authenticated:', msg.user_info);
           localStorage.setItem('user_info', JSON.stringify(msg.user_info));
           localStorage.setItem('auth_type', 'google');
           setUser(msg.user_info);
-        } else if (msg.type === 'google_auth_error' || msg.type === 'auth_error') {
+        } else if (msg.type === 'auth_error') {
           console.error('Authentication error:', msg.message);
           alert('Authentication failed: ' + msg.message);
           localStorage.removeItem('user_info');
           setUser(null);
+        } else if (msg.type === "guest_assigned") {
+          localStorage.setItem('guest_number', msg.guest_number);
+          console.log(`You joined as Guest ${msg.guest_number}`);
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);
@@ -114,7 +117,7 @@ export function useAuth() {
         // Connect WebSocket if not already connected
         let ws = wsRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-          ws = connectWebSocket();
+          ws = connectAuthWebSocket();
           
           // Wait for WebSocket to open before sending auth message
           const checkConnection = setInterval(() => {

@@ -4,7 +4,6 @@ import { getGuestId, genGuestId, authenticateGuest } from '../util';
 
 export function useLobby() {
   const [sessions, setSessions] = useState([]);
-  const [lobbyWs, setLobbyWs] = useState(null);
   const navigate = useNavigate();
   const wsRef = useRef(null);
 
@@ -13,10 +12,10 @@ export function useLobby() {
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-    let guest_id = getGuestId() || genGuestId();
 
     ws.onopen = () => {
       console.log('Lobby WebSocket connected');
+      const guest_id = getGuestId();
       authenticateGuest(guest_id, ws);
       listGames(ws);
     };
@@ -30,9 +29,6 @@ export function useLobby() {
         listGames(ws);
       } else if (msg.type === "list_games") {
         setSessions(msg.session_ids || []);
-      } else if (msg.type === "guest_assigned") {
-        localStorage.setItem('guest_number', msg.guest_number);
-        console.log(`You joined as Guest ${msg.guest_number}`);
       }
     };
 
@@ -42,15 +38,12 @@ export function useLobby() {
 
     ws.onclose = () => {
       console.log('Lobby WebSocket disconnected');
-      setLobbyWs(null);
       wsRef.current = null;
     };
-
-    setLobbyWs(ws);
   };
 
   const listGames = (ws = null) => {
-    const socket = ws || wsRef.current || lobbyWs;
+    const socket = ws || wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       const message = {
         action: 'list_games'
@@ -65,7 +58,7 @@ export function useLobby() {
   };
 
   const createGame = () => {
-    const socket = wsRef.current || lobbyWs;
+    const socket = wsRef.current;
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       console.log('socket is connected');
@@ -80,7 +73,7 @@ export function useLobby() {
   };
 
   const killDB = () => {
-    const socket = wsRef.current || lobbyWs;
+    const socket = wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       const message = {
         action: 'kill_db'

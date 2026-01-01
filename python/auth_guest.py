@@ -83,7 +83,7 @@ async def handle_guest_auth(websocket: WebSocket, auth_message: dict):
     
     # Send guest_number back to client (optional, for display)
     await websocket.send_json({
-        'type': 'user_added',
+        'type': 'auth_success',
         'user_info': {
             'id': guest_id,
             'name': 'Guest' + str(guest_number),
