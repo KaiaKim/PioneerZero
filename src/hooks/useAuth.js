@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getGuestId, genGuestId, authenticateGuest } from '../util';
+import { genGuestId, quickAuth } from '../util';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -32,12 +32,12 @@ export function useAuth() {
         localStorage.removeItem('user_info');
       }
     } else {
-      guest_id = getGuestId() || genGuestId();
+      guest_id = genGuestId();
     }
 
     ws.onopen = () => {
       console.log('Auth WebSocket connected');
-      authenticateGuest(guest_id, ws);
+      quickAuth(ws);
       
     };
 

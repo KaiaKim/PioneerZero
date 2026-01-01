@@ -4,23 +4,23 @@ export function getGameId() {
     return urlParams.get('game_id');
 }
 
-export function getGuestId() {
-    return localStorage.getItem('guest_id');
-}
-
 export function genGuestId() {
     const guestId = crypto.randomUUID();
     localStorage.setItem('guest_id', guestId);
     return guestId;
 }
 
-export function authenticateGuest(guest_id, ws) {
-    if (!guest_id) {
+export function quickAuth(ws) {
+    const user_info = localStorage.getItem('user_info');
+    if (!user_info) {
         return;
     }
+
+    console.log("USER INFO:", user_info);
+    
     const message = {
         action: 'authenticate_guest',
-        guest_id: guest_id
+        user_info: user_info
     };
     ws.send(JSON.stringify(message));
 }

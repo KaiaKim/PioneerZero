@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGuestId, genGuestId, authenticateGuest } from '../util';
+import { quickAuth } from '../util';
 
 export function useLobby() {
   const [sessions, setSessions] = useState([]);
@@ -15,8 +15,7 @@ export function useLobby() {
 
     ws.onopen = () => {
       console.log('Lobby WebSocket connected');
-      const guest_id = getGuestId();
-      authenticateGuest(guest_id, ws);
+      quickAuth(ws);
       listGames(ws);
     };
 

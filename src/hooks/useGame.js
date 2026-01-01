@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { getGuestId, genGuestId, authenticateGuest } from '../util';
+import { quickAuth } from '../util';
 
 export function useGame() {
   const { gameId } = useParams();
@@ -19,9 +19,8 @@ export function useGame() {
 
     ws.onopen = () => {
       console.log('Game WebSocket connected');
-      
-      const guest_id = getGuestId();
-      authenticateGuest(guest_id, ws);
+
+      quickAuth(ws);
 
       if (gameId) {
         joinGame(ws, gameId);
