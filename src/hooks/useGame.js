@@ -9,6 +9,7 @@ export function useGame() {
   const [characters, setCharacters] = useState([]);
   const [users, setUsers] = useState([]);
   const [players, setPlayers] = useState([null, null, null, null]); // 4 slots
+  const [playerStatus, setPlayerStatus] = useState([0, 0, 0, 0]); // Status: 0=empty, 1=occupied, 2=connection-lost
   const [userName, setUserName] = useState(() => {
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
@@ -23,6 +24,8 @@ export function useGame() {
   });
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
+  const autoJoinAttemptedRef = useRef(false);
+  const playersListReceivedRef = useRef(false);
 
   const connectGameWebSocket = () => {
     const wsUrl = `ws://localhost:8000/ws`;
@@ -47,6 +50,21 @@ export function useGame() {
         const name = msg.user_info.name || msg.user_info.email || 'Guest';
         setUserName(name);
         localStorage.setItem('user_info', JSON.stringify(msg.user_info));
+        // If players_list was already received, try auto-join now that we have user info
+        if (playersListReceivedRef.current && !autoJoinAttemptedRef.current && gameId) {
+          const storedSlotKey = `player_slot_${gameId}`;
+          const storedSlotNum = localStorage.getItem(storedSlotKey);
+          if (storedSlotNum) {
+            const slotNum = parseInt(storedSlotNum);
+            autoJoinAttemptedRef.current = true;
+            setTimeout(() => {
+              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                console.log(`Auto-joining slot ${slotNum} after authentication`);
+                joinPlayerSlot(slotNum);
+              }
+            }, 500);
+          }
+        }
       } else if (msg.type === "joined_game") {
         loadGame(ws);
       } else if (msg.type === "join_failed") {
@@ -81,9 +99,82 @@ export function useGame() {
       } else if (msg.type === "players_list") {
         console.log('Players list received:', msg.players);
         setPlayers(msg.players || [null, null, null, null]);
+        setPlayerStatus(msg.player_status || [0, 0, 0, 0]);
+        playersListReceivedRef.current = true;
+        
+        // Get current user info
+        const userInfo = JSON.parse(localStorage.getItem('user_info') || 'null');
+        const currentUserId = userInfo?.id;
+        const playersList = msg.players || [null, null, null, null];
+        
+        // Update localStorage if user is in a slot (to keep it in sync)
+        if (currentUserId && gameId) {
+          let userSlotNum = null;
+          for (let i = 0; i < playersList.length; i++) {
+            const player = playersList[i];
+            if (player && player.id === currentUserId) {
+              userSlotNum = i + 1; // Slot numbers are 1-4
+              break;
+            }
+          }
+          
+          const storedSlotKey = `player_slot_${gameId}`;
+          if (userSlotNum) {
+            // User is in a slot, update localStorage
+            localStorage.setItem(storedSlotKey, userSlotNum.toString());
+          } else {
+            // User is not in any slot, but only clear if we haven't attempted auto-join yet
+            // (to avoid clearing during the auto-join process)
+            if (autoJoinAttemptedRef.current) {
+              localStorage.removeItem(storedSlotKey);
+            }
+          }
+        }
+        
+        // Check if user should auto-join their previous slot after page refresh
+        // Only attempt once per connection
+        if (!autoJoinAttemptedRef.current && gameId && currentUserId) {
+          const storedSlotKey = `player_slot_${gameId}`;
+          const storedSlotNum = localStorage.getItem(storedSlotKey);
+          
+          if (storedSlotNum) {
+            const slotNum = parseInt(storedSlotNum);
+            const slotIndex = slotNum - 1;
+            const playerInSlot = playersList[slotIndex];
+            const statusList = msg.player_status || [0, 0, 0, 0];
+            const slotStatus = statusList[slotIndex] || 0;
+            
+            // Check if user is already in the slot
+            const isUserInSlot = playerInSlot && playerInSlot.id === currentUserId;
+            
+            // Need to rejoin if:
+            // 1. Slot is empty (status 0) or occupied by someone else
+            // 2. Slot is connection-lost (status 2) - even if it's the same user, we need to rejoin to change status to occupied
+            const needsRejoin = !isUserInSlot || slotStatus === 2;
+            
+            if (needsRejoin) {
+              autoJoinAttemptedRef.current = true;
+              // Wait a bit for WebSocket to be ready, then try to rejoin
+              setTimeout(() => {
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                  console.log(`Auto-joining slot ${slotNum} after page refresh (status: ${slotStatus})`);
+                  joinPlayerSlot(slotNum);
+                }
+              }, 500);
+            } else {
+              // User is already in the slot with occupied status, mark as attempted to prevent further checks
+              autoJoinAttemptedRef.current = true;
+            }
+          }
+        }
       } else if (msg.type === "join_slot_failed") {
         console.error('Failed to join slot:', msg.message);
         alert('Failed to join slot: ' + msg.message);
+        // Clear stored slot number if join failed
+        if (gameId) {
+          const storedSlotKey = `player_slot_${gameId}`;
+          localStorage.removeItem(storedSlotKey);
+        }
       } else if (msg.type === "leave_slot_failed") {
         console.error('Failed to leave slot:', msg.message);
         alert('Failed to leave slot: ' + msg.message);
@@ -162,6 +253,9 @@ export function useGame() {
     const socket = wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
+      // Store slot number in localStorage for persistence across page refreshes
+      const storedSlotKey = `player_slot_${gameId}`;
+      localStorage.setItem(storedSlotKey, slotNum.toString());
       return true;
     } else {
       console.error('Game WebSocket not connected. Cannot join slot.');
@@ -183,6 +277,9 @@ export function useGame() {
     const socket = wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
+      // Remove slot number from localStorage when leaving
+      const storedSlotKey = `player_slot_${gameId}`;
+      localStorage.removeItem(storedSlotKey);
       return true;
     } else {
       console.error('Game WebSocket not connected. Cannot leave slot.');
@@ -198,6 +295,9 @@ export function useGame() {
   }, [chatMessages]);
 
   useEffect(() => {
+    // Reset auto-join flag and players list flag when gameId changes
+    autoJoinAttemptedRef.current = false;
+    playersListReceivedRef.current = false;
     connectGameWebSocket();
 
     return () => {
@@ -214,6 +314,7 @@ export function useGame() {
     characters,
     users,
     players,
+    playerStatus,
     userName,
     sendMessage,
     joinPlayerSlot,

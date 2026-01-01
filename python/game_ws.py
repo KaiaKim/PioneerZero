@@ -21,7 +21,8 @@ async def handle_load_game(websocket: WebSocket, game):
     # Send players list to the requesting client
     await websocket.send_json({
         "type": "players_list",
-        "players": game.players
+        "players": game.players,
+        "player_status": game.player_status
     })
     
     # Load and send chat history to the requesting client
@@ -73,14 +74,20 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         })
         return
     
-    # Check if user is already in a slot
+    # Check if user is already in a different slot
     existing_slot = game.get_player_by_user_id(user_info.get('id'))
-    if existing_slot:
-        await websocket.send_json({
-            "type": "join_slot_failed",
-            "message": f"You are already in slot {existing_slot}"
-        })
-        return
+    if existing_slot and existing_slot != slot_num:
+        # Check if the existing slot is connection-lost - allow switching
+        slot_index = existing_slot - 1
+        if game.player_status[slot_index] == 2:
+            # User's slot is connection-lost, allow joining new slot (will clear old one)
+            game.remove_player_from_slot(existing_slot)
+        else:
+            await websocket.send_json({
+                "type": "join_slot_failed",
+                "message": f"You are already in slot {existing_slot}"
+            })
+            return
     
     result = game.add_player_to_slot(slot_num, user_info)
     
@@ -88,7 +95,8 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         # Broadcast updated players list to all clients
         await conmanager.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": game.players,
+            "player_status": game.player_status
         })
     else:
         await websocket.send_json({
@@ -143,7 +151,8 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
         # Broadcast updated players list to all clients
         await conmanager.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": game.players,
+            "player_status": game.player_status
         })
     else:
         await websocket.send_json({

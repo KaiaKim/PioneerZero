@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import uuid
 import traceback
+import asyncio
 from dotenv import load_dotenv
 from . import lobby_ws, game_ws, auth_google, auth_guest, game_core
 from .util import conmanager, dbmanager
@@ -24,6 +25,29 @@ app = FastAPI()
 
 # Include OAuth router
 app.include_router(auth_google.router)
+
+# Background task to check for connection-lost timeouts
+async def check_connection_lost_timeouts():
+    """Periodically check for connection-lost slots that have exceeded 5 seconds"""
+    while True:
+        try:
+            for game_id, game in sessions.items():
+                if game.check_connection_lost_timeouts():
+                    # Broadcast updated players list if any slots were cleared
+                    await conmanager.broadcast_to_game(game_id, {
+                        'type': 'players_list',
+                        'players': game.players,
+                        'player_status': game.player_status
+                    })
+            await asyncio.sleep(1)  # Check every second
+        except Exception as e:
+            print(f"Error in connection-lost timeout check: {e}")
+            await asyncio.sleep(1)
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on server startup"""
+    asyncio.create_task(check_connection_lost_timeouts())
 
 
 # Serve static files
@@ -135,16 +159,16 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket error: {e}")
         traceback.print_exc()
     finally:
-        # Remove user from game users list and player slot before disconnecting
+        # Remove user from game users list and set player slot to connection-lost before disconnecting
         game_id, user_info = await conmanager.leave_game(websocket)
         if game_id and user_info and game_id in sessions:
             game = sessions[game_id]
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
-            # Remove user from player slot if they're in one
+            # Set player slot to connection-lost instead of removing
             user_slot = game.get_player_by_user_id(user_info.get('id'))
             if user_slot:
-                game.remove_player_from_slot(user_slot)
+                game.set_player_connection_lost(user_slot)
             # Broadcast updated users list and players list to remaining clients
             await conmanager.broadcast_to_game(game_id, {
                 'type': 'users_list',
@@ -152,7 +176,8 @@ async def websocket_endpoint(websocket: WebSocket):
             })
             await conmanager.broadcast_to_game(game_id, {
                 'type': 'players_list',
-                'players': game.players
+                'players': game.players,
+                'player_status': game.player_status
             })
         # Always disconnect when WebSocket closes
         await conmanager.disconnect(websocket)

@@ -6,7 +6,7 @@ import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
-  const { gameData, chatMessages, characters, users, players, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, playerStatus, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
@@ -50,7 +50,7 @@ function GameRoom() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingRoom && <WaitingRoom players={players} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
+        {showWaitingRoom && <WaitingRoom players={players} playerStatus={playerStatus} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>
@@ -122,7 +122,7 @@ export default GameRoom;
 
 
 
-function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) {
+function WaitingRoom({ players, playerStatus, joinPlayerSlot, leavePlayerSlot, currentUser }) {
   // Get user info from currentUser or localStorage as fallback
   const getUserInfo = () => {
     if (currentUser) return currentUser;
@@ -145,9 +145,17 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
     leavePlayerSlot(slotNum);
   };
 
-  const isSlotOccupied = (slotNum) => {
+  const getSlotStatus = (slotNum) => {
     const slotIndex = slotNum - 1;
-    return players[slotIndex] !== null && players[slotIndex] !== undefined;
+    return playerStatus[slotIndex] || 0; // 0=empty, 1=occupied, 2=connection-lost
+  };
+
+  const isSlotEmpty = (slotNum) => {
+    return getSlotStatus(slotNum) === 0;
+  };
+
+  const isSlotConnectionLost = (slotNum) => {
+    return getSlotStatus(slotNum) === 2;
   };
 
   const isCurrentUserInSlot = (slotNum) => {
@@ -169,25 +177,32 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
     <div className="waiting-room" style={{ display: 'flex' }}>
       <div className="waiting-grid">
         {[1, 2, 3, 4].map((num) => {
-          const occupied = isSlotOccupied(num);
+          const status = getSlotStatus(num);
+          const isEmpty = isSlotEmpty(num);
+          const isConnectionLost = isSlotConnectionLost(num);
           const isCurrentUser = isCurrentUserInSlot(num);
           
           return (
             <div key={num} className="waiting-cell">
-              <div className={`waiting-thumbnail ${occupied ? 'occupied' : ''}`}>
-                {!occupied ? (
+              <div 
+                className={`waiting-thumbnail ${
+                  status === 1 ? 'occupied' : 
+                  status === 2 ? 'connection-lost' : 
+                  ''
+                }`}
+              >
+                {isEmpty ? (
                   <div>
-                  <button 
-                    className="player-join-but"
-                    onClick={() => handleJoinClick(num)}
-                  >
-                    Join
-                  </button>
-                  <button className="add-robot-but">Bot</button>
-                </div>
-
+                    <button 
+                      className="player-join-but"
+                      onClick={() => handleJoinClick(num)}
+                    >
+                      Join
+                    </button>
+                    <button className="add-robot-but">Bot</button>
+                  </div>
                 ) : (
-                  isCurrentUser && (
+                  isCurrentUser && status === 1 && (
                     <button 
                       className="player-leave-but"
                       onClick={() => handleLeaveClick(num)}
@@ -196,13 +211,22 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
                     </button>
                   )
                 )}
+                {isConnectionLost && (
+                  <div className="connection-lost-indicator">
+                    <span className="thunder-emoji">⚡</span>
+                  </div>
+                )}
               </div>
               <label className="waiting-name" id={`player-name-${num}`}>
-                {getPlayerName(num)}
+                {isEmpty ? '-' : getPlayerName(num)}
               </label>
               <label className="waiting-ready-label">
                 Ready
-                <input type="checkbox" className="waiting-ready" disabled={!occupied} />
+                <input 
+                  type="checkbox" 
+                  className="waiting-ready" 
+                  disabled={isEmpty || isConnectionLost} 
+                />
               </label>
             </div>
           );
