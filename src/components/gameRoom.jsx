@@ -171,14 +171,18 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
           
           return (
             <div key={num} className="waiting-cell">
-              <div className="waiting-thumbnail">
+              <div className={`waiting-thumbnail ${occupied ? 'occupied' : ''}`}>
                 {!occupied ? (
+                  <div>
                   <button 
                     className="player-join-but"
                     onClick={() => handleJoinClick(num)}
                   >
                     Join
                   </button>
+                  <button className="add-robot-but">Bot</button>
+                </div>
+
                 ) : (
                   isCurrentUser && (
                     <button 
@@ -189,7 +193,6 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
                     </button>
                   )
                 )}
-                <button className="add-robot-but">Bot</button>
               </div>
               <label className="waiting-name" id={`player-name-${num}`}>
                 {getPlayerName(num)}

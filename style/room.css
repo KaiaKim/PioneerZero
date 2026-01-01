@@ -136,11 +136,21 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 10px;
 }
 
-.waiting-cell button {
-    display: block;
+.waiting-thumbnail.occupied {
+    background-color: lightblue;
+}
+
+.waiting-thumbnail div {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.player-join-but, .add-robot-but, .player-leave-but{
+    margin: 3px;
 }
 
 .waiting-name {
