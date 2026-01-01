@@ -7,6 +7,7 @@ export function useGame() {
   const [gameData, setGameData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
+  const [users, setUsers] = useState([]);
   const [userName, setUserName] = useState(() => {
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
@@ -69,6 +70,9 @@ export function useGame() {
           isSystem: msg.sort === "system"
         };
         setChatMessages(prev => [...prev, newMessage]);
+      } else if (msg.type === "users_list") {
+        console.log('Users list received:', msg.users);
+        setUsers(msg.users || []);
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -152,6 +156,7 @@ export function useGame() {
     gameData,
     chatMessages,
     characters,
+    users,
     userName,
     sendMessage,
     chatLogRef

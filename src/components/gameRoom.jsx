@@ -6,7 +6,7 @@ import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
-  const { gameData, chatMessages, characters, sendMessage, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, sendMessage, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
@@ -30,12 +30,6 @@ function GameRoom() {
   }, [characters]);
 
 
-  const users = [
-    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e381', name: 'Baba' },
-    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e382', name: 'Bobo' },
-    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e383', name: 'Charlie' },
-    { id: '3aba6f3d-586d-4e3e-ad0b-411e77e0e384', name: 'David' },
-  ];
 
   return (
     <div className="game-screen">
@@ -62,7 +56,7 @@ function GameRoom() {
           <label className="user-label">user</label>
           <ul className="user-items">
             {users.map((user) => (
-              <li key={user.id}>{user.name}</li>
+              <li key={user.id}>{user.name || user.email || 'Guest'}</li>
             ))}
           </ul>
         </div>

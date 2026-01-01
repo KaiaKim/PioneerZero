@@ -12,6 +12,12 @@ async def handle_load_game(websocket: WebSocket, game):
     # Send to requesting client only
     await websocket.send_json(vomit_data)
     
+    # Send users list to the requesting client
+    await websocket.send_json({
+        "type": "users_list",
+        "users": game.users
+    })
+    
     # Load and send chat history to the requesting client
     chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []

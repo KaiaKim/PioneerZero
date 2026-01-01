@@ -296,16 +296,19 @@ async def handle_google_login(websocket: WebSocket, auth_message: dict):
         return
     
     # Success - send success message
+    google_user_info = {
+        'id': user_info.get('id'),
+        'email': user_info.get('email'),
+        'name': user_info.get('name'),
+        'picture': user_info.get('picture'),
+        'isGoogle': True,
+        'isGuest': False
+    }
+    # Store user_info with the connection
+    conmanager.set_user_info(websocket, google_user_info)
     await websocket.send_json({
         'type': 'auth_success',
-        'user_info': {
-            'id': user_info.get('id'),
-            'email': user_info.get('email'),
-            'name': user_info.get('name'),
-            'picture': user_info.get('picture'),
-            'isGoogle': True,
-            'isGuest': False
-        }
+        'user_info': google_user_info
     })
     print(f"Google authentication successful for user: {user_info.get('email')}")
     

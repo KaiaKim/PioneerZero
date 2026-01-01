@@ -47,7 +47,6 @@ export function useAuth() {
         const msg = JSON.parse(event.data);
 
         if (msg.type === 'auth_success') {
-          console.log('User authenticated:', msg.user_info);
           localStorage.setItem('user_info', JSON.stringify(msg.user_info));
           setUser(msg.user_info);
         } else if (msg.type === 'auth_error') {
