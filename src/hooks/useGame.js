@@ -8,6 +8,7 @@ export function useGame() {
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [users, setUsers] = useState([]);
+  const [players, setPlayers] = useState([null, null, null, null]); // 4 slots
   const [userName, setUserName] = useState(() => {
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
@@ -73,6 +74,15 @@ export function useGame() {
       } else if (msg.type === "users_list") {
         console.log('Users list received:', msg.users);
         setUsers(msg.users || []);
+      } else if (msg.type === "players_list") {
+        console.log('Players list received:', msg.players);
+        setPlayers(msg.players || [null, null, null, null]);
+      } else if (msg.type === "join_slot_failed") {
+        console.error('Failed to join slot:', msg.message);
+        alert('Failed to join slot: ' + msg.message);
+      } else if (msg.type === "leave_slot_failed") {
+        console.error('Failed to leave slot:', msg.message);
+        alert('Failed to leave slot: ' + msg.message);
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -134,6 +144,48 @@ export function useGame() {
     }
   };
 
+  const joinPlayerSlot = (slotNum) => {
+    if (!gameId) {
+      console.error('No game_id found. Cannot join slot.');
+      return;
+    }
+    const message = {
+      action: 'join_player_slot',
+      slot_num: slotNum,
+      game_id: gameId
+    };
+
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+      return true;
+    } else {
+      console.error('Game WebSocket not connected. Cannot join slot.');
+      return false;
+    }
+  };
+
+  const leavePlayerSlot = (slotNum) => {
+    if (!gameId) {
+      console.error('No game_id found. Cannot leave slot.');
+      return;
+    }
+    const message = {
+      action: 'leave_player_slot',
+      slot_num: slotNum,
+      game_id: gameId
+    };
+
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+      return true;
+    } else {
+      console.error('Game WebSocket not connected. Cannot leave slot.');
+      return false;
+    }
+  };
+
   // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
     if (chatLogRef.current) {
@@ -157,8 +209,11 @@ export function useGame() {
     chatMessages,
     characters,
     users,
+    players,
     userName,
     sendMessage,
+    joinPlayerSlot,
+    leavePlayerSlot,
     chatLogRef
   };
 }

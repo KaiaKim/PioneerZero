@@ -18,6 +18,12 @@ async def handle_load_game(websocket: WebSocket, game):
         "users": game.users
     })
     
+    # Send players list to the requesting client
+    await websocket.send_json({
+        "type": "players_list",
+        "players": game.players
+    })
+    
     # Load and send chat history to the requesting client
     chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []
@@ -43,6 +49,106 @@ async def handle_end_game(websocket: WebSocket, game_id: str):
     now = datetime.now().isoformat()
     msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
     await conmanager.broadcast_to_game(game_id, msg)
+
+
+async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
+    """Handle join_player_slot action - adds a player to a waiting room slot"""
+    from .util import conmanager
+    
+    slot_num = message.get("slot_num")
+    user_info = conmanager.get_user_info(websocket)
+    
+    if not user_info:
+        await websocket.send_json({
+            "type": "join_slot_failed",
+            "message": "User not authenticated"
+        })
+        return
+    
+    if not slot_num or slot_num < 1 or slot_num > 4:
+        await websocket.send_json({
+            "type": "join_slot_failed",
+            "message": "Invalid slot number"
+        })
+        return
+    
+    # Check if user is already in a slot
+    existing_slot = game.get_player_by_user_id(user_info.get('id'))
+    if existing_slot:
+        await websocket.send_json({
+            "type": "join_slot_failed",
+            "message": f"You are already in slot {existing_slot}"
+        })
+        return
+    
+    result = game.add_player_to_slot(slot_num, user_info)
+    
+    if result["success"]:
+        # Broadcast updated players list to all clients
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "players_list",
+            "players": game.players
+        })
+    else:
+        await websocket.send_json({
+            "type": "join_slot_failed",
+            "message": result["message"]
+        })
+
+
+async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
+    """Handle leave_player_slot action - removes a player from a waiting room slot"""
+    from .util import conmanager
+    
+    slot_num = message.get("slot_num")
+    user_info = conmanager.get_user_info(websocket)
+    
+    if not user_info:
+        await websocket.send_json({
+            "type": "leave_slot_failed",
+            "message": "User not authenticated"
+        })
+        return
+    
+    # If slot_num not provided, find the user's slot
+    if not slot_num:
+        slot_num = game.get_player_by_user_id(user_info.get('id'))
+        if not slot_num:
+            await websocket.send_json({
+                "type": "leave_slot_failed",
+                "message": "You are not in any slot"
+            })
+            return
+    elif slot_num < 1 or slot_num > 4:
+        await websocket.send_json({
+            "type": "leave_slot_failed",
+            "message": "Invalid slot number"
+        })
+        return
+    
+    # Verify the user owns this slot
+    slot_index = slot_num - 1
+    player = game.players[slot_index]
+    if not player or player.get('id') != user_info.get('id'):
+        await websocket.send_json({
+            "type": "leave_slot_failed",
+            "message": "You don't own this slot"
+        })
+        return
+    
+    result = game.remove_player_from_slot(slot_num)
+    
+    if result["success"]:
+        # Broadcast updated players list to all clients
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "players_list",
+            "players": game.players
+        })
+    else:
+        await websocket.send_json({
+            "type": "leave_slot_failed",
+            "message": result["message"]
+        })
 
 
 async def handle_chat(websocket: WebSocket, message: dict, game):

@@ -122,21 +122,37 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "chat":
                 await game_ws.handle_chat(websocket, message, game)
                 continue
+            
+            if action == "join_player_slot":
+                await game_ws.handle_join_player_slot(websocket, message, game)
+                continue
+            
+            if action == "leave_player_slot":
+                await game_ws.handle_leave_player_slot(websocket, message, game)
+                continue
                 
     except Exception as e:
         print(f"WebSocket error: {e}")
         traceback.print_exc()
     finally:
-        # Remove user from game users list before disconnecting
+        # Remove user from game users list and player slot before disconnecting
         game_id, user_info = await conmanager.leave_game(websocket)
         if game_id and user_info and game_id in sessions:
             game = sessions[game_id]
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
-            # Broadcast updated users list to remaining clients
+            # Remove user from player slot if they're in one
+            user_slot = game.get_player_by_user_id(user_info.get('id'))
+            if user_slot:
+                game.remove_player_from_slot(user_slot)
+            # Broadcast updated users list and players list to remaining clients
             await conmanager.broadcast_to_game(game_id, {
                 'type': 'users_list',
                 'users': game.users
+            })
+            await conmanager.broadcast_to_game(game_id, {
+                'type': 'players_list',
+                'players': game.players
             })
         # Always disconnect when WebSocket closes
         await conmanager.disconnect(websocket)

@@ -6,7 +6,7 @@ import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
-  const { gameData, chatMessages, characters, users, sendMessage, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
@@ -50,7 +50,7 @@ function GameRoom() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingRoom && <WaitingRoom />}
+        {showWaitingRoom && <WaitingRoom players={players} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
 
         <div className="user-list">
           <label className="user-label">user</label>
@@ -119,23 +119,88 @@ export default GameRoom;
 
 
 
-function WaitingRoom() {
+function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) {
+  // Get user info from currentUser or localStorage as fallback
+  const getUserInfo = () => {
+    if (currentUser) return currentUser;
+    const storedUser = localStorage.getItem('user_info');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const handleJoinClick = (slotNum) => {
+    joinPlayerSlot(slotNum);
+  };
+
+  const handleLeaveClick = (slotNum) => {
+    leavePlayerSlot(slotNum);
+  };
+
+  const isSlotOccupied = (slotNum) => {
+    const slotIndex = slotNum - 1;
+    return players[slotIndex] !== null && players[slotIndex] !== undefined;
+  };
+
+  const isCurrentUserInSlot = (slotNum) => {
+    const slotIndex = slotNum - 1;
+    const player = players[slotIndex];
+    const userInfo = getUserInfo();
+    if (!player || !userInfo) return false;
+    return player.id === userInfo.id;
+  };
+
+  const getPlayerName = (slotNum) => {
+    const slotIndex = slotNum - 1;
+    const player = players[slotIndex];
+    if (!player) return '-';
+    return player.name || player.email || 'Guest';
+  };
+
   return (
     <div className="waiting-room" style={{ display: 'flex' }}>
       <div className="waiting-grid">
-        {[1, 2, 3, 4].map((num) => (
-          <div key={num} className="waiting-cell">
-            <div className="waiting-thumbnail">
-              <button id="player-join-but">Join</button>
-              <button id="add-robot-but">Bot</button>
+        {[1, 2, 3, 4].map((num) => {
+          const occupied = isSlotOccupied(num);
+          const isCurrentUser = isCurrentUserInSlot(num);
+          
+          return (
+            <div key={num} className="waiting-cell">
+              <div className="waiting-thumbnail">
+                {!occupied ? (
+                  <button 
+                    className="player-join-but"
+                    onClick={() => handleJoinClick(num)}
+                  >
+                    Join
+                  </button>
+                ) : (
+                  isCurrentUser && (
+                    <button 
+                      className="player-leave-but"
+                      onClick={() => handleLeaveClick(num)}
+                    >
+                      Leave
+                    </button>
+                  )
+                )}
+                <button className="add-robot-but">Bot</button>
+              </div>
+              <label className="waiting-name" id={`player-name-${num}`}>
+                {getPlayerName(num)}
+              </label>
+              <label className="waiting-ready-label">
+                Ready
+                <input type="checkbox" className="waiting-ready" disabled={!occupied} />
+              </label>
             </div>
-            <label className="waiting-name">P{num}</label>
-            <label className="waiting-ready-label">
-              Ready
-              <input type="checkbox" className="waiting-ready" />
-            </label>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <label className="start-label">Starting in 3...</label>
     </div>
