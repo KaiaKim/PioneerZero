@@ -53,7 +53,7 @@ function GameRoom() {
         {showWaitingRoom && <WaitingRoom players={players} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
 
         <div className="user-list">
-          <label className="user-label">user</label>
+          <label className="user-label">접속자 목록 ↓</label>
           <ul className="user-items">
             {users.map((user) => (
               <li key={user.id}>{user.name || user.email || 'Guest'}</li>
@@ -66,15 +66,18 @@ function GameRoom() {
       <div className="right-menu">&gt;|</div>
       <div className="right-panel">
         <div ref={chatLogRef} id="chat-log" className="chat-log-container">
-          {chatMessages.map((msg, index) => (
-            <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''}`}>
-              <div className="chat-message-header">
-                <span className="chat-message-name">{msg.sender}</span>
-                <span className="chat-message-time">{msg.time}</span>
+          {chatMessages.map((msg, index) => {
+            const isCurrentUser = user && msg.user_id && user.id === msg.user_id;
+            return (
+              <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
+                <div className="chat-message-header">
+                  <span className="chat-message-name">{msg.sender}</span>
+                  <span className="chat-message-time">{msg.time}</span>
+                </div>
+                <div className="chat-message-content">{msg.content}</div>
               </div>
-              <div className="chat-message-content">{msg.content}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div>
           <label>

@@ -39,7 +39,7 @@ async def handle_create_game(websocket: WebSocket, game_id: str):
         })
     
     now = datetime.now().isoformat()
-    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} started.", "system")
+    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} started.", "system", None)
     await conmanager.broadcast_to_game(game_id, msg)
     await websocket.send_json({
         'type': 'game_created',

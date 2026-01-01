@@ -28,13 +28,14 @@ async def handle_load_game(websocket: WebSocket, game):
     chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []
     for row in chat_history_rows:
-        # row format: (id, sender, time, content, sort)
+        # row format: (chat_id, sender, time, content, sort, user_id)
         chat_messages.append({
             "type": "chat",
             "sender": row[1],
             "time": row[2],
             "content": row[3],
-            "sort": row[4]
+            "sort": row[4],
+            "user_id": row[5]
         })
     
     # Send chat history only to the requesting client
@@ -47,7 +48,7 @@ async def handle_load_game(websocket: WebSocket, game):
 async def handle_end_game(websocket: WebSocket, game_id: str):
     """Send end game message to all clients in the game. Do not delete data or remove connections."""
     now = datetime.now().isoformat()
-    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system")
+    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system", None)
     await conmanager.broadcast_to_game(game_id, msg)
 
 
@@ -156,6 +157,8 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     now = datetime.now().isoformat()
     content = message.get("content", "")
     sender = message.get("sender")
+    user_info = conmanager.get_user_info(websocket)
+    user_id = user_info.get('id') if user_info else None
     
     if content and content[0] == "/":
         # Handle commands
@@ -167,10 +170,10 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             result = "스킬 사용함"
         elif "행동" in command:
             result = "행동함"
-        msg = dbmanager.save_chat(game.id, "System", now, result, "system")
+        msg = dbmanager.save_chat(game.id, "System", now, result, "system", None)
     else:
         # Regular chat message
-        msg = dbmanager.save_chat(game.id, sender, now, content, "user")
+        msg = dbmanager.save_chat(game.id, sender, now, content, "user", user_id)
     
     await conmanager.broadcast_to_game(game.id, msg)
 

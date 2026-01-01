@@ -89,45 +89,46 @@ class DatabaseManager:
         self.conn = sqlite3.connect(self.DATABASE_PATH)
         self.cursor = self.conn.cursor()
 
-    def create_chat_table(self, session_id):
+    def create_chat_table(self, game_id):
         self.cursor.execute(f'''
-            CREATE TABLE IF NOT EXISTS "{session_id}" (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS "{game_id}" (
+                chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sender TEXT,
                 time TEXT,
                 content TEXT,
-                sort TEXT
+                sort TEXT,
+                user_id TEXT
             )
         ''')
         self.conn.commit()
 
-    def save_chat(self, session_id, sender, time, content, sort):
+    def save_chat(self, game_id, sender, time, content, sort, user_id=None):
         self.cursor.execute(f'''
-            INSERT INTO "{session_id}" (sender, time, content, sort) 
-            VALUES (?, ?, ?, ?)
-        ''', (sender, time, content, sort))
+            INSERT INTO "{game_id}" (sender, time, content, sort, user_id) 
+            VALUES (?, ?, ?, ?, ?)
+        ''', (sender, time, content, sort, user_id))
         self.conn.commit()
-        return {"type": "chat", "sender": sender, "time": time, "content": content, "sort": sort}
+        return {"type": "chat", "sender": sender, "time": time, "content": content, "sort": sort, "user_id": user_id}
 
     def get_chat_tables(self):
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
         chat_tables = [row[0] for row in self.cursor.fetchall()]
         return chat_tables
 
-    def get_chat_history(self, session_id, limit=None):
-        query = f'SELECT * FROM "{session_id}"'
+    def get_chat_history(self, game_id, limit=None):
+        query = f'SELECT chat_id, sender, time, content, sort, user_id FROM "{game_id}"'
         if limit:
             query += f' LIMIT {limit}'
         self.cursor.execute(query)
         messages = self.cursor.fetchall()
         return messages
 
-    def restore_game_from_chat(self, session_id):
+    def restore_game_from_chat(self, game_id):
         """Load a Game object from chat history. For now, creates a new Game instance."""
         from .game_core import Game
         # TODO: Reconstruct Game state from chat_history if needed
-        # For now, return a new Game instance with the session_id
-        game = Game(session_id)
+        # For now, return a new Game instance with the game_id
+        game = Game(game_id)
         return game
 
     def kill_all_chat_tables(self):

@@ -388,6 +388,17 @@
     color: #ffaa00;
 }
 
+.chat-message.own-message {
+    align-self: flex-end;
+    background-color: #1a3a5a;
+    border-color: #4a9eff;
+    max-width: 80%;
+}
+
+.chat-message.own-message .chat-message-header {
+    flex-direction: row-reverse;
+}
+
 /* Chat Input */
 #chat-input {
     width: 100%;

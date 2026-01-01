@@ -56,11 +56,14 @@ export function useGame() {
         setGameData(msg);
         setCharacters(msg.characters || []);
       } else if (msg.type === "chat_history") {
+        const userInfo = JSON.parse(localStorage.getItem('user_info') || 'null');
+        const currentUserId = userInfo?.id || null;
         const messages = (msg.messages || []).map(chatMsg => ({
           sender: chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System",
           time: chatMsg.time,
           content: chatMsg.content,
-          isSystem: chatMsg.sort === "system"
+          isSystem: chatMsg.sort === "system",
+          user_id: chatMsg.user_id || null
         }));
         setChatMessages(messages);
       } else if (msg.type === "chat") {
@@ -68,7 +71,8 @@ export function useGame() {
           sender: msg.sort === "user" ? (msg.sender || "noname") : "System",
           time: msg.sort === "system" ? new Date().toLocaleTimeString() : msg.time,
           content: msg.content,
-          isSystem: msg.sort === "system"
+          isSystem: msg.sort === "system",
+          user_id: msg.user_id || null
         };
         setChatMessages(prev => [...prev, newMessage]);
       } else if (msg.type === "users_list") {
