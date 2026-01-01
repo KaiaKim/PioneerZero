@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../hooks/useGame';
 import Auth from './auth';
 import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
-  const { gameData, chatMessages, characters, guestNumber, sendMessage, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, sendMessage, chatLogRef } = useGame();
+  const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
   const [showWaitingRoom, setShowWaitingRoom] = useState(true);
@@ -100,7 +102,7 @@ function GameRoom() {
             alt="character image"
             className="profile-image"
           />
-          <label id="chat-char">{guestNumber !== 'noname' ? `Guest ${guestNumber}` : 'noname'}</label>
+          <label id="chat-char">{user ? user.name : 'noname'}</label>
           <button onClick={() => sendMessage(chatInput) && setChatInput('')}>
             Send
           </button>

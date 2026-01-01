@@ -3,14 +3,18 @@ import { useAuth } from '../hooks/useAuth';
 import '../../style/global.css';
 
 function Auth() {
-  const { user, loginSIWG } = useAuth();
+  const { user, googleLogin, googleLogout } = useAuth();
 
   return (
     <div className="login">
       {user ? (
-        <h3>관리자: {user.name || user.email} 👋</h3>
+        <h3>관리자: {user.name || user.email} 👋
+          <button id="btn-logout" onClick={googleLogout}>
+          Sign out
+          </button>
+        </h3>
       ) : (
-        <button id="btn-siwg" onClick={loginSIWG}>
+        <button id="btn-login" onClick={googleLogin}>
           <img src="/images/google2.png" alt="Google" />
           Sign in with Google
         </button>

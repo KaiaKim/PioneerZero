@@ -37,7 +37,7 @@ button {
     padding: 4px 10px;
 }
 
-#btn-siwg {
+#btn-login {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -47,7 +47,7 @@ button {
     border: 0.5px solid #9d9d9d;
 }
 
-#btn-siwg img {
+#btn-login img {
     height: 30px;
     object-fit: contain;
 }

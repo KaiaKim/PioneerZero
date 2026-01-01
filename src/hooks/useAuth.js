@@ -48,16 +48,12 @@ export function useAuth() {
         if (msg.type === 'auth_success') {
           console.log('User authenticated:', msg.user_info);
           localStorage.setItem('user_info', JSON.stringify(msg.user_info));
-          localStorage.setItem('auth_type', 'google');
           setUser(msg.user_info);
         } else if (msg.type === 'auth_error') {
           console.error('Authentication error:', msg.message);
           alert('Authentication failed: ' + msg.message);
           localStorage.removeItem('user_info');
           setUser(null);
-        } else if (msg.type === "guest_assigned") {
-          localStorage.setItem('guest_number', msg.guest_number);
-          console.log(`You joined as Guest ${msg.guest_number}`);
         }
       } catch (e) {
         console.error('Error parsing WebSocket message:', e);
@@ -79,7 +75,7 @@ export function useAuth() {
     return ws;
   };
 
-  const loginSIWG = () => {
+  const googleLogin = () => {
     // Generate a unique session_id for this OAuth flow
     const sessionId = crypto.randomUUID();
     
@@ -173,5 +169,10 @@ export function useAuth() {
     // or on component unmount.
   };
 
-  return { user, loginSIWG };
+  const googleLogout = () => {
+    localStorage.removeItem('user_info');
+    setUser(null);
+  };
+
+  return { user, googleLogin, googleLogout };
 }
