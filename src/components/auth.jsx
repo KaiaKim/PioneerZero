@@ -7,7 +7,7 @@ function Auth() {
 
   return (
     <div className="login">
-      {user ? (
+      {user && user.isGoogle ? (
         <h3>관리자: {user.name || user.email} 👋
           <button id="btn-logout" onClick={googleLogout}>
           Sign out

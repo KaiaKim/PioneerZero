@@ -16,7 +16,7 @@ export function useAuth() {
     };
   }, []);
 
-  const connectAuthWebSocket = () => {
+  const connectAuthWebSocket = (skipQuickAuth = false) => {
     const wsUrl = `ws://localhost:8000/ws`;
     const ws = new WebSocket(wsUrl);
     let guest_id = null;
@@ -37,8 +37,9 @@ export function useAuth() {
 
     ws.onopen = () => {
       console.log('Auth WebSocket connected');
-      quickAuth(ws);
-      
+      if (!skipQuickAuth) {
+        quickAuth(ws);
+      }
     };
 
     ws.onmessage = (event) => {
@@ -99,6 +100,11 @@ export function useAuth() {
         return;
       }
 
+      // Only process OAuth messages (success or error)
+      if (event.data.type !== 'oauth_success' && event.data.type !== 'oauth_error') {
+        return;
+      }
+
       if (event.data.type === 'oauth_success') {
         const receivedSessionId = event.data.session_id;
         
@@ -110,40 +116,38 @@ export function useAuth() {
         // Remove message listener
         window.removeEventListener('message', messageListener);
 
-        // Connect WebSocket if not already connected
-        let ws = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          ws = connectAuthWebSocket();
-          
-          // Wait for WebSocket to open before sending auth message
-          const checkConnection = setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-              clearInterval(checkConnection);
-              // Send authentication message with session_id
-              ws.send(JSON.stringify({
-                action: 'authenticate_google',
-                session_id: receivedSessionId
-              }));
-            } else if (ws && ws.readyState === WebSocket.CLOSED) {
-              clearInterval(checkConnection);
-              alert('Failed to connect to server. Please try again.');
-            }
-          }, 100);
-
-          // Timeout after 5 seconds
-          setTimeout(() => {
-            clearInterval(checkConnection);
-            if (ws && ws.readyState !== WebSocket.OPEN) {
-              alert('Connection timeout. Please try again.');
-            }
-          }, 5000);
-        } else {
-          // Already connected, send immediately
-          ws.send(JSON.stringify({
-            action: 'authenticate_google',
-            session_id: receivedSessionId
-          }));
+        // Close existing connection if any (we need a fresh connection for Google auth)
+        const existingWs = wsRef.current;
+        if (existingWs && existingWs.readyState === WebSocket.OPEN) {
+          console.warn('Closing existing WebSocket connection for Google auth');
+          existingWs.close();
         }
+        
+        // Create new connection for Google auth (skip quickAuth to avoid double authentication)
+        const ws = connectAuthWebSocket(true);
+        
+        // Wait for WebSocket to open before sending auth message
+        const checkConnection = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            clearInterval(checkConnection);
+            // Send authentication message with session_id
+            ws.send(JSON.stringify({
+              action: 'authenticate_google',
+              session_id: receivedSessionId
+            }));
+          } else if (ws && ws.readyState === WebSocket.CLOSED) {
+            clearInterval(checkConnection);
+            alert('Failed to connect to server. Please try again.');
+          }
+        }, 100);
+
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          clearInterval(checkConnection);
+          if (ws && ws.readyState !== WebSocket.OPEN) {
+            alert('Connection timeout. Please try again.');
+          }
+        }, 5000);
       } else if (event.data.type === 'oauth_error') {
         console.error('OAuth error:', event.data.error);
         alert('Authentication failed: ' + event.data.error);
@@ -164,9 +168,19 @@ export function useAuth() {
 
     window.addEventListener('message', messageListener);
     
-    // Note: We don't check popup.closed due to Cross-Origin-Opener-Policy restrictions.
-    // The message listener will be cleaned up when we receive success/error messages,
-    // or on component unmount.
+    // Cleanup: Monitor popup and remove listener if closed manually
+    const checkPopup = setInterval(() => {
+      if (popup && popup.closed) {
+        clearInterval(checkPopup);
+        window.removeEventListener('message', messageListener);
+      }
+    }, 500);
+
+    // Cleanup after 5 minutes (timeout for OAuth flow)
+    setTimeout(() => {
+      clearInterval(checkPopup);
+      window.removeEventListener('message', messageListener);
+    }, 5 * 60 * 1000);
   };
 
   const googleLogout = () => {

@@ -7,7 +7,18 @@ export function useGame() {
   const [gameData, setGameData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
-  const [guestNumber, setGuestNumber] = useState(localStorage.getItem('guest_number') || 'noname');
+  const [userName, setUserName] = useState(() => {
+    const userInfo = localStorage.getItem('user_info');
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo);
+        return user.name || user.email || 'Guest';
+      } catch (e) {
+        return 'Guest';
+      }
+    }
+    return 'Guest';
+  });
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
 
@@ -30,10 +41,10 @@ export function useGame() {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
 
-      if (msg.type === "guest_assigned") {
-        localStorage.setItem('guest_number', msg.guest_number);
-        setGuestNumber(msg.guest_number);
-        console.log(`You joined as Guest ${msg.guest_number}`);
+      if (msg.type === "auth_success" && msg.user_info) {
+        const name = msg.user_info.name || msg.user_info.email || 'Guest';
+        setUserName(name);
+        localStorage.setItem('user_info', JSON.stringify(msg.user_info));
       } else if (msg.type === "joined_game") {
         loadGame(ws);
       } else if (msg.type === "join_failed") {
@@ -104,7 +115,7 @@ export function useGame() {
     }
     const message = {
       action: 'chat',
-      sender: `Guest ${guestNumber}`,
+      sender: userName,
       content: content.trim(),
       game_id: gameId
     };
@@ -141,7 +152,7 @@ export function useGame() {
     gameData,
     chatMessages,
     characters,
-    guestNumber,
+    userName,
     sendMessage,
     chatLogRef
   };

@@ -12,16 +12,25 @@ export function genGuestId() {
 
 export function quickAuth(ws) {
     const user_info = localStorage.getItem('user_info');
-    if (!user_info) {
+    if (user_info) {
+        console.log("Authenticating with user_info:", user_info);
+        const message = {
+            action: 'authenticate_guest',
+            user_info: user_info
+        };
+        ws.send(JSON.stringify(message));
         return;
     }
 
-    console.log("USER INFO:", user_info);
-    
-    const message = {
-        action: 'authenticate_guest',
-        user_info: user_info
-    };
-    ws.send(JSON.stringify(message));
+    // If no user_info, try guest_id
+    const guest_id = localStorage.getItem('guest_id');
+    if (guest_id) {
+        const message = {
+            action: 'authenticate_guest',
+            guest_id: guest_id
+        };
+        ws.send(JSON.stringify(message));
+        return;
+    }
 }
 

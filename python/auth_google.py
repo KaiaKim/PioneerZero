@@ -213,10 +213,11 @@ def verify_google_token(session_id: str) -> Optional[dict]:
 
 
 def get_user_info_from_token(token_data: dict) -> Optional[dict]:
-    """Get user info from stored token"""
+    """Get user info from stored token, with token refresh if needed"""
     try:
         from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build
+        from google.auth.transport.requests import Request
         
         creds = Credentials(
             token=token_data['token'],
@@ -226,6 +227,17 @@ def get_user_info_from_token(token_data: dict) -> Optional[dict]:
             client_secret=token_data['client_secret'],
             scopes=token_data['scopes']
         )
+        
+        # Refresh token if expired
+        if creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                # Update stored token with new access token
+                token_data['token'] = creds.token
+                print("Token refreshed successfully")
+            except Exception as refresh_error:
+                print(f"Error refreshing token: {refresh_error}")
+                return None
         
         user_info_service = build('oauth2', 'v2', credentials=creds)
         user_info = user_info_service.userinfo().get().execute()
@@ -256,6 +268,8 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
             'message': token_data['error']
         })
         await websocket.close()
+        # Clean up invalid token
+        _oauth_tokens.pop(session_id, None)
         return
     
     # Get user info from token
@@ -266,6 +280,8 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
             'message': 'Failed to get user info'
         })
         await websocket.close()
+        # Clean up invalid token
+        _oauth_tokens.pop(session_id, None)
         return
     
     # Verify user is in member list
@@ -275,18 +291,28 @@ async def handle_google_auth(websocket: WebSocket, auth_message: dict):
             'message': "You're not a community member"
         })
         await websocket.close()
+        # Clean up token for non-member
+        _oauth_tokens.pop(session_id, None)
         return
     
-    # Success - store user info with connection and send success message
-    conmanager.set_guest_number(websocket, user_info.get('id', 'unknown'))
+    # Success - send success message
     await websocket.send_json({
         'type': 'auth_success',
         'user_info': {
             'id': user_info.get('id'),
             'email': user_info.get('email'),
             'name': user_info.get('name'),
-            'picture': user_info.get('picture')
+            'picture': user_info.get('picture'),
+            'isGoogle': True,
+            'isGuest': False
         }
     })
     print(f"Google authentication successful for user: {user_info.get('email')}")
+    
+    # Clean up OAuth state (keep token_data for potential future use if needed)
+    # Remove state verification entry since it's no longer needed
+    _oauth_states.pop(session_id, None)
+    # Note: We keep token_data in _oauth_tokens in case we need to refresh later
+    # In production, you might want to store this in a database with expiration
+    
     # Continue to message loop after successful auth

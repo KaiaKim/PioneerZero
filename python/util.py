@@ -13,7 +13,6 @@ class ConnectionManager:
         self.active_connections: list[WebSocket] = []
         self.game_connections: dict[str, list[WebSocket]] = {}  # {game_id: [websocket1, websocket2, ...]}
         self.connection_to_game: dict[WebSocket, str] = {}  # {websocket: game_id}
-        self.connection_to_guest: dict[WebSocket, int] = {}  # {websocket: guest_number}
     
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -23,10 +22,6 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
         await self.leave_game(websocket)
-    
-    def set_guest_number(self, websocket: WebSocket, guest_number: int):
-        """Store guest_number for a connection"""
-        self.connection_to_guest[websocket] = guest_number
     
     async def join_game(self, websocket: WebSocket, game_id: str):
         """Assign a connection to a game session"""
@@ -45,7 +40,6 @@ class ConnectionManager:
                 self.game_connections[game_id].remove(websocket)
         
         self.connection_to_game.pop(websocket, None)
-        self.connection_to_guest.pop(websocket, None)
     
     async def broadcast_to_game(self, game_id: str, message: dict):
         """Broadcast message only to connections in a specific game"""
