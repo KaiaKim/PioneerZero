@@ -132,7 +132,7 @@ export function useAuth() {
             clearInterval(checkConnection);
             // Send authentication message with session_id
             ws.send(JSON.stringify({
-              action: 'authenticate_google',
+              action: 'google_login',
               session_id: receivedSessionId
             }));
           } else if (ws && ws.readyState === WebSocket.CLOSED) {

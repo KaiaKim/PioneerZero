@@ -246,7 +246,7 @@ def get_user_info_from_token(token_data: dict) -> Optional[dict]:
         print(f"Error getting user info: {e}")
         return None
 
-async def handle_google_auth(websocket: WebSocket, auth_message: dict):
+async def handle_google_login(websocket: WebSocket, auth_message: dict):
     """Handle Google OAuth authentication via WebSocket - sends responses via websocket.send_json"""
     session_id = auth_message.get('session_id')
     print(f"Handling Google auth with session_id: {session_id}")

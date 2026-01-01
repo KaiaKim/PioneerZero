@@ -3,7 +3,7 @@ Authentication utility functions for guest session management
 """
 from fastapi import WebSocket
 
-async def handle_guest_auth(websocket: WebSocket, auth_message: dict):
+async def handle_user_auth(websocket: WebSocket, auth_message: dict):
     """
     Handle guest authentication - accepts either guest_id or user_info.
     For guests without user_info, uses guest_id. For authenticated users, uses user_info.

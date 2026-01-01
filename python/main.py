@@ -56,11 +56,11 @@ async def websocket_endpoint(websocket: WebSocket):
         auth_action = auth_message.get('action')
 
         # Handle Google OAuth authentication
-        if auth_action == 'authenticate_google':
-            await auth_google.handle_google_auth(websocket, auth_message)
+        if auth_action == 'google_login':
+            await auth_google.handle_google_login(websocket, auth_message)
         # Handle guest authentication (existing flow)
-        elif auth_action == 'authenticate_guest':
-            await auth_guest.handle_guest_auth(websocket, auth_message)
+        elif auth_action == 'authenticate_user':
+            await auth_guest.handle_user_auth(websocket, auth_message)
         else:
             await websocket.close()
             print("Error: invalid authentication action")

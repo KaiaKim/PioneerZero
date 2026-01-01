@@ -15,7 +15,7 @@ export function quickAuth(ws) {
     if (user_info) {
         console.log("Authenticating with user_info:", user_info);
         const message = {
-            action: 'authenticate_guest',
+            action: 'authenticate_user',
             user_info: user_info
         };
         ws.send(JSON.stringify(message));
@@ -26,7 +26,7 @@ export function quickAuth(ws) {
     const guest_id = localStorage.getItem('guest_id');
     if (guest_id) {
         const message = {
-            action: 'authenticate_guest',
+            action: 'authenticate_user',
             guest_id: guest_id
         };
         ws.send(JSON.stringify(message));
