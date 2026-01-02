@@ -175,10 +175,13 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
     return player.info.name || 'Guest';
   };
 
+  // Generate slot numbers dynamically based on players array length (4-8)
+  const slotNumbers = Array.from({ length: players.length || 4 }, (_, i) => i + 1);
+
   return (
     <div className="waiting-room" style={{ display: 'flex' }}>
       <div className="waiting-grid">
-        {[1, 2, 3, 4].map((num) => {
+        {slotNumbers.map((num) => {
           const status = getSlotStatus(num);
           const isEmpty = isSlotEmpty(num);
           const isConnectionLost = isSlotConnectionLost(num);
@@ -220,7 +223,7 @@ function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) 
                 )}
               </div>
               <label className="waiting-name" id={`player-name-${num}`}>
-                {isEmpty ? '-' : getPlayerName(num)}
+                {isEmpty ? `P${num}` : getPlayerName(num)}
               </label>
               <label className="waiting-ready-label">
                 Ready

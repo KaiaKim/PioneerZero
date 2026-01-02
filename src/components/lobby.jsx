@@ -16,9 +16,9 @@ function Lobby() {
         <div className="game-settings">
           <label>player num:</label>
           <select value={playerNum} onChange={(e) => setPlayerNum(Number(e.target.value))}>
-            <option value={2}>2</option>
             <option value={4}>4</option>
             <option value={6}>6</option>
+            <option value={8}>8</option>
           </select>
         </div>
         <button onClick={() => createGame(playerNum)}>New Game</button>
