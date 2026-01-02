@@ -8,8 +8,7 @@ export function useGame() {
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [users, setUsers] = useState([]);
-  const [players, setPlayers] = useState([null, null, null, null]); // 4 slots
-  const [playerStatus, setPlayerStatus] = useState([0, 0, 0, 0]); // Status: 0=empty, 1=occupied, 2=connection-lost
+  const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(() => {
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
@@ -98,22 +97,21 @@ export function useGame() {
         setUsers(msg.users || []);
       } else if (msg.type === "players_list") {
         console.log('Players list received:', msg.players);
-        setPlayers(msg.players || [null, null, null, null]);
-        setPlayerStatus(msg.player_status || [0, 0, 0, 0]);
+        setPlayers(msg.players || []);
         playersListReceivedRef.current = true;
         
         // Get current user info
         const userInfo = JSON.parse(localStorage.getItem('user_info') || 'null');
         const currentUserId = userInfo?.id;
-        const playersList = msg.players || [null, null, null, null];
+        const playersList = msg.players || [];
         
         // Update localStorage if user is in a slot (to keep it in sync)
         if (currentUserId && gameId) {
           let userSlotNum = null;
           for (let i = 0; i < playersList.length; i++) {
             const player = playersList[i];
-            if (player && player.id === currentUserId) {
-              userSlotNum = i + 1; // Slot numbers are 1-4
+            if (player.info && player.info.id === currentUserId) {
+              userSlotNum = i + 1; // Slot numbers are 1-based
               break;
             }
           }
@@ -141,11 +139,10 @@ export function useGame() {
             const slotNum = parseInt(storedSlotNum);
             const slotIndex = slotNum - 1;
             const playerInSlot = playersList[slotIndex];
-            const statusList = msg.player_status || [0, 0, 0, 0];
-            const slotStatus = statusList[slotIndex] || 0;
+            const slotStatus = playerInSlot?.occupy || 0;
             
             // Check if user is already in the slot
-            const isUserInSlot = playerInSlot && playerInSlot.id === currentUserId;
+            const isUserInSlot = playerInSlot.info && playerInSlot.info.id === currentUserId;
             
             // Need to rejoin if:
             // 1. Slot is empty (status 0) or occupied by someone else
@@ -246,7 +243,7 @@ export function useGame() {
     }
     const message = {
       action: 'join_player_slot',
-      slot_num: slotNum,
+      slot: slotNum,
       game_id: gameId
     };
 
@@ -270,7 +267,7 @@ export function useGame() {
     }
     const message = {
       action: 'leave_player_slot',
-      slot_num: slotNum,
+      slot: slotNum,
       game_id: gameId
     };
 
@@ -314,7 +311,6 @@ export function useGame() {
     characters,
     users,
     players,
-    playerStatus,
     userName,
     sendMessage,
     joinPlayerSlot,

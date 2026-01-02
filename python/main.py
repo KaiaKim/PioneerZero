@@ -177,8 +177,7 @@ async def websocket_endpoint(websocket: WebSocket):
             })
             await conmanager.broadcast_to_game(game_id, {
                 'type': 'players_list',
-                'players': game.players,
-                'player_status': game.player_status
+                'players': game.players
             })
         # Always disconnect when WebSocket closes
         await conmanager.disconnect(websocket)

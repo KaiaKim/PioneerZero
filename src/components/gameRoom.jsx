@@ -6,7 +6,7 @@ import '../../style/global.css';
 import '../../style/room.css';
 
 function GameRoom() {
-  const { gameData, chatMessages, characters, users, players, playerStatus, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloor3D, setShowFloor3D] = useState(false);
@@ -50,7 +50,7 @@ function GameRoom() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingRoom && <WaitingRoom players={players} playerStatus={playerStatus} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
+        {showWaitingRoom && <WaitingRoom players={players} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>
@@ -122,7 +122,7 @@ export default GameRoom;
 
 
 
-function WaitingRoom({ players, playerStatus, joinPlayerSlot, leavePlayerSlot, currentUser }) {
+function WaitingRoom({ players, joinPlayerSlot, leavePlayerSlot, currentUser }) {
   // Get user info from currentUser or localStorage as fallback
   const getUserInfo = () => {
     if (currentUser) return currentUser;
@@ -147,7 +147,8 @@ function WaitingRoom({ players, playerStatus, joinPlayerSlot, leavePlayerSlot, c
 
   const getSlotStatus = (slotNum) => {
     const slotIndex = slotNum - 1;
-    return playerStatus[slotIndex] || 0; // 0=empty, 1=occupied, 2=connection-lost
+    const player = players[slotIndex];
+    return player?.occupy || 0; // 0=empty, 1=occupied, 2=connection-lost
   };
 
   const isSlotEmpty = (slotNum) => {
@@ -162,15 +163,16 @@ function WaitingRoom({ players, playerStatus, joinPlayerSlot, leavePlayerSlot, c
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
     const userInfo = getUserInfo();
-    if (!player || !userInfo) return false;
-    return player.id === userInfo.id;
+    console.log('DEBUG: WaitingRoom isCurrentUserInSlot',player, userInfo);
+    if (!player || !player.info || !userInfo) return false;
+    return player.info.id === userInfo.id;
   };
 
   const getPlayerName = (slotNum) => {
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
     if (!player) return '-';
-    return player.name || player.email || 'Guest';
+    return player.info.name || 'Guest';
   };
 
   return (
