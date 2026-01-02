@@ -4,32 +4,32 @@
 
 ### Added
 - **React Frontend Architecture**
-  - Complete migration from vanilla JavaScript to React 18
-  - React Router DOM for client-side routing
-  - Vite build system for modern development workflow
+  - Complete migration from vanilla JavaScript to React 18.2.0
+  - React Router DOM 6.20 for client-side routing
+  - Vite 5.0 build system for modern development workflow
   - Component-based architecture with reusable React components
 
 - **React Components**
-  - `src/components/auth.jsx` - Authentication component
+  - `src/components/auth.jsx` - Authentication component with Google OAuth integration
   - `src/components/lobby.jsx` - Lobby/session selection component
-  - `src/components/gameRoom.jsx` - Game room component with full game functionality
+  - `src/components/gameRoom.jsx` - Complete game room component with full game functionality
 
 - **Custom React Hooks**
-  - `src/hooks/useAuth.js` - Authentication state management hook
-  - `src/hooks/useGame.js` - Game state and WebSocket management hook
-  - `src/hooks/useLobby.js` - Lobby state and session management hook
+  - `src/hooks/useAuth.js` - Authentication state management and OAuth flow
+  - `src/hooks/useGame.js` - Game state, WebSocket management, and game actions
+  - `src/hooks/useLobby.js` - Lobby state, session management, and game creation
 
-- **Project Structure**
-  - `src/App.jsx` - Main React application with routing
-  - `src/main.jsx` - React entry point
-  - `vite.config.js` - Vite configuration
-  - `package.json` - React dependencies and build scripts
-  - `public/` directory for static assets (images, audio)
+- **Project Infrastructure**
+  - `src/App.jsx` - Main React application with React Router setup
+  - `src/main.jsx` - React entry point and DOM mounting
+  - `vite.config.js` - Vite configuration for React development
+  - `package.json` - React dependencies, build scripts, and project metadata
+  - `public/` directory structure for static assets (images, audio)
 
 - **Documentation**
-  - `NOTES/ARCHITECTURE_DIAGRAMS.md` - System architecture documentation
-  - `NOTES/MIGRATION_PLAN.md` - Migration planning documentation
-  - `NOTES/SETUP_INSTRUCTIONS.md` - Setup and installation guide
+  - `NOTES/ARCHITECTURE_DIAGRAMS.md` - System architecture and component diagrams
+  - `NOTES/MIGRATION_PLAN.md` - Detailed migration planning documentation
+  - `NOTES/SETUP_INSTRUCTIONS.md` - Setup, installation, and development guide
 
 ### Changed
 - **Frontend Architecture**
@@ -37,82 +37,87 @@
   - Replaced direct DOM manipulation with React state management
   - Implemented React Router for navigation (`/` for lobby, `/room/:gameId` for game rooms)
   - Moved all frontend code from `javaScript/` to `src/` directory structure
+  - Converted HTML-based pages to React component-based single-page application
 
-- **Backend Updates**
-  - Enhanced `python/game_ws.py` with improved WebSocket handling
+- **Backend Enhancements**
+  - Enhanced `python/game_ws.py` with improved WebSocket message handling
   - Updated `python/game_core.py` with cleaner Game class implementation
-  - Improved `python/util.py` ConnectionManager functionality
-  - Refined `python/main.py` with better routing and error handling
+  - Improved `python/util.py` ConnectionManager with better connection tracking
+  - Refined `python/main.py` with better routing, error handling, and API organization
   - Updated `python/auth_google.py` and `python/auth_guest.py` for React integration
 
 - **Asset Organization**
-  - Moved images to `public/images/` directory
+  - Moved images to `public/images/` directory for Vite asset handling
   - Moved audio files to `public/audio/` directory
-  - Preserved old files in `old/` directory for reference
+  - Preserved legacy files in `old/` directory for reference and rollback capability
 
-- **UI Improvements**
-  - Player list refactoring and improvements
-  - User list functionality
-  - Connection status visualizer
-  - Enhanced chat styling
-  - Improved game room layout and interactions
+- **UI and User Experience**
+  - Player list refactoring with improved state management
+  - User list functionality with real-time updates
+  - Connection status visualizer for WebSocket connectivity
+  - Enhanced chat styling and message display
+  - Improved game room layout and user interactions
+  - Better error handling and user feedback
 
 ### Removed
-- **Deprecated Files**
-  - Old vanilla JavaScript files moved to `old/javaScript/`
-  - Old HTML files moved to `old/` directory
-  - Legacy image files moved to `old/images/`
+- **Deprecated Frontend Files**
+  - Old vanilla JavaScript files moved to `old/javaScript/` directory
+  - Legacy HTML files (`room.html`, `index.html`) moved to `old/` directory
+  - Legacy image and audio files moved to `old/images/` and `old/audio/`
 
 ### Technical Details
-- React 18.2.0 with functional components and hooks
-- Vite 5.0 for fast development and optimized builds
-- React Router DOM 6.20 for client-side routing
-- Maintained WebSocket connection with React hooks
-- State management through custom hooks and React context
-- Component-based architecture for better maintainability
+- React 18.2.0 with functional components and hooks pattern
+- Vite 5.0 for fast HMR (Hot Module Replacement) and optimized production builds
+- React Router DOM 6.20 for declarative client-side routing
+- Maintained WebSocket connection management through React hooks
+- State management through custom hooks and React component state
+- Component-based architecture for improved code reusability and maintainability
+- Modern ES6+ JavaScript with JSX syntax
 
 ---
 
 ## [Previous] - UI Redesign & Layout Improvements
 
 ### Added
-- **New Assets**
-  - Added 4 new background images (`shutterstock_2447343523.jpg`, `shutterstock_2460491637.jpg`, `shutterstock_2493413181.jpg`, `shutterstock_2503971441.jpg`)
+- **New Visual Assets**
+  - Added 4 new background images for game environments
+  - Enhanced visual library with Shutterstock stock images
 
 - **Chat Filtering System**
   - Added chat filter checkboxes (All, System, Chat, Story) in room interface
-  - Filter controls for different message types
+  - Filter controls for different message types and categories
+  - Improved message organization and readability
 
 - **Layout Components**
-  - New left menu bar with Google sign-in button
-  - New right menu bar placeholder
-  - Restructured game screen with grid-based layout
+  - New left menu bar with Google sign-in button integration
+  - New right menu bar placeholder for future features
+  - Restructured game screen with CSS Grid-based layout system
 
 ### Changed
 - **Room Page Layout**
-  - Restructured `room.html` with new menu system
-  - Moved Google sign-in button to left menu bar
-  - Changed default display states: waiting room visible, floor-3d hidden
-  - Updated vomit-box styling and positioning
-  - Improved right panel layout and spacing
+  - Restructured `room.html` with new menu system architecture
+  - Moved Google sign-in button to dedicated left menu bar
+  - Changed default display states: waiting room visible, floor-3d hidden by default
+  - Updated vomit-box styling and positioning for better visibility
+  - Improved right panel layout and spacing for better UX
 
 - **Styling Updates**
-  - Major `room.css` overhaul with grid-based layout system
+  - Major `room.css` overhaul with modern grid-based layout system
   - Added full-screen game screen with background image (`sky2.jpg`)
   - Updated button color scheme in `global.css` (black background, white text)
-  - Enhanced chat log container styling with black background
+  - Enhanced chat log container styling with black background for contrast
   - Improved right panel styling with new color scheme
-  - Better z-index management for menu overlays
+  - Better z-index management for menu overlays and layering
 
 - **Game Frontend**
   - Commented out BGM autoplay functionality in `game_front.js`
-  - Removed autoplay fallback event listeners
+  - Removed autoplay fallback event listeners for browser compatibility
 
 ### Technical Details
 - Full viewport grid layout for game screen
-- Fixed positioning for menu bars
+- Fixed positioning for menu bars with proper z-index stacking
 - Improved overflow handling for chat and game containers
-- Better visual hierarchy with z-index layering
+- Better visual hierarchy with z-index layering system
 
 ---
 
