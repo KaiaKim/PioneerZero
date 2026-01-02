@@ -36,11 +36,8 @@ class Game():
         self.game_board = [['cell' for _ in range(4)] for _ in range(4)]
         self.current_round = 0
 
-    def add_player_to_slot(self, slot_num: int, user_info: dict):
+    def add_player_to_slot(self, slot_num: int, slot_index: int, user_info: dict):
         """Add a player to a specific slot"""
-        if slot_num < 1 or slot_num > self.player_num:
-            return {"success": False, "message": f"Invalid slot number. Must be 1-{self.player_num}."}
-        slot_index = slot_num - 1
         existing_player_info = self.players[slot_index]['info']
         occupy = self.players[slot_index]['occupy']
         
@@ -76,11 +73,8 @@ class Game():
         self.connection_lost_timers.pop(slot_num, None)  # Clear any connection-lost timer
         return {"success": True, "message": f"Player added to slot {slot_num}."}
     
-    def remove_player_from_slot(self, slot_num: int):
-        """Remove a player from a specific slot (1-4) - sets status to empty"""
-        if slot_num < 1 or slot_num > self.player_num:
-            return {"success": False, "message": f"Invalid slot number. Must be 1-{self.player_num}."}
-        slot_index = slot_num - 1
+    def remove_player_from_slot(self, slot_num: int, slot_index: int):
+        """Remove a player from a specific slot - sets status to empty"""
         if self.players[slot_index]['occupy'] == 0:
             return {"success": False, "message": f"Slot {slot_num} is already empty."}
         
@@ -90,8 +84,6 @@ class Game():
     
     def set_player_connection_lost(self, slot_num: int):
         """Set a player slot to connection-lost status (2)"""
-        if slot_num < 1 or slot_num > self.player_num:
-            return {"success": False, "message": f"Invalid slot number. Must be 1-{self.player_num}."}
         slot_index = slot_num - 1
         if self.players[slot_index]['occupy'] == 0:
             return {"success": False, "message": f"Slot {slot_num} is already empty."}

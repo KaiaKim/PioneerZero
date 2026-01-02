@@ -56,13 +56,14 @@ export function useLobby() {
     }
   };
 
-  const createGame = () => {
+  const createGame = (playerNum = 4) => {
     const socket = wsRef.current;
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       console.log('socket is connected');
       const message = {
-        action: 'create_game'
+        action: 'create_game',
+        player_num: playerNum
       };
       socket.send(JSON.stringify(message));
     } else {

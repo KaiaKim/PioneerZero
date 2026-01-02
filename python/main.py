@@ -109,7 +109,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if action == "create_game":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
-                sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id)  # create a new game session
+                player_num = message.get("player_num", 4)  # Get player_num from message, default to 4
+                sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id, player_num)  # create a new game session
                 continue
 
             # Get the game_id from message only (required for all game actions)

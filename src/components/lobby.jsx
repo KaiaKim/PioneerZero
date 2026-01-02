@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLobby } from '../hooks/useLobby';
 import Auth from './auth';
 import '../../style/global.css';
@@ -6,13 +6,23 @@ import '../../style/lobby.css';
 
 function Lobby() {
   const { sessions, createGame, killDB, openGameRoom } = useLobby();
+  const [playerNum, setPlayerNum] = useState(4);
 
   return (
     <div>
       <Auth />
       <div className="selection-screen">
         <h1>Game Lobby</h1>
-        <button onClick={createGame}>New Game</button>
+        <div className="game-settings">
+          <label>player num:</label>
+          <select value={playerNum} onChange={(e) => setPlayerNum(Number(e.target.value))}>
+            <option value={2}>2</option>
+            <option value={4}>4</option>
+            <option value={6}>6</option>
+          </select>
+        </div>
+        <button onClick={() => createGame(playerNum)}>New Game</button>
+
         <button onClick={killDB}>Kill DB</button>
         <div id="session-list-container">
           <h2>Active Game Sessions</h2>

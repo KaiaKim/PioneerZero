@@ -18,25 +18,24 @@ async def handle_list_sessions(websocket: WebSocket, chat_tables: list[str]):
 
 
 # WebSocket message handlers for lobby operations
-async def handle_create_game(websocket: WebSocket, game_id: str):
+async def handle_create_game(websocket: WebSocket, game_id: str, player_num: int):
     """Handle create_game action - creates a new game session"""
     dbmanager.create_chat_table(game_id)
     
-    # Create game instance
-    game = Game(game_id)
+    # Create game instance with specified player_num
+    game = Game(game_id, player_num)
     
     # Auto-join creator to the game
     await conmanager.join_game(websocket, game_id)
     
     # Get user_info for this connection and add to game users list
     user_info = conmanager.get_user_info(websocket)
-    if user_info:
-        game.users.append(user_info)
-        # Broadcast updated users list to all clients in the game
-        await conmanager.broadcast_to_game(game_id, {
-            'type': 'users_list',
-            'users': game.users
-        })
+    game.users.append(user_info)
+    # Broadcast updated users list to all clients in the game
+    await conmanager.broadcast_to_game(game_id, {
+        'type': 'users_list',
+        'users': game.users
+    })
     
     now = datetime.now().isoformat()
     msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} started.", "system", None)
@@ -56,15 +55,14 @@ async def handle_join_game(websocket: WebSocket, game_id: str, game):
     
     # Get user_info for this connection and add to game users list
     user_info = conmanager.get_user_info(websocket)
-    if user_info:
-        # Check if user is already in the list (avoid duplicates)
-        if not any(u.get('id') == user_info.get('id') for u in game.users):
-            game.users.append(user_info)
-            # Broadcast updated users list to all clients in the game
-            await conmanager.broadcast_to_game(game_id, {
-                'type': 'users_list',
-                'users': game.users
-            })
+    # Check if user is already in the list (avoid duplicates)
+    if not any(u.get('id') == user_info.get('id') for u in game.users):
+        game.users.append(user_info)
+        # Broadcast updated users list to all clients in the game
+        await conmanager.broadcast_to_game(game_id, {
+            'type': 'users_list',
+            'users': game.users
+        })
     
     await websocket.send_json({
         'type': 'joined_game',
