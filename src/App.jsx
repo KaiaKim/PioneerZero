@@ -1,14 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Lobby from './components/lobby';
-import GameRoom from './components/gameRoom';
+import Room from './components/room/Room';
+import MyCharacter from './components/MyCharacter';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Lobby />} />
-        <Route path="/room/:gameId" element={<GameRoom />} />
+        <Route path="/room/:gameId" element={<Room />} />
+        <Route path="/edit-character" element={<MyCharacter />} />
       </Routes>
     </Router>
   );

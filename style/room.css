@@ -92,7 +92,7 @@
 }
 
 /* Waiting Room */
-.waiting-room {
+.waiting-area {
     width: 900px;
     padding: 20px;
     display: flex;
@@ -168,7 +168,7 @@
     align-items: center;
 }
 
-.player-join-but, .add-robot-but, .player-leave-but{
+.player-join-but, .add-bot-but, .player-leave-but{
     margin: 3px;
 }
 
@@ -248,7 +248,7 @@
 }
 
 /* 3D Floor Grid */
-.floor-3d {
+.floor-area {
     transform-style: preserve-3d;
     transform: rotateX(60deg) rotateZ(20deg);
     width: 400px;
@@ -257,7 +257,7 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-.parent-grid {
+.floor-grid {
     display: grid;
     grid-template-rows: 1fr 1fr;
     gap: 50px;
@@ -266,11 +266,11 @@
     transform-style: preserve-3d;
 }
 
-.section {
+.floor-section {
     transform-style: preserve-3d;
 }
 
-.grid-3d {
+.floor-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
@@ -290,12 +290,12 @@
     transform-style: preserve-3d;
 }
 
-.xy-section .cell {
+.floor-section .team-blue .cell {
     background: #1e3a8a;
     color: white;
 }
 
-.ab-section .cell {
+.floor-section .team-white .cell {
     background: #eeeeee;
     color: black;
 }

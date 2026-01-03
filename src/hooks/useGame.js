@@ -19,7 +19,6 @@ export function useGame() {
         return 'Guest';
       }
     }
-    return 'Guest';
   });
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
@@ -259,7 +258,26 @@ export function useGame() {
       return false;
     }
   };
-
+  
+  const addBotToSlot = (slotNum) => {
+    if (!gameId) {
+      console.error('No game_id found. Cannot add bot to slot.');
+      return;
+    }
+    const message = {
+      action: 'add_bot_to_slot',
+      slot: slotNum,
+      game_id: gameId
+    }
+    const socket = wsRef.current;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(message));
+      return true;
+    } else {
+      console.error('Game WebSocket not connected. Cannot add bot to slot.');
+      return false;
+    }
+  };
   const leavePlayerSlot = (slotNum) => {
     if (!gameId) {
       console.error('No game_id found. Cannot leave slot.');
