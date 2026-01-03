@@ -4,22 +4,13 @@ import { quickAuth } from '../util';
 
 export function useGame() {
   const { gameId } = useParams();
+  const userInfo = JSON.parse(localStorage.getItem('user_info'));
   const [gameData, setGameData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [users, setUsers] = useState([]);
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
-  const [userName, setUserName] = useState(() => {
-    const userInfo = localStorage.getItem('user_info');
-    if (userInfo) {
-      try {
-        const user = JSON.parse(userInfo);
-        return user.name || user.email || 'Guest';
-      } catch (e) {
-        return 'Guest';
-      }
-    }
-  });
+  const [userName, setUserName] = useState(userInfo.name);
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
   const autoJoinAttemptedRef = useRef(false);
@@ -29,7 +20,6 @@ export function useGame() {
     const wsUrl = `ws://localhost:8000/ws`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
-
 
     ws.onopen = () => {
       console.log('Game WebSocket connected');
@@ -44,9 +34,8 @@ export function useGame() {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
 
-      if (msg.type === "auth_success" && msg.user_info) {
-        const name = msg.user_info.name || msg.user_info.email || 'Guest';
-        setUserName(name);
+      if (msg.type === "auth_success") {
+        setUserName(msg.user_info.name);
         localStorage.setItem('user_info', JSON.stringify(msg.user_info));
         // If players_list was already received, try auto-join now that we have user info
         if (playersListReceivedRef.current && !autoJoinAttemptedRef.current && gameId) {
@@ -72,8 +61,6 @@ export function useGame() {
         setGameData(msg);
         setCharacters(msg.characters || []);
       } else if (msg.type === "chat_history") {
-        const userInfo = JSON.parse(localStorage.getItem('user_info') || 'null');
-        const currentUserId = userInfo?.id || null;
         const messages = (msg.messages || []).map(chatMsg => ({
           sender: chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System",
           time: chatMsg.time,
@@ -100,12 +87,11 @@ export function useGame() {
         playersListReceivedRef.current = true;
         
         // Get current user info
-        const userInfo = JSON.parse(localStorage.getItem('user_info') || 'null');
-        const currentUserId = userInfo?.id;
+        const currentUserId = userInfo.id;
         const playersList = msg.players || [];
         
         // Update localStorage if user is in a slot (to keep it in sync)
-        if (currentUserId && gameId) {
+        if (gameId) {
           let userSlotNum = null;
           for (let i = 0; i < playersList.length; i++) {
             const player = playersList[i];
@@ -130,7 +116,7 @@ export function useGame() {
         
         // Check if user should auto-join their previous slot after page refresh
         // Only attempt once per connection
-        if (!autoJoinAttemptedRef.current && gameId && currentUserId) {
+        if (!autoJoinAttemptedRef.current && gameId) {
           const storedSlotKey = `player_slot_${gameId}`;
           const storedSlotNum = localStorage.getItem(storedSlotKey);
           
