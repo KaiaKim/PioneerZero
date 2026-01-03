@@ -45,7 +45,6 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
     const userInfo = getUserInfo();
-    console.log('DEBUG: WaitingArea isCurrentUserInSlot',player, userInfo);
     if (!player || !player.info || !userInfo) return false;
     return player.info.id === userInfo.id;
   };

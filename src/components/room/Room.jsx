@@ -8,7 +8,7 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, sendMessage, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, sendChat, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloorArea, setShowFloorArea] = useState(false);
@@ -19,7 +19,7 @@ function Room() {
   const handleChatKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (sendMessage(chatInput)) {
+      if (sendChat(chatInput)) {
         setChatInput('');
       }
     }
@@ -102,7 +102,7 @@ function Room() {
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <button onClick={() => sendMessage(chatInput) && setChatInput('')}>
+          <button onClick={() => sendChat(chatInput) && setChatInput('')}>
             Send
           </button>
         </div>

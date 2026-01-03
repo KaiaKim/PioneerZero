@@ -92,8 +92,8 @@ class Game():
         self.connection_lost_timers[slot] = time.time()  # Record timestamp
         return {"success": True, "message": f"Player slot {slot} set to connection-lost."}
     
-    def check_connection_lost_timeouts(self, duration = 5.0):
-        """Check for connection-lost slots that have exceeded 5 seconds and clear them"""
+    def clear_expired_connection_lost_slots(self, duration = 5.0):
+        """Clear connection-lost slots that have exceeded the timeout duration (default 5 seconds)"""
         current_time = time.time()
         slots_to_clear = []
         

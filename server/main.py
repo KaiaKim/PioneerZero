@@ -11,8 +11,6 @@ from dotenv import load_dotenv
 from . import lobby_ws, game_ws, google_login, auth_user, game_core
 from .util import conmanager, dbmanager
 
-
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -26,18 +24,17 @@ app = FastAPI()
 # Include OAuth router
 app.include_router(google_login.router)
 
-# Background task to check for connection-lost timeouts
-async def check_connection_lost_timeouts():
-    """Periodically check for connection-lost slots that have exceeded 5 seconds"""
+# Background task to periodically check for connection-lost timeouts
+async def run_connection_lost_timeout_checks():
+    """Periodically runs connection-lost timeout checks for all games"""
     while True:
         try:
             for game_id, game in sessions.items():
-                if game.check_connection_lost_timeouts():
+                if game.clear_expired_connection_lost_slots():
                     # Broadcast updated players list if any slots were cleared
                     await conmanager.broadcast_to_game(game_id, {
                         'type': 'players_list',
-                        'players': game.players,
-                        'player_status': game.player_status
+                        'players': game.players
                     })
             await asyncio.sleep(1)  # Check every second
         except Exception as e:
@@ -47,7 +44,7 @@ async def check_connection_lost_timeouts():
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on server startup"""
-    asyncio.create_task(check_connection_lost_timeouts())
+    asyncio.create_task(run_connection_lost_timeout_checks())
 
 
 # Serve static files

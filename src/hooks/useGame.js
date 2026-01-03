@@ -4,7 +4,13 @@ import { quickAuth } from '../util';
 
 export function useGame() {
   const { gameId } = useParams();
-  const userInfo = JSON.parse(localStorage.getItem('user_info'));
+  let userInfo = JSON.parse(localStorage.getItem('user_info'));
+  if (!userInfo) {
+    userInfo = {
+      name: 'temp',
+      id: 'temp_id',
+    };
+  }
   const [gameData, setGameData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
@@ -198,7 +204,7 @@ export function useGame() {
     }
   };
 
-  const sendMessage = (content) => {
+  const sendChat = (content) => {
     if (!content.trim()) return;
     if (!gameId) {
       console.error('No game_id found. Cannot send message.');
@@ -264,6 +270,7 @@ export function useGame() {
       return false;
     }
   };
+  
   const leavePlayerSlot = (slotNum) => {
     if (!gameId) {
       console.error('No game_id found. Cannot leave slot.');
@@ -316,7 +323,7 @@ export function useGame() {
     users,
     players,
     userName,
-    sendMessage,
+    sendChat,
     joinPlayerSlot,
     leavePlayerSlot,
     chatLogRef
