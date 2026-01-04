@@ -1,3 +1,15 @@
+// Configuration
+const API_BASE_URL = 'http://localhost:8000';
+const WS_BASE_URL = 'ws://localhost:8000';
+
+export function getWebSocketUrl() {
+    return `${WS_BASE_URL}/ws`;
+}
+
+export function getApiBaseUrl() {
+    return API_BASE_URL;
+}
+
 // Helper functions for game_id from URL parameter
 export function getGameId() {
     const urlParams = new URLSearchParams(window.location.search);

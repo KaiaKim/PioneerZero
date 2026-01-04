@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { genGuestId, quickAuth } from '../util';
+import { genGuestId, quickAuth, getWebSocketUrl, getApiBaseUrl } from '../util';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -17,7 +17,7 @@ export function useAuth() {
   }, []);
 
   const connectAuthWebSocket = (skipQuickAuth = false) => {
-    const wsUrl = `ws://localhost:8000/ws`;
+    const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
     let guest_id = null;
 
@@ -80,7 +80,7 @@ export function useAuth() {
     const sessionId = crypto.randomUUID();
     
     // Open OAuth popup with session_id as query parameter
-    const popupUrl = `http://localhost:8000/auth/google/login?session_id=${sessionId}`;
+    const popupUrl = `${getApiBaseUrl()}/auth/google/login?session_id=${sessionId}`;
     const popup = window.open(
       popupUrl,
       'google_oauth',
@@ -95,7 +95,7 @@ export function useAuth() {
     // Listen for OAuth callback message
     const messageListener = (event) => {
       // Verify origin for security
-      if (event.origin !== 'http://localhost:8000') {
+      if (event.origin !== getApiBaseUrl()) {
         return;
       }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { quickAuth } from '../util';
+import { quickAuth, getWebSocketUrl } from '../util';
 
 export function useLobby() {
   const [sessions, setSessions] = useState([]);
@@ -8,7 +8,7 @@ export function useLobby() {
   const wsRef = useRef(null);
 
   const connectLobbyWebSocket = () => {
-    const wsUrl = `ws://localhost:8000/ws`;
+    const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
