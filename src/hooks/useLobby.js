@@ -48,7 +48,6 @@ export function useLobby() {
     }
   };
 
-
   const listGames = () => {
     messageLobbyWS({
       action: 'list_games'

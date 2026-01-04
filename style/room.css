@@ -127,8 +127,8 @@
 }
 
 .waiting-thumbnail {
-    width: 120px;
-    height: 180px;
+    width: 130px;
+    height: 160px;
     border: 2px solid #555;
     border-radius: 4px;
     background-color: #4a4a4a;
@@ -136,10 +136,14 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    position: relative;
 }
 
 .waiting-thumbnail.occupied {
-    background-color: lightblue;
+    background-image: var(--token-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .waiting-thumbnail.connection-lost {
@@ -168,8 +172,29 @@
     align-items: center;
 }
 
-.player-join-but, .add-bot-but, .player-leave-but{
+.player-join-but, .add-bot-but {
     margin: 3px;
+}
+
+.player-leave-but {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: red;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
 }
 
 .waiting-name {

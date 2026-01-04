@@ -49,11 +49,11 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
     return player.info.id === userInfo.id;
   };
 
-  const getPlayerName = (slotNum) => {
+  const getCharName = (slotNum) => {
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
     if (!player) return '-';
-    return player.info.name || 'Guest';
+    return player.character.name || 'Guest';
   };
 
   // Generate slot numbers dynamically based on players array length (4-8)
@@ -68,6 +68,12 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
           const isConnectionLost = isSlotConnectionLost(num);
           const isCurrentUser = isCurrentUserInSlot(num);
           
+          const slotIndex = num - 1;
+          const player = players[slotIndex];
+          const tokenImage = status === 1 && player?.character?.token_image 
+            ? player.character.token_image 
+            : null;
+
           return (
             <div key={num} className="waiting-cell">
               <div 
@@ -76,6 +82,7 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
                   status === 2 ? 'connection-lost' : 
                   ''
                 }`}
+                style={tokenImage ? { '--token-image': `url(${tokenImage})` } : {}}
               >
                 {isEmpty ? (
                   <div>
@@ -96,7 +103,7 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
                       className="player-leave-but"
                       onClick={() => handleLeaveClick(num)}
                     >
-                      Leave
+                      X
                     </button>
                   )
                 )}
@@ -107,7 +114,7 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
                 )}
               </div>
               <label className="waiting-name" id={`player-name-${num}`}>
-                {isEmpty ? `P${num}` : getPlayerName(num)}
+                {isEmpty ? `P${num}` : getCharName(num)}
               </label>
               <label className="waiting-ready-label">
                 Ready

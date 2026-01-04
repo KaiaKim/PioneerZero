@@ -64,7 +64,7 @@ class Game():
         # Create player object with user_info and slot number
         player_obj = {
             'info': user_info,
-            'character': None,
+            'character': game_bot.default_character,
             "slot": slot,
             'team': slot % 2, # 0=white,1=blue
             'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost

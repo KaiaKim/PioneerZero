@@ -2,8 +2,6 @@
 Global variables and core server setup for the FastAPI server
 """
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import uuid
 import traceback
 import asyncio
@@ -47,28 +45,9 @@ async def startup_event():
     asyncio.create_task(run_connection_lost_timeout_checks())
 
 
-# Serve static files
-# Note: React app is served by Vite dev server, these are for legacy/backup
-app.mount("/style", StaticFiles(directory="style"), name="style")
-app.mount("/images", StaticFiles(directory="public/images"), name="images")
-app.mount("/audio", StaticFiles(directory="public/audio"), name="audio")
-
-# Legacy JavaScript files moved to old/javaScript - no longer needed for React app
-# app.mount("/javaScript", StaticFiles(directory="old/javaScript"), name="javaScript")
-
-# HTTP endpoints for serving HTML files (legacy - React app uses Vite)
-# @app.get("/")
-# async def read_root():
-#     return FileResponse("old/index.html")
-
-# @app.get("/room.html")
-# async def read_room():
-#     return FileResponse("old/room.html")
-
 # Main WebSocket endpoint - routes messages to appropriate handlers
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-
     await conmanager.connect(websocket)
 
     try:
@@ -116,6 +95,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"No game_id")
                 #await websocket.send_json({"type": "no_game_id"})
                 continue
+            
             try:
                 game = sessions[game_id]
             except KeyError:

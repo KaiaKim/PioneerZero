@@ -1,11 +1,29 @@
 # In the final project, character data has to be pulled from a database. 
 # For now, I will create a hard-coded global variable for each character.
 
+default_character = {
+    "name": "Pikita",
+    "profile_image": "/images/pikita_profile.png",
+    "token_image": "/images/pikita_token.png",
+    "stats": {
+        "vtl":4,
+        "sen":1,
+        "per":1,
+        "tal":2,
+        "mst":2
+    },
+    "class": "physical",
+    "type": "none",
+    "skills": ["Medikit","Acceleration","Contortion"],
+    "current_hp": 100,
+    "pos": "A1"
+}
+
 bots = [
     {
     "name": "Bot_A",
-    "profile_image": "images/bettel_profile.png",
-    "token_image": "images/bettel_token.png",
+    "profile_image": "/images/bettel_profile.png",
+    "token_image": "/images/bettel_token.png",
     "stats": {
         "vtl":3,
         "sen":2,
