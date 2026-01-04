@@ -215,6 +215,8 @@ export function useGame() {
       sender: userName,
       content: content.trim()
     });
+
+    return true; // TODO: if fail, return false > don't clear the input
   };
 
   const joinPlayerSlot = (slotNum) => {

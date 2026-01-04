@@ -8,7 +8,7 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, sendChat, joinPlayerSlot, addBotToSlot, leavePlayerSlot, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, sendChat, joinPlayerSlot, leavePlayerSlot, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloorArea, setShowFloorArea] = useState(false);
@@ -52,7 +52,7 @@ function Room() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingArea && <WaitingArea players={players} joinPlayerSlot={joinPlayerSlot} addBotToSlot={addBotToSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
+        {showWaitingArea && <WaitingArea players={players} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} currentUser={user} />}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>
@@ -102,7 +102,7 @@ function Room() {
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <button onClick={() => sendChat(chatInput) && setChatInput('')}>
+          <button onClick={() => sendChat(chatInput)}>
             Send
           </button>
         </div>
