@@ -181,118 +181,65 @@ export function useGame() {
     };
   };
 
-  const joinGame = (ws = null, id = gameId) => {
-    const socket = ws || wsRef.current;
-    const game_id = id || gameId;
-    if (socket && socket.readyState === WebSocket.OPEN && game_id) {
-      const message = {
-        action: 'join_game',
-        game_id: game_id
-      };
-      socket.send(JSON.stringify(message));
-    }
-  };
 
-  const loadGame = (ws = null) => {
-    const socket = ws || wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN && gameId) {
-      const message = {
-        action: 'load_game',
-        game_id: gameId
-      };
-      socket.send(JSON.stringify(message));
-    }
-  };
-
-  const sendChat = (content) => {
-    if (!content.trim()) return;
+  // Decorator function to handle common WebSocket message sending pattern
+  const sendGameMsg = (message) => {
     if (!gameId) {
       console.error('No game_id found. Cannot send message.');
       return;
     }
-    const message = {
-      action: 'chat',
-      sender: userName,
-      content: content.trim(),
-      game_id: gameId
-    };
-
+    message.game_id = gameId; // Add game_id to the message
     const socket = wsRef.current;
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
-      return true;
-    } else {
-      console.error('Game WebSocket not connected. Message not sent.');
-      return false;
     }
+  };
+
+  const joinGame = () => {
+    sendGameMsg({
+      action: 'join_game'
+    });
+  };
+
+  const loadGame = () => {
+    sendGameMsg({
+      action: 'load_game'
+    });
+  };
+
+  const sendChat = (content) => {
+    if (!content.trim()) return;
+
+    sendGameMsg({
+      action: 'chat',
+      sender: userName,
+      content: content.trim()
+    });
   };
 
   const joinPlayerSlot = (slotNum) => {
-    if (!gameId) {
-      console.error('No game_id found. Cannot join slot.');
-      return;
-    }
-    const message = {
+    sendGameMsg({
       action: 'join_player_slot',
       slot: slotNum,
-      game_id: gameId
-    };
-
-    const socket = wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-      // Store slot number in localStorage for persistence across page refreshes
-      const storedSlotKey = `player_slot_${gameId}`;
-      localStorage.setItem(storedSlotKey, slotNum.toString());
-      return true;
-    } else {
-      console.error('Game WebSocket not connected. Cannot join slot.');
-      return false;
-    }
+    });
   };
   
   const addBotToSlot = (slotNum) => {
-    if (!gameId) {
-      console.error('No game_id found. Cannot add bot to slot.');
-      return;
-    }
-    const message = {
+    sendGameMsg({
       action: 'add_bot_to_slot',
-      slot: slotNum,
-      game_id: gameId
-    }
-    const socket = wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-      return true;
-    } else {
-      console.error('Game WebSocket not connected. Cannot add bot to slot.');
-      return false;
-    }
+      slot: slotNum
+    });
   };
-  
-  const leavePlayerSlot = (slotNum) => {
-    if (!gameId) {
-      console.error('No game_id found. Cannot leave slot.');
-      return;
-    }
-    const message = {
-      action: 'leave_player_slot',
-      slot: slotNum,
-      game_id: gameId
-    };
 
-    const socket = wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(message));
-      // Remove slot number from localStorage when leaving
-      const storedSlotKey = `player_slot_${gameId}`;
-      localStorage.removeItem(storedSlotKey);
-      return true;
-    } else {
-      console.error('Game WebSocket not connected. Cannot leave slot.');
-      return false;
-    }
+  const leavePlayerSlot = (slotNum) => {
+    sendGameMsg({
+      action: 'leave_player_slot',
+      slot: slotNum
+    });
+
+    // Remove slot number from localStorage when leaving
+    const storedSlotKey = `player_slot_${gameId}`;
+    localStorage.removeItem(storedSlotKey);
   };
 
   // Auto-scroll chat to bottom when new messages arrive
@@ -325,6 +272,7 @@ export function useGame() {
     userName,
     sendChat,
     joinPlayerSlot,
+    addBotToSlot,
     leavePlayerSlot,
     chatLogRef
   };
