@@ -129,6 +129,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_join_player_slot(websocket, message, game)
                 continue
             
+            if action == "add_bot_to_slot":
+                await game_ws.handle_add_bot_to_slot(websocket, message, game)
+                continue
+            
             if action == "leave_player_slot":
                 await game_ws.handle_leave_player_slot(websocket, message, game)
                 continue

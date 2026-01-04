@@ -49,6 +49,13 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
     return player.info.id === userInfo.id;
   };
 
+  const isBotInSlot = (slotNum) => {
+    const slotIndex = slotNum - 1;
+    const player = players[slotIndex];
+    if (!player || !player.info) return false;
+    return player.info.is_bot === true || (player.info.id && player.info.id.startsWith('bot_'));
+  };
+
   const getCharName = (slotNum) => {
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
@@ -67,6 +74,7 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
           const isEmpty = isSlotEmpty(num);
           const isConnectionLost = isSlotConnectionLost(num);
           const isCurrentUser = isCurrentUserInSlot(num);
+          const isBot = isBotInSlot(num);
           
           const slotIndex = num - 1;
           const player = players[slotIndex];
@@ -98,7 +106,7 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
                     >Bot</button>
                   </div>
                 ) : (
-                  isCurrentUser && status === 1 && (
+                  (isCurrentUser || isBot) && status === 1 && (
                     <button 
                       className="player-leave-but"
                       onClick={() => handleLeaveClick(num)}
@@ -118,11 +126,15 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
               </label>
               <label className="waiting-ready-label">
                 Ready
-                <input 
-                  type="checkbox" 
-                  className="waiting-ready" 
-                  disabled={isEmpty || isConnectionLost} 
-                />
+                {isCurrentUser && !isBot && status === 1 ? (
+                  <input 
+                    type="checkbox" 
+                    className="waiting-ready" 
+                    disabled={isConnectionLost} 
+                  />
+                ) : !isEmpty ? (
+                  <span>✓</span>
+                ) : null}
               </label>
             </div>
           );

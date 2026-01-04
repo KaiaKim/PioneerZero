@@ -90,6 +90,34 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         })
 
 
+async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
+    """Handle add_bot_to_slot action - adds a bot to a waiting room slot"""
+    slot = message.get("slot")
+
+    if not slot or slot < 1 or slot > game.player_num:
+        await websocket.send_json({
+            "type": "add_bot_failed",
+            "message": "Invalid slot number"
+        })
+        return
+    
+    slot_idx = slot - 1
+    
+    result = game.add_bot_to_slot(slot, slot_idx)
+    
+    if result["success"]:
+        # Broadcast updated players list to all clients
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "players_list",
+            "players": game.players
+        })
+    else:
+        await websocket.send_json({
+            "type": "add_bot_failed",
+            "message": result["message"]
+        })
+
+
 async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     """Handle leave_player_slot action - removes a player from a waiting room slot"""
     
@@ -114,14 +142,18 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     
     slot_idx = slot - 1
     
-    # Verify the user owns this slot
+    # Check if slot has a bot - anyone can remove bots
     player = game.players[slot_idx]['info']
-    if not player or player['id'] != user_info.get('id'):
-        await websocket.send_json({
-            "type": "leave_slot_failed",
-            "message": "You don't own this slot"
-        })
-        return
+    is_bot = player and (player.get('is_bot') == True or (player.get('id') and player.get('id').startswith('bot_')))
+    
+    # If not a bot, verify the user owns this slot
+    if not is_bot:
+        if not player or player['id'] != user_info.get('id'):
+            await websocket.send_json({
+                "type": "leave_slot_failed",
+                "message": "You don't own this slot"
+            })
+            return
     
     result = game.remove_player_from_slot(slot, slot_idx)
     

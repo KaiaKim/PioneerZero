@@ -23,7 +23,7 @@ bots = [
     {
     "name": "Bot_A",
     "profile_image": "/images/bettel_profile.png",
-    "token_image": "/images/bettel_token.png",
+    "token_image": "/images/bot_white_token.png",
     "stats": {
         "vtl":3,
         "sen":2,

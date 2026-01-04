@@ -165,7 +165,44 @@ class DatabaseManager:
             import traceback
             traceback.print_exc()
 
+class TimeManager:
+    def __init__(self):
+        self.timer_type = 'session'
+        self.duration = None
+        self.start_time = None
+        self.pause_time = None
+        self.elapsed_time = 0
+        self.is_paused = False
+        self.is_running = False
+
+    def start_timer(self, timer_type='session', duration=None):
+        self.timer_type = timer_type
+        self.duration = duration
+        self.start_time = time.time()
+        self.is_running = True
+        self.is_paused = False
+        self.pause_time = None
+        self.elapsed_time = 0
+    
+    def stop_timer(self):
+        """Stop the timer"""
+        
+    def pause_timer(self):
+        """Pause the timer (preserves elapsed time)"""
+        
+    def resume_timer(self):
+        """Resume a paused timer"""
+        
+    def reset_timer(self):
+        """Reset timer to initial state"""
+        
+    def get_timer_state(self):
+        """Get current timer state (elapsed time, remaining time if countdown)"""
+        
+    def update_timer_type(self, timer_type, duration=None):
+        """Change timer type and optionally set new duration"""
+
 # class instance
 dbmanager = DatabaseManager()
 conmanager = ConnectionManager()
-
+timemanager = TimeManager()

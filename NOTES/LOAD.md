@@ -8,7 +8,7 @@ Since this project uses React (with Vite) for the frontend and FastAPI for the b
 
 Open a terminal in `F:\2025\Pioneer_Zero\newGame` and run:
 ```bash
-python -m uvicorn python.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 What each part means:
@@ -20,7 +20,7 @@ What each part means:
 
 Alternative (localhost only):
 ```bash
-python -m uvicorn python.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ---

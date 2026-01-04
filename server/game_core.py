@@ -73,6 +73,38 @@ class Game():
         self.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
         return {"success": True, "message": f"Player added to slot {slot}."}
     
+    def add_bot_to_slot(self, slot: int, slot_idx: int):
+        """Add a bot to a specific slot"""
+        occupy = self.players[slot_idx]['occupy']
+        
+        # Check if slot is occupied (status 1) or connection-lost (status 2)
+        if occupy != 0:
+            return {"success": False, "message": f"Slot {slot} is not empty."}
+        
+        # Slot is empty (status 0) - add bot
+        # Get a bot from the bots array (use first available bot, or cycle if needed)
+        bot_index = slot_idx % len(game_bot.bots) if game_bot.bots else 0
+        bot_character = game_bot.bots[bot_index] if game_bot.bots else game_bot.default_character
+        
+        # Create bot info similar to user_info structure
+        bot_info = {
+            'id': f'bot_{slot}',  # Unique bot ID based on slot
+            'name': bot_character.get('name', f'Bot_{slot}'),
+            'is_bot': True
+        }
+        
+        # Create player object with bot info and bot character
+        player_obj = {
+            'info': bot_info,
+            'character': bot_character,
+            'slot': slot,
+            'team': slot % 2,  # 0=white, 1=blue
+            'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
+        }
+        self.players[slot_idx] = player_obj
+        self.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
+        return {"success": True, "message": f"Bot added to slot {slot}."}
+    
     def remove_player_from_slot(self, slot: int, slot_idx: int):
         """Remove a player from a specific slot - sets status to empty"""
         if self.players[slot_idx]['occupy'] == 0:
