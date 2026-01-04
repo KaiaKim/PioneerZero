@@ -7,16 +7,15 @@ export function useLobby() {
   const navigate = useNavigate();
   const wsRef = useRef(null);
 
-  const connectLobbyWebSocket = () => {
+  const connectLobbyWS = () => {
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
-
     ws.onopen = () => {
       console.log('Lobby WebSocket connected');
       quickAuth(ws);
-      listGames(ws);
+      listGames();
     };
 
     ws.onmessage = (event) => {
@@ -25,7 +24,7 @@ export function useLobby() {
       if (msg.type === "game_created") {
         const gameId = msg.game_id;
         navigate(`/room/${gameId}`);
-        listGames(ws);
+        listGames();
       } else if (msg.type === "list_games") {
         setSessions(msg.session_ids || []);
       }
@@ -41,48 +40,32 @@ export function useLobby() {
     };
   };
 
-  const listGames = (ws = null) => {
-    const socket = ws || wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      const message = {
-        action: 'list_games'
-      };
-      socket.send(JSON.stringify(message));
-    } else {
-      console.error('Lobby WebSocket not connected');
-      if (!wsRef.current) {
-        connectLobbyWebSocket();
-      }
+  // Decorator function to handle common WebSocket message sending pattern
+  const messageLobbyWS = (message) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
     }
+  };
+
+
+  const listGames = () => {
+    messageLobbyWS({
+      action: 'list_games'
+    });
   };
 
   const createGame = (playerNum = 4) => {
-    const socket = wsRef.current;
-
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      console.log('socket is connected');
-      const message = {
-        action: 'create_game',
-        player_num: playerNum
-      };
-      socket.send(JSON.stringify(message));
-    } else {
-      console.error('Lobby WebSocket not connected');
-      connectLobbyWebSocket();
-    }
+    messageLobbyWS({
+      action: 'create_game',
+      player_num: playerNum
+    });
   };
 
   const killDB = () => {
-    const socket = wsRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      const message = {
-        action: 'kill_db'
-      };
-      socket.send(JSON.stringify(message));
-    } else {
-      console.error('Lobby WebSocket not connected');
-      connectLobbyWebSocket();
-    }
+    messageLobbyWS({
+      action: 'kill_db'
+    });
   };
 
   const openGameRoom = (gameId) => {
@@ -90,7 +73,7 @@ export function useLobby() {
   };
 
   useEffect(() => {
-    connectLobbyWebSocket();
+    connectLobbyWS();
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close();

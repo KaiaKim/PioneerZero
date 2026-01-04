@@ -6,17 +6,7 @@ export function useAuth() {
   const [authWs, setAuthWs] = useState(null);
   const wsRef = useRef(null);
 
-  useEffect(() => {
-    connectAuthWebSocket();
-
-    return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectAuthWebSocket = (skipQuickAuth = false) => {
+  const connectAuthWS = (skipQuickAuth = false) => {
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
     let guest_id = null;
@@ -123,7 +113,7 @@ export function useAuth() {
         }
         
         // Create new connection for Google auth (skip quickAuth to avoid double authentication)
-        const ws = connectAuthWebSocket(true);
+        const ws = connectAuthWS(true);
         
         // Wait for WebSocket to open before sending auth message
         const checkConnection = setInterval(() => {
@@ -186,6 +176,16 @@ export function useAuth() {
     localStorage.removeItem('user_info');
     setUser(null);
   };
+
+  useEffect(() => {
+    connectAuthWS();
+
+    return () => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   return { user, googleLogin, googleLogout };
 }
