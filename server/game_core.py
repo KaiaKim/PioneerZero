@@ -13,16 +13,8 @@ class Game():
     def __init__(self, id, player_num = 4):
         self.id = id
         self.player_num = player_num #default 4, max 8
-        self.p_init = {
-                'info': None,
-                'character': None,
-                'slot': 0,
-                'team': 0, # 0=white,1=blue
-                'occupy': 0,  # 0=empty, 1=occupied, 2=connection-lost
-                'pos': None # position on the game board
-            }
         self.players = [
-            self.p_init
+            self.player_factory()
             for _ in range(self.player_num)
         ]  # player list (slots)
 
@@ -35,6 +27,17 @@ class Game():
         # Row 3: B1, B2, B3, B4
         self.game_board = [['cell' for _ in range(4)] for _ in range(4)]
         self.current_round = 0
+
+    def player_factory(self, slot: int = 0):
+        """Factory function to create a new player slot dict. Each call returns a fresh dict."""
+        return {
+            'info': None,
+            'character': None,
+            'slot': slot,
+            'team': 0,  # 0=white, 1=blue
+            'occupy': 0,  # 0=empty, 1=occupied, 2=connection-lost
+            'pos': None  # position on the game board
+        }
 
     def add_player_to_slot(self, slot: int, slot_idx: int, user_info: dict):
         """Add a player to a specific slot"""
@@ -110,7 +113,7 @@ class Game():
         if self.players[slot_idx]['occupy'] == 0:
             return {"success": False, "message": f"Slot {slot} is already empty."}
         
-        self.players[slot_idx] = self.p_init
+        self.players[slot_idx] = self.player_factory(slot)
         self.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
         return {"success": True, "message": f"Player removed from slot {slot}."}
     
@@ -133,8 +136,7 @@ class Game():
             if current_time - timestamp >= duration:  # default 5 seconds timeout
                 slot_idx = slot - 1
                 if self.players[slot_idx]['occupy'] == 2:  # Still connection-lost
-                    self.players[slot_idx] = self.p_init
-                    self.players[slot_idx]['occupy'] = 0  # Set to empty
+                    self.players[slot_idx] = self.player_factory(slot)
                     slots_to_clear.append(slot)
         
         # Remove cleared slots from timers
