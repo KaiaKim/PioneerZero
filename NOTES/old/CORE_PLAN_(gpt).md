@@ -10,8 +10,7 @@
 2) `move_player()`에서 `c['name']`을 찾는데, 현재 `self.players` 원소는 `info/character/...` 구조입니다.
 - 해결: 캐릭터 정보는 `self.players[slot_idx]['character']`에 들어가도록 일원화하고, `name`은 그 안에서 참조.
 
-3) `team`은 `slot % 2`로 주고 있는데, 실제로는 **A/B 진영 선택**, 레이드에서는 A~B칸 같은 개념이 있으니:
-- `team_id` (A/B 등)와 `side`(white/blue 등)는 분리하거나, 기획서대로 **진영(A,B)** 로 단순화 권장.
+3) `team`은 slot color로 구분 가능.
 
 ---
 
@@ -311,5 +310,4 @@ SKILLS = {
 3) 스킬의 판정(숙련판정 등)에서 주사위/확률 규칙
    - 예: `roll = d100 <= mst*20` 같은 형태로 일단 고정하면 구현이 쉬움
 
-원하시면, 위 계획을 기준으로 `game_core.py`에 들어갈 **함수 시그니처 목록(스켈레톤)** 을 바로 뽑아드릴 수 있습니다.
 
