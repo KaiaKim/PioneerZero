@@ -244,20 +244,26 @@ export function useGame() {
     };
   }, [gameId]);
 
+  // Group all action functions together
+  const actions = {
+    sendChat,
+    joinPlayerSlot,
+    addBotToSlot,
+    leavePlayerSlot,
+    setReady,
+  };
+
   return {
+    // State
     gameData,
     chatMessages,
     characters,
     users,
     players,
     userName,
-    setReady,
-    sendChat,
-    joinPlayerSlot,
-    addBotToSlot,
-    leavePlayerSlot,
-    setReady,
-    chatLogRef
+    chatLogRef,
+    // Actions grouped together
+    actions
   };
 }
 

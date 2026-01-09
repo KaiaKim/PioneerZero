@@ -8,7 +8,7 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, sendChat, addBotToSlot, joinPlayerSlot, leavePlayerSlot, setReady, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, actions, chatLogRef } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const [showFloorArea, setShowFloorArea] = useState(false);
@@ -19,7 +19,7 @@ function Room() {
   const handleChatKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (sendChat(chatInput)) {
+      if (actions.sendChat(chatInput)) {
         setChatInput('');
       }
     }
@@ -52,13 +52,13 @@ function Room() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingArea && <WaitingArea players={players} addBotToSlot={addBotToSlot} joinPlayerSlot={joinPlayerSlot} leavePlayerSlot={leavePlayerSlot} setReady={setReady} currentUser={user} />}
+        {showWaitingArea && <WaitingArea players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user} />}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>
           <ul className="user-items">
-            {users.map((user) => (
-              <li key={user.id}>{user.name || user.email || 'Guest'}</li>
+            {users.map((userItem) => (
+              <li key={userItem.id}>{userItem.name || userItem.email || 'Guest'}</li>
             ))}
           </ul>
         </div>
@@ -102,13 +102,12 @@ function Room() {
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <button onClick={() => sendChat(chatInput)}>
+          <button onClick={() => actions.sendChat(chatInput)}>
             Send
           </button>
         </div>
         <textarea
           ref={chatInputRef}
-          type="text"
           id="chat-input"
           placeholder="Type your message here..."
           value={chatInput}
