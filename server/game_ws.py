@@ -2,7 +2,6 @@
 Game WebSocket handlers
 """
 from fastapi import WebSocket
-from datetime import datetime
 import asyncio
 from .util import conmanager, dbmanager
 
@@ -52,11 +51,11 @@ async def handle_load_room(websocket: WebSocket, game):
     })
 
 
-async def handle_end_game(websocket: WebSocket, game_id: str):
-    """Send end game message to all clients in the game. Do not delete data or remove connections."""
-    now = datetime.now().isoformat()
-    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} ended.", "system", None)
-    await conmanager.broadcast_to_game(game_id, msg)
+async def handle_end_combat(websocket: WebSocket, game):
+    """Send end combat message to all clients in the game. Do not delete data or remove connections."""
+    result = f"전투 {game.id}가 종료되었습니다."
+    msg = dbmanager.save_chat(game.id, result)
+    await conmanager.broadcast_to_game(game.id, msg)
 
 
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
@@ -224,7 +223,7 @@ async def handle_start_combat(game):
         return
     
     # Start combat
-    game.start_combat()
+    result = game.start_combat()
     
     # Start 3 second countdown
     for countdown in [3, 2, 1]:
@@ -233,7 +232,9 @@ async def handle_start_combat(game):
             "seconds": countdown
         })
         await asyncio.sleep(1)
-    
+
+    msg = dbmanager.save_chat(game.id, result)
+    await conmanager.broadcast_to_game(game.id, msg)
     # After countdown, broadcast combat started
     await conmanager.broadcast_to_game(game.id, {
         "type": "combat_started",
@@ -243,7 +244,6 @@ async def handle_start_combat(game):
 
 async def handle_chat(websocket: WebSocket, message: dict, game):
     """Handle chat messages and commands"""
-    now = datetime.now().isoformat()
     content = message.get("content", "")
     sender = message.get("sender")
     user_info = conmanager.get_user_info(websocket)
@@ -259,10 +259,10 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             result = "스킬 사용함"
         elif "행동" in command:
             result = "행동함"
-        msg = dbmanager.save_chat(game.id, "System", now, result, "system", None)
+        msg = dbmanager.save_chat(game.id, result)
     else:
         # Regular chat message
-        msg = dbmanager.save_chat(game.id, sender, now, content, "user", user_id)
+        msg = dbmanager.save_chat(game.id, content, sender = sender, sort = "user", user_id=user_id)
     
     await conmanager.broadcast_to_game(game.id, msg)
 

@@ -245,7 +245,7 @@ class Game():
     def start_combat(self):
         self.combat_state['in_combat'] = True
         self.combat_state['phase'] = 'preparation'
-        return "Combat started."
+        return f"전투 {self.id}를 시작합니다."
     
     def end_combat(self):
         self.combat_state['in_combat'] = False

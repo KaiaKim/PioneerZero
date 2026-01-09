@@ -2,7 +2,6 @@
 Lobby WebSocket handlers and endpoints
 """
 from fastapi import WebSocket
-from datetime import datetime
 from .util import conmanager, dbmanager
 from .game_core import Game
 
@@ -36,9 +35,9 @@ async def handle_create_room(websocket: WebSocket, game_id: str, player_num: int
         'type': 'users_list',
         'users': game.users
     })
-    
-    now = datetime.now().isoformat()
-    msg = dbmanager.save_chat(game_id, "System", now, f"Game {game_id} started.", "system", None)
+
+    result = f"방이 생성되었습니다.\n방 ID: {game_id}"
+    msg = dbmanager.save_chat(game_id, result)
     await conmanager.broadcast_to_game(game_id, msg)
     await websocket.send_json({
         'type': 'game_created',

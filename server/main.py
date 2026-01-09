@@ -120,8 +120,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_start_combat(game)
                 continue
 
-            if action == "end_game":
-                await game_ws.handle_end_game(websocket, game_id)
+            if action == "end_combat":
+                await game_ws.handle_end_combat(websocket, game)
                 continue
             
             if action == "chat":
@@ -130,9 +130,6 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "join_player_slot":
                 await game_ws.handle_join_player_slot(websocket, message, game)
-                # Check if all players are ready and start combat if so
-                if game.are_all_players_ready() and not game.combat_state['in_combat']:
-                    await game_ws.handle_start_combat(game)
                 continue
             
             if action == "add_bot_to_slot":

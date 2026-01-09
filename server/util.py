@@ -5,6 +5,8 @@ Utility functions and classes for the FastAPI server
 from fastapi import WebSocket
 import sqlite3
 import os
+from datetime import datetime
+import time
 
 
 class ConnectionManager:
@@ -102,7 +104,10 @@ class DatabaseManager:
         ''')
         self.conn.commit()
 
-    def save_chat(self, game_id, sender, time, content, sort, user_id=None):
+    def save_chat(self, game_id, content, sort="system", sender="System", user_id=None, time=None):
+        if time is None:
+            time = datetime.now().isoformat()
+
         self.cursor.execute(f'''
             INSERT INTO "{game_id}" (sender, time, content, sort, user_id) 
             VALUES (?, ?, ?, ?, ?)
