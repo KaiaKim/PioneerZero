@@ -25,6 +25,12 @@ async def handle_load_room(websocket: WebSocket, game):
         "players": game.players
     })
     
+    # Send combat state to the requesting client
+    await websocket.send_json({
+        "type": "combat_state",
+        "combat_state": game.combat_state
+    })
+    
     # Load and send chat history to the requesting client
     chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []

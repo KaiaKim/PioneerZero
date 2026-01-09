@@ -295,7 +295,7 @@
     transform-style: preserve-3d;
 }
 
-.floor-grid {
+.grid-3d {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
@@ -315,12 +315,12 @@
     transform-style: preserve-3d;
 }
 
-.floor-section .team-blue .cell {
+.floor-section.team-blue .cell {
     background: #1e3a8a;
     color: white;
 }
 
-.floor-section .team-white .cell {
+.floor-section.team-white .cell {
     background: #eeeeee;
     color: black;
 }

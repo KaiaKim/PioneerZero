@@ -147,6 +147,9 @@ export function useGame() {
           user_id: msg.user_id || null
         };
         setChatMessages(prev => [...prev, newMessage]);
+      } else if (msg.type === "combat_state") {
+        console.log('Combat state received:', msg.combat_state);
+        setCombatStarted(msg.combat_state?.in_combat || false);
       } else if (msg.type === "combat_countdown") {
         console.log('Combat countdown:', msg.seconds);
         setCountdown(msg.seconds);
