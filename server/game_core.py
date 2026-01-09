@@ -26,7 +26,16 @@ class Game():
         # Row 2: A1, A2, A3, A4
         # Row 3: B1, B2, B3, B4
         self.game_board = [['cell' for _ in range(4)] for _ in range(4)]
-        self.current_round = 0
+
+        # 전투 상태
+        self.combat_state = {
+            'in_combat': False,           # 전투 중 여부
+            'current_round': 0,           # 현재 라운드
+            'phase': 'preparation',       # 'preparation', 'action_declaration', 'resolution', 'end'
+            'action_declarations': {},    # {slot: action_data}
+            'action_queue': [],           # 우선도 순으로 정렬된 행동 큐
+            'resolved_actions': []        # 처리된 행동 기록
+        }
 
     def player_factory(self, slot: int = 0):
         """Factory function to create a new player slot dict. Each call returns a fresh dict."""
@@ -34,6 +43,7 @@ class Game():
             'info': None,
             'character': None,
             'slot': slot,
+            'ready': False,
             'team': 0,  # 0=white, 1=blue
             'occupy': 0,  # 0=empty, 1=occupied, 2=connection-lost
             'pos': None  # position on the game board
@@ -69,6 +79,7 @@ class Game():
             'info': user_info,
             'character': game_bot.default_character,
             "slot": slot,
+            'ready': False,  # Players must check ready checkbox
             'team': slot % 2, # 0=white,1=blue
             'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
         }
@@ -101,6 +112,7 @@ class Game():
             'info': bot_info,
             'character': bot_character,
             'slot': slot,
+            'ready': True, #bots are always ready
             'team': slot % 2,  # 0=white, 1=blue
             'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
         }
@@ -118,17 +130,29 @@ class Game():
         return {"success": True, "message": f"Player removed from slot {slot}."}
     
     def set_player_connection_lost(self, slot: int):
-        """Set a player slot to connection-lost status (2)"""
+        """Set a player slot to connection-lost status (2) and set ready to False"""
         slot_idx = slot - 1
         if self.players[slot_idx]['occupy'] == 0:
             return {"success": False, "message": f"Slot {slot} is already empty."}
         
         self.players[slot_idx]['occupy'] = 2  # Set status to connection-lost
+        self.players[slot_idx]['ready'] = False  # Set ready to False when connection is lost
         self.connection_lost_timers[slot] = time.time()  # Record timestamp
         return {"success": True, "message": f"Player slot {slot} set to connection-lost."}
     
     def clear_expired_connection_lost_slots(self, duration = 5.0):
-        """Clear connection-lost slots that have exceeded the timeout duration (default 5 seconds)"""
+        """
+        Clear connection-lost slots that have exceeded the timeout duration.
+        
+        Behavior:
+        - Combat NOT started: Clear slots after duration (default 5 seconds)
+        - Combat started: Never clear slots (wait infinitely for player to rejoin)
+        """
+        # If combat has started, don't clear any connection-lost slots
+        if self.combat_state['in_combat']:
+            return False
+        
+        # Combat not started - clear expired slots after timeout
         current_time = time.time()
         slots_to_clear = []
         
@@ -152,13 +176,52 @@ class Game():
                 return i + 1  # Return slot number (1-based)
         return None
     
+    def set_player_ready(self, slot: int, slot_idx: int, user_info: dict, ready: bool):
+        """Set ready state for a player. Only the player themselves can toggle their ready state."""
+        # Verify the slot belongs to the user
+        player = self.players[slot_idx]
+        if not player.get('info') or player['info'].get('id') != user_info.get('id'):
+            return {"success": False, "message": "You don't own this slot."}
+        
+        # Check if slot is occupied or connection-lost (can set ready in both states)
+        if player['occupy'] not in [1, 2]:
+            return {"success": False, "message": f"Slot {slot} is not occupied."}
+        
+        # Check if it's a bot (bots are always ready, can't be changed)
+        if player['info'].get('is_bot') == True or (player['info'].get('id') and player['info'].get('id').startswith('bot_')):
+            return {"success": False, "message": "Bots are always ready."}
+        
+        # Set ready state
+        self.players[slot_idx]['ready'] = ready
+        return {"success": True, "message": f"Ready state set to {ready}."}
+    
+    def are_all_players_ready(self):
+        """
+        Check if all slots are filled AND all players are ready.
+        - All slots must have characters (occupy == 1 and character is not None)
+        - All players must be ready (ready == True)
+        - Bots are always considered ready
+        """
+        for player in self.players:
+            # Check if slot is filled with a character
+            if player['occupy'] != 1 or player['character'] is None:
+                return False
+            
+            # Check if player is ready (bots are always ready by design, so we only check non-bots)
+            is_bot = player.get('info') and (player['info'].get('is_bot') == True or 
+                                            (player['info'].get('id') and player['info'].get('id').startswith('bot_')))
+            
+            if not is_bot and not player.get('ready', False):
+                return False
+        
+        return True
+    
     def vomit(self):
         data = {
             "type": "vomit_data",
             "id": self.id, # game id
             "players": self.players,  # player list (slots)
-            "game_board": self.game_board,
-            "current_round": self.current_round
+            "game_board": self.game_board
         }
         return data
 
@@ -179,3 +242,11 @@ class Game():
         else:
             return f"{name} move failed."
 
+    def start_combat(self):
+        self.combat_state['in_combat'] = True
+        self.combat_state['phase'] = 'preparation'
+        return "Combat started."
+    
+    def end_combat(self):
+        self.combat_state['in_combat'] = False
+        self.combat_state['phase'] = 'end'

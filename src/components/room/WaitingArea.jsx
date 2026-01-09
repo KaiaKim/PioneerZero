@@ -1,6 +1,6 @@
 import React from 'react';
 
-function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, currentUser }) {
+function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser }) {
   // Get user info from currentUser or localStorage as fallback
   const getUserInfo = () => {
     if (currentUser) return currentUser;
@@ -60,7 +60,19 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
     const slotIndex = slotNum - 1;
     const player = players[slotIndex];
     if (!player) return '-';
-    return player.character.name || 'Guest';
+    return player.character?.name || 'Guest';
+  };
+
+  const getPlayerReady = (slotNum) => {
+    const slotIndex = slotNum - 1;
+    const player = players[slotIndex];
+    if (!player) return false;
+    return player.ready === true;
+  };
+
+  const handleReadyChange = (slotNum, event) => {
+    const checked = event.target.checked;
+    setReady(slotNum, checked);
   };
 
   // Generate slot numbers dynamically based on players array length (4-8)
@@ -126,14 +138,16 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, c
               </label>
               <label className="waiting-ready-label">
                 Ready
-                {isCurrentUser && !isBot && status === 1 ? (
+                {isCurrentUser && !isBot && (status === 1 || status === 2) ? (
                   <input 
                     type="checkbox" 
                     className="waiting-ready" 
-                    disabled={isConnectionLost} 
+                    checked={getPlayerReady(num)}
+                    onChange={(e) => handleReadyChange(num, e)}
                   />
                 ) : !isEmpty ? (
-                  <span>✓</span>
+                  // Show checkmark for bots (always ready) or other players if they're ready
+                  <span>{isBot || getPlayerReady(num) ? '✓' : ''}</span>
                 ) : null}
               </label>
             </div>

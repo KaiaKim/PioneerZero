@@ -14,7 +14,7 @@ load_dotenv()
 
 # Global game sessions dictionary: {game_id: Game object}
 # Games are loaded lazily from the database when accessed
-sessions = {}
+rooms = {}
 
 # FastAPI app instance
 app = FastAPI()
@@ -27,7 +27,7 @@ async def run_connection_lost_timeout_checks():
     """Periodically runs connection-lost timeout checks for all games"""
     while True:
         try:
-            for game_id, game in sessions.items():
+            for game_id, game in rooms.items():
                 if game.clear_expired_connection_lost_slots():
                     # Broadcast updated players list if any slots were cleared
                     await conmanager.broadcast_to_game(game_id, {
@@ -74,19 +74,19 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "kill_db":
                 #Clean up chat tables for prototype purpose only. Do not use in production.
                 dbmanager.kill_all_chat_tables()
-                sessions.clear()
+                rooms.clear()
                 continue
 
             # Route lobby actions
-            if action == "list_games":
+            if action == "list_rooms":
                 chat_tables = dbmanager.get_chat_tables()
-                await lobby_ws.handle_list_sessions(websocket, chat_tables)
+                await lobby_ws.handle_list_rooms(websocket, chat_tables)
                 continue
 
-            if action == "create_game":
+            if action == "create_room":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
                 player_num = message.get("player_num", 4)  # Get player_num from message, default to 4
-                sessions[game_id] = await lobby_ws.handle_create_game(websocket, game_id, player_num)  # create a new game session
+                rooms[game_id] = await lobby_ws.handle_create_room(websocket, game_id, player_num)  # create a new game session
                 continue
 
             # Get the game_id from message only (required for all game actions)
@@ -97,26 +97,29 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
             
             try:
-                game = sessions[game_id]
+                game = rooms[game_id]
             except KeyError:
                 print(f"Game {game_id} not found")
-                #await websocket.send_json({"type": "game_not_found"})
-                sessions[game_id] = game_core.Game(game_id)
-                game = sessions[game_id]
+                rooms[game_id] = game_core.Game(game_id)
+                game = rooms[game_id]
 
             # Route game actions
-            if action == "join_game":
-                print(f"Joining game {game_id}")
-                await lobby_ws.handle_join_game(websocket, game_id, game)
+            if action == "join_room":
+                print(f"Joining room {game_id}")
+                await lobby_ws.handle_join_room(websocket, game_id, game)
                 print("conmanager.game_connections:", conmanager.game_connections)
-                # sessions[game_id].add_player_character(websocket.guest_number)
                 continue
 
-            if action == "load_game":
-                print(f"Loading game {game_id}")
-                await game_ws.handle_load_game(websocket, game)
+            if action == "load_room":
+                print(f"Loading room {game_id}")
+                await game_ws.handle_load_room(websocket, game)
                 continue
             
+            if action == "start_combat":
+                print(f"Starting combat {game_id}")
+                game.start_combat()
+                continue
+
             if action == "end_game":
                 await game_ws.handle_end_game(websocket, game_id)
                 continue
@@ -136,6 +139,10 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "leave_player_slot":
                 await game_ws.handle_leave_player_slot(websocket, message, game)
                 continue
+            
+            if action == "set_ready":
+                await game_ws.handle_set_ready(websocket, message, game)
+                continue
                 
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -143,8 +150,8 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         # Remove user from game users list and set player slot to connection-lost before disconnecting
         game_id, user_info = await conmanager.leave_game(websocket)
-        if game_id and user_info and game_id in sessions:
-            game = sessions[game_id]
+        if game_id and user_info and game_id in rooms:
+            game = rooms[game_id]
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
             # Set player slot to connection-lost instead of removing

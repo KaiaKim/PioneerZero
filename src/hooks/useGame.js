@@ -124,6 +124,9 @@ export function useGame() {
       } else if (msg.type === "leave_slot_failed") {
         console.error('Failed to leave slot:', msg.message);
         alert('Failed to leave slot: ' + msg.message);
+      } else if (msg.type === "set_ready_failed") {
+        console.error('Failed to set ready state:', msg.message);
+        alert('Failed to set ready state: ' + msg.message);
       } else if (msg.type === "chat_history") {
         const messages = (msg.messages || []).map(chatMsg => ({
           sender: chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System",
@@ -168,13 +171,13 @@ export function useGame() {
 
   const joinGame = () => {
     messageGameWS({
-      action: 'join_game'
+      action: 'join_room'
     });
   };
 
   const loadGame = () => {
     messageGameWS({
-      action: 'load_game'
+      action: 'load_room'
     });
   };
 
@@ -200,6 +203,14 @@ export function useGame() {
     // Remove slot number from localStorage when leaving
     const storedSlotKey = `player_slot_${gameId}`;
     localStorage.removeItem(storedSlotKey);
+  };
+
+  const setReady = (slotNum, ready) => {
+    messageGameWS({
+      action: 'set_ready',
+      slot: slotNum,
+      ready: ready
+    });
   };
 
   const sendChat = (content) => {
@@ -240,10 +251,12 @@ export function useGame() {
     users,
     players,
     userName,
+    setReady,
     sendChat,
     joinPlayerSlot,
     addBotToSlot,
     leavePlayerSlot,
+    setReady,
     chatLogRef
   };
 }

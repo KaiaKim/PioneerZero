@@ -7,19 +7,19 @@ from .util import conmanager, dbmanager
 from .game_core import Game
 
 # HTTP endpoint for listing active sessions
-async def handle_list_sessions(websocket: WebSocket, chat_tables: list[str]):
+async def handle_list_rooms(websocket: WebSocket, chat_tables: list[str]):
     """Return list of active game sessions for the lobby"""
     # Convert list of game IDs to list of session objects
     session_list = [{"game_id": game_id} for game_id in chat_tables]
     await websocket.send_json({
-        "type": "list_games",
+        "type": "list_rooms",
         "session_ids": session_list
     })
 
 
 # WebSocket message handlers for lobby operations
-async def handle_create_game(websocket: WebSocket, game_id: str, player_num: int):
-    """Handle create_game action - creates a new game session"""
+async def handle_create_room(websocket: WebSocket, game_id: str, player_num: int):
+    """Handle create_room action - creates a new game session"""
     dbmanager.create_chat_table(game_id)
     
     # Create game instance with specified player_num
@@ -48,8 +48,8 @@ async def handle_create_game(websocket: WebSocket, game_id: str, player_num: int
     return game
 
 
-async def handle_join_game(websocket: WebSocket, game_id: str, game):
-    """Handle join_game action - joins a client to an existing game"""
+async def handle_join_room(websocket: WebSocket, game_id: str, game):
+    """Handle join_room action - joins a client to an existing game"""
     
     await conmanager.join_game(websocket, game_id)
     

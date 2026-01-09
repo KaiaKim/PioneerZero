@@ -6,8 +6,8 @@ from datetime import datetime
 from .util import conmanager, dbmanager
 
 
-async def handle_load_game(websocket: WebSocket, game):
-    """Handle load_game action - loads game state and chat history"""
+async def handle_load_room(websocket: WebSocket, game):
+    """Handle load_room action - loads game state and chat history"""
     vomit_data = game.vomit()
     # Send to requesting client only
     await websocket.send_json(vomit_data)
@@ -166,6 +166,42 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     else:
         await websocket.send_json({
             "type": "leave_slot_failed",
+            "message": result["message"]
+        })
+
+
+async def handle_set_ready(websocket: WebSocket, message: dict, game):
+    """Handle set_ready action - toggles ready state for a player"""
+    slot = message.get("slot")
+    ready = message.get("ready")  # boolean: True or False
+    user_info = conmanager.get_user_info(websocket)
+    
+    if slot is None or slot < 1 or slot > game.player_num:
+        await websocket.send_json({
+            "type": "set_ready_failed",
+            "message": "Invalid slot number"
+        })
+        return
+    
+    if ready is None:
+        await websocket.send_json({
+            "type": "set_ready_failed",
+            "message": "Ready state not provided"
+        })
+        return
+    
+    slot_idx = slot - 1
+    result = game.set_player_ready(slot, slot_idx, user_info, ready)
+    
+    if result["success"]:
+        # Broadcast updated players list to all clients
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "players_list",
+            "players": game.players
+        })
+    else:
+        await websocket.send_json({
+            "type": "set_ready_failed",
             "message": result["message"]
         })
 

@@ -25,7 +25,7 @@ export function useLobby() {
         const gameId = msg.game_id;
         navigate(`/room/${gameId}`);
         listGames();
-      } else if (msg.type === "list_games") {
+      } else if (msg.type === "list_rooms") {
         setSessions(msg.session_ids || []);
       }
     };
@@ -50,13 +50,13 @@ export function useLobby() {
 
   const listGames = () => {
     messageLobbyWS({
-      action: 'list_games'
+      action: 'list_rooms'
     });
   };
 
   const createGame = (playerNum = 4) => {
     messageLobbyWS({
-      action: 'create_game',
+      action: 'create_room',
       player_num: playerNum
     });
   };
