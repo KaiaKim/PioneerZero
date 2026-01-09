@@ -17,6 +17,8 @@ export function useGame() {
   const [users, setUsers] = useState([]);
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(userInfo.name);
+  const [countdown, setCountdown] = useState(null); // Countdown seconds (3, 2, 1, or null)
+  const [combatStarted, setCombatStarted] = useState(false); // Flag to track if combat has started
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
   const autoJoinAttemptedRef = useRef(false);
@@ -145,6 +147,13 @@ export function useGame() {
           user_id: msg.user_id || null
         };
         setChatMessages(prev => [...prev, newMessage]);
+      } else if (msg.type === "combat_countdown") {
+        console.log('Combat countdown:', msg.seconds);
+        setCountdown(msg.seconds);
+      } else if (msg.type === "combat_started") {
+        console.log('Combat started!');
+        setCombatStarted(true);
+        setCountdown(null);
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -261,6 +270,8 @@ export function useGame() {
     users,
     players,
     userName,
+    countdown,
+    combatStarted,
     chatLogRef,
     // Actions grouped together
     actions

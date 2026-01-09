@@ -8,12 +8,14 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, actions, chatLogRef } = useGame();
+  const { gameData, chatMessages, characters, users, players, actions, chatLogRef, countdown, combatStarted } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
-  const [showFloorArea, setShowFloorArea] = useState(false);
-  const [showWaitingArea, setShowWaitingArea] = useState(true);
   const chatInputRef = useRef(null);
+  
+  // Show/hide areas based on combat state
+  const showWaitingArea = !combatStarted;
+  const showFloorArea = combatStarted;
 
   // Handle chat input keydown
   const handleChatKeyDown = (e) => {
@@ -52,7 +54,7 @@ function Room() {
         />
         <h1 className="timer">00:00</h1>
 
-        {showWaitingArea && <WaitingArea players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user} />}
+        {showWaitingArea && <WaitingArea players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user} countdown={countdown} />}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>

@@ -117,7 +117,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "start_combat":
                 print(f"Starting combat {game_id}")
-                game.start_combat()
+                await game_ws.handle_start_combat(game)
                 continue
 
             if action == "end_game":
@@ -130,10 +130,16 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "join_player_slot":
                 await game_ws.handle_join_player_slot(websocket, message, game)
+                # Check if all players are ready and start combat if so
+                if game.are_all_players_ready() and not game.combat_state['in_combat']:
+                    await game_ws.handle_start_combat(game)
                 continue
             
             if action == "add_bot_to_slot":
                 await game_ws.handle_add_bot_to_slot(websocket, message, game)
+                # Check if all players are ready and start combat if so
+                if game.are_all_players_ready() and not game.combat_state['in_combat']:
+                    await game_ws.handle_start_combat(game)
                 continue
             
             if action == "leave_player_slot":
@@ -142,6 +148,9 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "set_ready":
                 await game_ws.handle_set_ready(websocket, message, game)
+                # Check if all players are ready and start combat if so
+                if game.are_all_players_ready() and not game.combat_state['in_combat']:
+                    await game_ws.handle_start_combat(game)
                 continue
                 
     except Exception as e:

@@ -3,6 +3,7 @@ Game WebSocket handlers
 """
 from fastapi import WebSocket
 from datetime import datetime
+import asyncio
 from .util import conmanager, dbmanager
 
 
@@ -204,6 +205,34 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
             "type": "set_ready_failed",
             "message": result["message"]
         })
+
+
+async def handle_start_combat(game):
+    """Handle start_combat - starts combat with 3 second countdown"""
+    # Check if combat is already started
+    if game.combat_state['in_combat']:
+        return
+    
+    # Check if all players are ready
+    if not game.are_all_players_ready():
+        return
+    
+    # Start combat
+    game.start_combat()
+    
+    # Start 3 second countdown
+    for countdown in [3, 2, 1]:
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "combat_countdown",
+            "seconds": countdown
+        })
+        await asyncio.sleep(1)
+    
+    # After countdown, broadcast combat started
+    await conmanager.broadcast_to_game(game.id, {
+        "type": "combat_started",
+        "combat_state": game.combat_state
+    })
 
 
 async def handle_chat(websocket: WebSocket, message: dict, game):

@@ -1,6 +1,6 @@
 import React from 'react';
 
-function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser }) {
+function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser, countdown }) {
   // Get user info from currentUser or localStorage as fallback
   const getUserInfo = () => {
     if (currentUser) return currentUser;
@@ -154,7 +154,9 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, s
           );
         })}
       </div>
-      <label className="start-label">Starting in 3...</label>
+      {countdown !== null && (
+        <label className="start-label">Starting in {countdown}...</label>
+      )}
     </div>
   );
 }
