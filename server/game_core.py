@@ -1,15 +1,71 @@
-"""
-Game Logic - Game session management and initialization
-"""
-    #create a newGame object.
-    #object contains: player character, ally characters, enemy characters, game board, turn order, etc.
-    #each character has a name, profile image, token image, stats, type, skills, current hp.
-
 from . import game_bot
 import re
 import time
 
 class Game():
+    """
+    Game session management and combat system.
+    
+    METHOD INDEX:
+    =============
+    
+    Player Slot Management:
+    -----------------------
+    ✓ player_factory() - Create new player slot dict
+    ✓ add_player_to_slot() - Add human player to slot
+    ✓ add_bot_to_slot() - Add bot player to slot
+    ✓ remove_player_from_slot() - Remove player from slot
+    ✓ set_player_connection_lost() - Mark player as connection-lost
+    ✓ clear_expired_connection_lost_slots() - Cleanup expired connection-lost slots
+    ✓ get_player_by_user_id() - Find player slot by user ID
+    ✓ set_player_ready() - Set player ready state
+    ✓ are_all_players_ready() - Check if all players are ready
+    
+    Combat State Management:
+    ------------------------
+    ✓ start_combat() - Start combat session
+    ✓ end_combat() - End combat session
+    [TODO] start_action_declaration_phase() - Start action declaration phase with timer
+    [TODO] handle_timeout() - Handle action declaration timeout
+    [TODO] check_all_declarations_complete() - Check if all actions declared
+    [TODO] end_round() - End round and check win conditions
+    
+    Combat Calculations:
+    ---------------------
+    [TODO] calculate_priority() - Calculate action priority (sen*10+mst, per*10+mst, etc.)
+    [TODO] calculate_attack_power() - Calculate attack power based on stats
+    [TODO] calculate_max_hp() - Calculate max HP (vtl*5+10)
+    [TODO] initialize_character_hp() - Initialize character HP
+    [TODO] calculate_all_priorities() - Calculate priorities for all actions
+    
+    Coordinate & Position Helpers:
+    -------------------------------
+    [TODO] pos_to_rc() - Convert position string ("Y1") to (row_idx, col_idx)
+    [TODO] rc_to_pos() - Convert (row_idx, col_idx) to position string ("Y1")
+    [TODO] is_front_row() - Check if position is front row (X or A)
+    [TODO] is_back_row() - Check if position is back row (Y or B)
+    [TODO] check_move_validity() - Validate move destination (distance, team, occupancy)
+    
+    Combat Validation:
+    ------------------
+    [TODO] check_range() - Check if attack is within valid range
+    [TODO] check_covering() - Check covering for ranged attacks
+    [TODO] get_valid_attack_tiles() - Get list of valid attack target tiles
+    [TODO] get_valid_move_tiles() - Get list of valid move destination tiles
+    [TODO] get_tile_feedback() - Get tile feedback info (attack/move valid tiles)
+    
+    Action Resolution:
+    ------------------
+    [TODO] declare_action() - Handle action declaration from player
+    [TODO] resolve_action() - Resolve and execute a single action
+    [TODO] resolve_all_actions() - Resolve all actions in action_queue
+    
+    Utility & Data Export:
+    ----------------------
+    ✓ vomit() - Export game state as dict
+    ✓ move_player() - Legacy move command handler (chat command)
+    """
+    
     def __init__(self, id, player_num = 4):
         self.id = id
         self.player_num = player_num #default 4, max 8
@@ -37,6 +93,10 @@ class Game():
             'resolved_actions': []        # 처리된 행동 기록
         }
 
+    # ============================================
+    # SECTION 1: Player Slot Management
+    # ============================================
+    
     def player_factory(self, slot: int = 0):
         """Factory function to create a new player slot dict. Each call returns a fresh dict."""
         return {
@@ -216,6 +276,59 @@ class Game():
         
         return True
     
+    # ============================================
+    # SECTION 2: Combat State Management
+    # ============================================
+    
+    def start_combat(self):
+        self.combat_state['in_combat'] = True
+        self.combat_state['phase'] = 'preparation'
+        return f"전투 {self.id}를 시작합니다."
+    
+    def end_combat(self):
+        self.combat_state['in_combat'] = False
+        self.combat_state['phase'] = 'end'
+    
+    # ============================================
+    # SECTION 3: Combat Calculations
+    # ============================================
+    # TODO: calculate_priority()
+    # TODO: calculate_attack_power()
+    # TODO: calculate_max_hp()
+    # TODO: initialize_character_hp()
+    
+    # ============================================
+    # SECTION 4: Coordinate & Position Helpers
+    # ============================================
+    # TODO: pos_to_rc() - Convert position string to (row_idx, col_idx)
+    # TODO: rc_to_pos() - Convert (row_idx, col_idx) to position string
+    # TODO: is_front_row() - Check if position is front row
+    # TODO: is_back_row() - Check if position is back row
+    # TODO: check_move_validity() - Validate move destination
+    
+    # ============================================
+    # SECTION 5: Combat Validation
+    # ============================================
+    # TODO: check_range() - Check attack range validity
+    # TODO: check_covering() - Check covering for ranged attacks
+    # TODO: get_valid_attack_tiles() - Get valid attack targets
+    # TODO: get_valid_move_tiles() - Get valid move destinations
+    # TODO: get_tile_feedback() - Get tile feedback info
+    
+    # ============================================
+    # SECTION 6: Action Resolution
+    # ============================================
+    # TODO: resolve_action() - Resolve and execute action
+    # TODO: start_action_declaration_phase() - Start action declaration
+    # TODO: declare_action() - Handle action declaration
+    # TODO: check_all_declarations_complete() - Check if all declared
+    # TODO: calculate_all_priorities() - Calculate all action priorities
+    # TODO: end_round() - End round and check win conditions
+    
+    # ============================================
+    # SECTION 7: Utility & Data Export
+    # ============================================
+    
     def vomit(self):
         data = {
             "type": "vomit_data",
@@ -226,6 +339,10 @@ class Game():
         return data
 
     def move_player(self, name, command):
+        """
+        Legacy move command handler (chat command).
+        TODO: Replace with proper combat movement system.
+        """
         # Row 0: Y1, Y2, Y3, Y4
         # Row 1: X1, X2, X3, X4
         # Row 2: A1, A2, A3, A4
@@ -241,12 +358,3 @@ class Game():
             return f"{name} moved from {current_pos} to {target_pos}"
         else:
             return f"{name} move failed."
-
-    def start_combat(self):
-        self.combat_state['in_combat'] = True
-        self.combat_state['phase'] = 'preparation'
-        return f"전투 {self.id}를 시작합니다."
-    
-    def end_combat(self):
-        self.combat_state['in_combat'] = False
-        self.combat_state['phase'] = 'end'
