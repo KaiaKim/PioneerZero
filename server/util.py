@@ -57,24 +57,44 @@ class ConnectionManager:
         # Return game_id and user_info for cleanup in main.py
         return game_id, user_info
     
-    async def broadcast_to_game(self, game_id: str, message: dict):
-        """Broadcast message only to connections in a specific game"""
-        if game_id not in self.game_connections:
-            return
-        dead_connections = []
-        for connection in self.game_connections[game_id]:
-            try:
-                await connection.send_json(message)
-            except Exception:
-                dead_connections.append(connection)
-        
-        # Cleanup dead connections
+    def _cleanup_dead_connections(self, dead_connections: list, game_id: str):
+        """Helper method to cleanup dead connections"""
         for dead_conn in dead_connections:
             if dead_conn in self.game_connections[game_id]:
                 self.game_connections[game_id].remove(dead_conn)
             self.connection_to_game.pop(dead_conn, None)
             if dead_conn in self.active_connections:
                 self.active_connections.remove(dead_conn)
+    
+    async def broadcast_to_game(self, game_id: str, message: dict):
+        """Broadcast message only to connections in a specific game"""
+        if game_id not in self.game_connections:
+            return
+        
+        dead_connections = []
+        
+        # For secret messages, only send to connections with matching user_id
+        if message.get('sort') == 'secret':
+            target_user_id = message.get('user_id')
+            if target_user_id:
+                for connection in self.game_connections[game_id]:
+                    user_info = self.connection_user_info.get(connection)
+                    if user_info and user_info.get('id') == target_user_id:
+                        try:
+                            await connection.send_json(message)
+                        except Exception:
+                            dead_connections.append(connection)
+                self._cleanup_dead_connections(dead_connections, game_id)
+            return
+        
+        # Regular broadcast for non-secret messages
+        for connection in self.game_connections[game_id]:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                dead_connections.append(connection)
+        
+        self._cleanup_dead_connections(dead_connections, game_id)
     
     def get_game_connections(self, game_id: str) -> list[WebSocket]:
         """Get list of connections for a game"""
@@ -120,11 +140,23 @@ class DatabaseManager:
         chat_tables = [row[0] for row in self.cursor.fetchall()]
         return chat_tables
 
-    def get_chat_history(self, game_id, limit=None):
+    def get_chat_history(self, game_id, viewer_id=None, limit=None):
         query = f'SELECT chat_id, sender, time, content, sort, user_id FROM "{game_id}"'
+        ## TODO: is combat state is 'combat ended', show all messages
+        
+        # Exclude secret messages that don't belong to the viewer
+        if viewer_id:
+            query += f" WHERE (sort != 'secret' OR user_id = ?)"
+            params = (viewer_id,)
+        else:
+            # If no viewer_id, exclude all secret messages
+            query += f" WHERE sort != 'secret'"
+            params = ()
+        
         if limit:
             query += f' LIMIT {limit}'
-        self.cursor.execute(query)
+        
+        self.cursor.execute(query, params)
         messages = self.cursor.fetchall()
         return messages
 

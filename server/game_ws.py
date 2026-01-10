@@ -31,7 +31,9 @@ async def handle_load_room(websocket: WebSocket, game):
     })
     
     # Load and send chat history to the requesting client
-    chat_history_rows = dbmanager.get_chat_history(game.id)
+    user_info = conmanager.get_user_info(websocket)
+    viewer_id = user_info.get('id') if user_info else None
+    chat_history_rows = dbmanager.get_chat_history(game.id, viewer_id=viewer_id)
     chat_messages = []
     for row in chat_history_rows:
         # row format: (chat_id, sender, time, content, sort, user_id)
@@ -250,6 +252,10 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     user_id = user_info.get('id')
     
     if content and content[0] == "/":
+        # Save the user's command as secret (only visible to the user)
+        secret_msg = dbmanager.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
+        await conmanager.broadcast_to_game(game.id, secret_msg)
+        
         # Handle commands
         command = content[1:]
         result = "unknown command"
@@ -259,10 +265,11 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             result = "스킬 사용함"
         elif "행동" in command:
             result = "행동함"
+        
+        # Save and broadcast the result as system message (visible to all)
         msg = dbmanager.save_chat(game.id, result)
     else:
         # Regular chat message
-        msg = dbmanager.save_chat(game.id, content, sender = sender, sort = "user", user_id=user_id)
-    
-    await conmanager.broadcast_to_game(game.id, msg)
+        msg = dbmanager.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
+        await conmanager.broadcast_to_game(game.id, msg)
 

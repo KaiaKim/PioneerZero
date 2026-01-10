@@ -130,20 +130,38 @@ export function useGame() {
         console.error('Failed to set ready state:', msg.message);
         alert('Failed to set ready state: ' + msg.message);
       } else if (msg.type === "chat_history") {
-        const messages = (msg.messages || []).map(chatMsg => ({
-          sender: chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System",
-          time: chatMsg.time,
-          content: chatMsg.content,
-          isSystem: chatMsg.sort === "system",
-          user_id: chatMsg.user_id || null
-        }));
+        const messages = (msg.messages || []).map(chatMsg => {
+          const isSecret = chatMsg.sort === "secret";
+          let sender;
+          if (isSecret) {
+            sender = (chatMsg.sender || "noname") + " 👁";
+          } else {
+            sender = chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System";
+          }
+          return {
+            sender: sender,
+            time: chatMsg.time,
+            content: chatMsg.content,
+            isSystem: chatMsg.sort === "system",
+            isSecret: isSecret,
+            user_id: chatMsg.user_id || null
+          };
+        });
         setChatMessages(messages);
       } else if (msg.type === "chat") {
+        const isSecret = msg.sort === "secret";
+        let sender;
+        if (isSecret) {
+          sender = (msg.sender || "noname") + " 👁";
+        } else {
+          sender = msg.sort === "user" ? (msg.sender || "noname") : "System";
+        }
         const newMessage = {
-          sender: msg.sort === "user" ? (msg.sender || "noname") : "System",
+          sender: sender,
           time: msg.sort === "system" ? new Date().toLocaleTimeString() : msg.time,
           content: msg.content,
           isSystem: msg.sort === "system",
+          isSecret: isSecret,
           user_id: msg.user_id || null
         };
         setChatMessages(prev => [...prev, newMessage]);

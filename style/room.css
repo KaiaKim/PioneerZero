@@ -443,6 +443,21 @@
     flex-direction: row-reverse;
 }
 
+.chat-message.secret {
+    background-color: #1a3a5a7b;
+    border-color: #4a9eff52;
+    font-style: italic;
+}
+
+.chat-message.secret .chat-message-name {
+    font-style: italic;
+}
+
+.chat-message.secret .chat-message-content {
+    color: #b8b8b8;
+    font-style: italic;
+}
+
 /* Chat Input */
 #chat-input {
     width: 100%;
