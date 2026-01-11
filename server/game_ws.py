@@ -260,7 +260,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         command = content[1:]
         result = None
         err = None
-        if not game.combat_state['in_combat']:
+        if game.combat_state['in_combat'] == False:
             if "참여" in command:
                 pass
             if "출력" in command:
@@ -268,7 +268,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             else:
                 err = "전투 중이 아닙니다. 위치, 스킬, 행동 명령어는 전투 중에만 사용할 수 있습니다."
 
-        else:
+        elif game.combat_state['in_combat'] == True:
             if "이동" in command:
                 result = game.move_player(sender, command)
             elif "스킬" in command:

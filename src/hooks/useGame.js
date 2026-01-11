@@ -132,36 +132,32 @@ export function useGame() {
       } else if (msg.type === "chat_history") {
         const messages = (msg.messages || []).map(chatMsg => {
           const isSecret = chatMsg.sort === "secret";
-          let sender;
-          if (isSecret) {
-            sender = (chatMsg.sender || "noname") + " 👁";
-          } else {
-            sender = chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System";
-          }
+          const isError = chatMsg.sort === "error";
+          let sender = chatMsg.sender;
+          if (isSecret) sender += " 👁";
           return {
             sender: sender,
             time: chatMsg.time,
             content: chatMsg.content,
             isSystem: chatMsg.sort === "system",
             isSecret: isSecret,
+            isError: isError,
             user_id: chatMsg.user_id || null
           };
         });
         setChatMessages(messages);
       } else if (msg.type === "chat") {
         const isSecret = msg.sort === "secret";
-        let sender;
-        if (isSecret) {
-          sender = (msg.sender || "noname") + " 👁";
-        } else {
-          sender = msg.sort === "user" ? (msg.sender || "noname") : "System";
-        }
+        const isError = msg.sort === "error";
+        let sender = msg.sender;
+        if (isSecret) sender += " 👁";
         const newMessage = {
           sender: sender,
-          time: msg.sort === "system" ? new Date().toLocaleTimeString() : msg.time,
+          time: msg.time,
           content: msg.content,
           isSystem: msg.sort === "system",
           isSecret: isSecret,
+          isError: isError,
           user_id: msg.user_id || null
         };
         setChatMessages(prev => [...prev, newMessage]);

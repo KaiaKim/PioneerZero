@@ -73,7 +73,7 @@ function Room() {
           {chatMessages.map((msg, index) => {
             const isCurrentUser = user && msg.user_id && user.id === msg.user_id;
             return (
-              <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${msg.isSecret ? 'secret' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
+              <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${msg.isSecret ? 'secret' : ''} ${msg.isError ? 'error' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
                 <div className="chat-message-header">
                   <span className="chat-message-name">{msg.sender}</span>
                   <span className="chat-message-time">{msg.time}</span>

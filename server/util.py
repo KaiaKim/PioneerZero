@@ -74,7 +74,7 @@ class ConnectionManager:
         dead_connections = []
         
         # For secret messages, only send to connections with matching user_id
-        if message.get('sort') == 'secret':
+        if message.get('sort') == 'secret' or message.get('sort') == 'error':
             target_user_id = message.get('user_id')
             if target_user_id:
                 for connection in self.game_connections[game_id]:

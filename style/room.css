@@ -458,6 +458,19 @@
     font-style: italic;
 }
 
+.chat-message.error {
+    background-color: #5a1a1a;
+    border-color: #8b0000;
+}
+
+.chat-message.error .chat-message-name {
+    color: #ff4444;
+}
+
+.chat-message.error .chat-message-content {
+    color: #ff6666;
+}
+
 /* Chat Input */
 #chat-input {
     width: 100%;
