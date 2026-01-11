@@ -85,12 +85,11 @@ class Game():
 
         # 전투 상태
         self.combat_state = {
-            'in_combat': False,           # 전투 중 여부
-            'current_round': 0,           # 현재 라운드
-            'phase': 'preparation',       # 'preparation', 'action_declaration', 'resolution', 'end'
-            'action_declarations': {},    # {slot: action_data}
-            'action_queue': [],           # 우선도 순으로 정렬된 행동 큐
-            'resolved_actions': []        # 처리된 행동 기록
+            'in_combat': False,
+            'current_round': 0,
+            'phase': 'preparation',  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'end'
+            'action_queue': [],
+            'resolved_actions': []
         }
 
     # ============================================

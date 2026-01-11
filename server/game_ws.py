@@ -250,26 +250,45 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     sender = message.get("sender")
     user_info = conmanager.get_user_info(websocket)
     user_id = user_info.get('id')
-    
-    if content and content[0] == "/":
+    msg = None
+    if content[0] == "/": #we've already checked if content is not empty
         # Save the user's command as secret (only visible to the user)
         secret_msg = dbmanager.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
         await conmanager.broadcast_to_game(game.id, secret_msg)
         
         # Handle commands
         command = content[1:]
-        result = "unknown command"
-        if "이동" in command:
-            result = game.move_player(sender, command)
-        elif "스킬" in command:
-            result = "스킬 사용함"
-        elif "행동" in command:
-            result = "행동함"
-        
+        result = None
+        err = None
+        if not game.combat_state['in_combat']:
+            if "참여" in command:
+                pass
+            if "출력" in command:
+                pass
+            else:
+                err = "전투 중이 아닙니다. 위치, 스킬, 행동 명령어는 전투 중에만 사용할 수 있습니다."
+
+        else:
+            if "이동" in command:
+                result = game.move_player(sender, command)
+            elif "스킬" in command:
+                result = "스킬 사용함"
+            elif "행동" in command:
+                result = "행동함"
+            else:
+                err = "전투 중 입니다. 참여, 출력 명령어는 전투 중에만 사용할 수 있습니다."
+
         # Save and broadcast the result as system message (visible to all)
-        msg = dbmanager.save_chat(game.id, result)
+        if result:
+            msg = dbmanager.save_chat(game.id, result, user_id=user_id)
+        else:
+            err = "알 수 없는 명령어입니다."
+
+        if err:
+            msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
     else:
         # Regular chat message
         msg = dbmanager.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
-        await conmanager.broadcast_to_game(game.id, msg)
+    
+    await conmanager.broadcast_to_game(game.id, msg)
 

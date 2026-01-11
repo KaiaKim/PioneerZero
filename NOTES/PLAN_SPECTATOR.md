@@ -4,7 +4,7 @@
 
 이 문서는 게임 시작 전/후 사용자 역할 관리 및 관전자 시스템 구현 계획을 담고 있습니다.
 
-This document outlines the implementation plan for user role management and spectator system, where users who are not players (slot = None) become spectators with access to a special 'Spectate' page that shows all secret messages.
+This document outlines the implementation plan for user role management and spectator system, where users who are not players (slot = None) become spectators with access to a special 'Spectate' page.
 
 **핵심 원칙**: 역할은 slot 기반으로 단순하게 판단됩니다.
 - slot이 있으면 → Player
@@ -103,19 +103,6 @@ class Game():
 # }
 ```
 
-### 2.3 비밀 메시지 타입 (Secret Message Types)
-
-```python
-# 채팅 메시지의 sort 필드 확장
-MESSAGE_TYPES = {
-    'user': 'user',           # 일반 사용자 메시지
-    'system': 'system',        # 시스템 메시지
-    'secret': 'secret',         # 비밀 메시지 (GM, 행동 선언 등)
-    'action_declare': 'action_declare',  # 행동 선언 (비밀)
-    'gm_note': 'gm_note'       # GM 노트 (비밀)
-}
-```
-
 ---
 
 ## 3. 데이터 플로우 (Data Flow)
@@ -179,7 +166,7 @@ MESSAGE_TYPES = {
    ↓
    [접근 허용]
    - is_spectator(user_id) == True AND (auth_state == 'member' OR auth_state == 'admin')
-   - 모든 비밀 메시지 포함하여 게임 상태 전송
+   - 게임 상태 전송
    ↓
    [접근 거부]
    - is_player(user_id) == True → "Players cannot access Spectate page"
@@ -187,26 +174,7 @@ MESSAGE_TYPES = {
    ↓
 4. 접근 허용 시:
    - Spectate 페이지 렌더링
-   - 모든 메시지 (비밀 포함) 표시
    - 실시간 게임 상태 업데이트
-```
-
-### 3.4 비밀 메시지 처리 플로우 (Secret Message Processing Flow)
-
-```
-1. 비밀 메시지 생성 (행동 선언, GM 노트 등)
-   ↓
-2. 메시지 저장 시 sort = 'secret' 또는 특정 비밀 타입
-   ↓
-3. 메시지 브로드캐스트:
-   ↓
-   [일반 사용자/플레이어]
-   - 비밀 메시지 필터링
-   - 일반 메시지만 수신
-   ↓
-   [관전자]
-   - 모든 메시지 수신 (비밀 포함)
-   - Spectate 페이지에 표시
 ```
 
 ---
@@ -348,24 +316,21 @@ async def handle_load_spectate(websocket: WebSocket, message: dict, game):
         })
         return
     
-    # 게임 상태 전송 (모든 정보 포함)
+    # 게임 상태 전송
     vomit_data = game.vomit()
-    vomit_data['include_secrets'] = True  # 비밀 정보 포함 플래그
     await websocket.send_json(vomit_data)
     
-    # 모든 채팅 메시지 전송 (비밀 메시지 포함)
+    # 채팅 히스토리 전송
     chat_history_rows = dbmanager.get_chat_history(game.id)
     chat_messages = []
     for row in chat_history_rows:
-        # row format: (chat_id, sender, time, content, sort, user_id)
         chat_messages.append({
             "type": "chat",
             "sender": row[1],
             "time": row[2],
             "content": row[3],
             "sort": row[4],
-            "user_id": row[5],
-            "is_secret": row[4] in ['secret', 'action_declare', 'gm_note']  # 비밀 메시지 표시
+            "user_id": row[5]
         })
     
     await websocket.send_json({
@@ -386,19 +351,14 @@ async def handle_load_spectate(websocket: WebSocket, message: dict, game):
     })
 
 async def handle_chat(websocket: WebSocket, message: dict, game):
-    """채팅 메시지 처리 (기존 함수 수정)"""
+    """채팅 메시지 처리"""
     now = datetime.now().isoformat()
     content = message.get("content", "")
     sender = message.get("sender")
     user_info = conmanager.get_user_info(websocket)
     user_id = user_info.get('id')
     
-    # 비밀 메시지 타입 확인
-    is_secret = message.get("is_secret", False)
-    message_sort = "secret" if is_secret else "user"
-    
     if content and content[0] == "/":
-        # 명령 처리
         command = content[1:]
         result = "unknown command"
         if "이동" in command:
@@ -409,50 +369,11 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             result = "행동함"
         msg = dbmanager.save_chat(game.id, "System", now, result, "system", None)
     else:
-        # 일반 채팅 메시지
-        msg = dbmanager.save_chat(game.id, sender, now, content, message_sort, user_id)
+        msg = dbmanager.save_chat(game.id, sender, now, content, "user", user_id)
     
-    # 메시지 브로드캐스트
-    # 플레이어와 일반 사용자에게는 비밀 메시지 필터링
-    # 관전자에게는 모든 메시지 전송
-    for conn in conmanager.get_game_connections(game.id):
-        conn_user_info = conmanager.get_user_info(conn)
-        if conn_user_info:
-            conn_user_id = conn_user_info.get('id')
-            
-            # 관전자는 모든 메시지 수신 (slot이 None)
-            if game.is_spectator(conn_user_id):
-                await conn.send_json(msg)
-            # 플레이어와 기타 사용자는 비밀 메시지 제외
-            elif not is_secret:
-                await conn.send_json(msg)
+    await conmanager.broadcast_to_game(game.id, msg)
 ```
 
-### 4.3 DatabaseManager 확장 (Database Manager Extension)
-
-```python
-# server/util.py - DatabaseManager 클래스에 추가
-
-def get_chat_history_for_spectator(self, game_id, limit=None):
-    """관전자용 채팅 히스토리 (비밀 메시지 포함)"""
-    query = f'SELECT chat_id, sender, time, content, sort, user_id FROM "{game_id}"'
-    if limit:
-        query += f' LIMIT {limit}'
-    self.cursor.execute(query)
-    messages = self.cursor.fetchall()
-    return messages
-
-def get_chat_history_for_player(self, game_id, limit=None):
-    """플레이어용 채팅 히스토리 (비밀 메시지 제외)"""
-    query = f'''SELECT chat_id, sender, time, content, sort, user_id 
-               FROM "{game_id}" 
-               WHERE sort NOT IN ('secret', 'action_declare', 'gm_note')'''
-    if limit:
-        query += f' LIMIT {limit}'
-    self.cursor.execute(query)
-    messages = self.cursor.fetchall()
-    return messages
-```
 
 ---
 
@@ -536,13 +457,11 @@ export function useGame() {
       // Room 페이지로 리다이렉트
       window.location.href = `/room/${gameId}`;
     } else if (msg.type === "spectate_chat_history") {
-      // 관전자용 채팅 히스토리 (비밀 메시지 포함)
       const messages = (msg.messages || []).map(chatMsg => ({
         sender: chatMsg.sort === "user" ? (chatMsg.sender || "noname") : "System",
         time: chatMsg.time,
         content: chatMsg.content,
         isSystem: chatMsg.sort === "system",
-        isSecret: chatMsg.is_secret || false,  // 비밀 메시지 플래그
         user_id: chatMsg.user_id || null
       }));
       setChatMessages(messages);
@@ -627,20 +546,14 @@ export default function Spectate() {
           {/* 게임 보드 표시 */}
         </div>
         
-        {/* 채팅 (비밀 메시지 포함) */}
+        {/* 채팅 */}
         <div className="spectate-chat">
           <div className="chat-log" ref={chatLogRef}>
             {chatMessages.map((msg, idx) => (
-              <div 
-                key={idx} 
-                className={`chat-message ${msg.isSecret ? 'secret-message' : ''}`}
-              >
+              <div key={idx} className="chat-message">
                 <span className="chat-time">{msg.time}</span>
                 <span className="chat-sender">{msg.sender}:</span>
                 <span className="chat-content">{msg.content}</span>
-                {msg.isSecret && (
-                  <span className="secret-badge">[비밀]</span>
-                )}
               </div>
             ))}
           </div>
@@ -742,18 +655,6 @@ export default function Spectate() {
   padding: 4px;
 }
 
-.chat-message.secret-message {
-  background-color: rgba(255, 215, 0, 0.1);
-  border-left: 3px solid #ffd700;
-  padding-left: 8px;
-}
-
-.secret-badge {
-  color: #ffd700;
-  font-weight: bold;
-  margin-left: 8px;
-}
-
 .spectate-players {
   grid-column: 2;
   grid-row: 2;
@@ -791,17 +692,6 @@ export default function Spectate() {
 {
     "action": "load_spectate",
     "game_id": "game123"
-}
-```
-
-#### 비밀 메시지 전송 (GM 또는 시스템)
-```json
-{
-    "action": "chat",
-    "game_id": "game123",
-    "sender": "GM",
-    "content": "비밀 메시지 내용",
-    "is_secret": true
 }
 ```
 
@@ -860,16 +750,8 @@ export default function Spectate() {
         {
             "sender": "Player1",
             "time": "2024-01-01T12:00:00",
-            "content": "일반 메시지",
-            "sort": "user",
-            "is_secret": false
-        },
-        {
-            "sender": "System",
-            "time": "2024-01-01T12:01:00",
-            "content": "행동 선언: 근거리공격",
-            "sort": "action_declare",
-            "is_secret": true
+            "content": "메시지",
+            "sort": "user"
         }
     ]
 }
@@ -892,10 +774,6 @@ export default function Spectate() {
 2. **`server/game_ws.py` 수정**
    - `handle_start_game()` 핸들러 구현
    - `handle_load_spectate()` 핸들러 구현
-   - `handle_chat()` 수정 (비밀 메시지 필터링 로직 추가)
-
-3. **`server/util.py` 수정**
-   - `DatabaseManager`에 `get_chat_history_for_spectator()`, `get_chat_history_for_player()` 메서드 추가
 
 ### Phase 2: 프론트엔드 라우팅 및 컴포넌트 (Frontend Routing & Components)
 
@@ -904,7 +782,6 @@ export default function Spectate() {
 
 2. **`src/components/spectate/Spectate.jsx` 생성**
    - 관전자 페이지 컴포넌트 구현
-   - 비밀 메시지 표시 UI
 
 3. **`src/components/spectate/Spectate.css` 생성**
    - 관전자 페이지 스타일
@@ -916,11 +793,10 @@ export default function Spectate() {
    - `loadSpectate()` 함수 추가
    - WebSocket 메시지 핸들러에 역할 관련 처리 추가
 
-### Phase 4: 접근 제어 및 보안 (Access Control & Security)
+### Phase 4: 접근 제어 및 보안
 
 1. **서버 측 접근 제어**
    - Spectate 페이지 접근 시 역할 검증
-   - 비밀 메시지 필터링 로직 검증
 
 2. **클라이언트 측 접근 제어**
    - Spectate 컴포넌트에서 역할 확인
@@ -931,7 +807,6 @@ export default function Spectate() {
 1. **기능 테스트**
    - 게임 시작 전/후 slot 기반 역할 판단 테스트
    - Spectate 페이지 접근 권한 테스트 (slot이 None이고 인증된 사용자)
-   - 비밀 메시지 필터링 테스트
    - slot 데이터 게임 세션별 저장 테스트
 
 2. **통합 테스트**
@@ -949,13 +824,7 @@ export default function Spectate() {
 - 클라이언트에서 전송한 역할 정보를 신뢰하지 않음
 - WebSocket 연결 시 사용자 인증 정보 확인
 
-### 8.2 비밀 메시지 보호 (Secret Message Protection)
-
-- 비밀 메시지는 데이터베이스에 저장되지만, 전송 시 필터링
-- 관전자에게만 비밀 메시지 전송
-- 메시지 타입(sort) 검증
-
-### 8.3 접근 제어 (Access Control)
+### 8.2 접근 제어
 
 - Spectate 페이지 접근 시 서버에서 역할과 인증 상태 모두 재확인
 - 게임 시작 전에는 Spectate 페이지 접근 불가
@@ -966,11 +835,11 @@ export default function Spectate() {
 
 ## 9. 향후 확장 가능성 (Future Extensions)
 
-### 9.1 Admin (GM) 인증 상태 (Admin Auth State)
+### 9.1 Admin (GM) 인증 상태
 
 - Admin 인증 상태는 GM 기능을 포함
 - Admin은 모든 페이지에 접근 가능
-- Admin 전용 기능 (게임 시작, 비밀 메시지 작성 등)
+- Admin 전용 기능 (게임 시작 등)
 - Admin도 게임 내에서는 Player 또는 Spectator 역할을 가짐
 
 ### 9.2 관전자 채팅 (Spectator Chat)
@@ -1005,11 +874,6 @@ export default function Spectate() {
 - 게임 시작 후에도 slot 변경 가능 (슬롯 참가/탈퇴 시 역할 자동 변경)
 - slot 데이터는 players 리스트에 저장됨 (게임 세션별로 관리)
 
-### 10.3 비밀 메시지 정의 (Secret Message Definition)
-
-- 현재는 `sort` 필드로 구분
-- 향후 더 세밀한 권한 시스템으로 확장 가능
-
 ---
 
 ## 11. 테스트 시나리오 (Test Scenarios)
@@ -1026,12 +890,7 @@ export default function Spectate() {
    - Player (member)가 `/spectate/:gameId` 접근 → 거부 (역할 불일치)
    - Guest가 `/spectate/:gameId` 접근 → 거부 (인증 상태 불일치)
 
-3. **시나리오 3: 비밀 메시지**
-   - Admin (GM)이 비밀 메시지 전송
-   - Player는 비밀 메시지 수신 안 됨
-   - Spectator (member/admin)는 비밀 메시지 수신 및 표시
-
-4. **시나리오 4: 게임 시작 후 접속**
+3. **시나리오 3: 게임 시작 후 접속**
    - 게임 시작 후 새로운 사용자 E (member) 접속
    - E는 slot = None (Spectator)
    - E는 Spectate 페이지 접근 가능 (member 인증 상태)
