@@ -28,7 +28,7 @@ class Game():
         self.combat_state = {
             'in_combat': False,
             'current_round': 0,
-            'phase': 'preparation',  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'end'
+            'phase': 'preparation',  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
             'action_queue': [],
             'resolved_actions': []
         }
@@ -280,7 +280,7 @@ def resolve_action(self, action_data):
         
         if action_type == 'ranged_attack' and not action_data.get('ignore_covering', False):
             covering_ok, covering_msg = self.check_covering(attacker_pos, target_pos, player['team'])
-            if not covering_ok:
+                if not covering_ok:
                 return {**result, 'message': covering_msg}
         
         attack_power = self.calculate_attack_power(slot, action_type, action_data.get('skill_chain'))
@@ -333,7 +333,7 @@ def get_valid_attack_tiles(self, slot, action_type):
         if not self.check_range(attacker_pos, target_pos, action_type)[0]:
             continue
         if action_type == 'ranged_attack' and not self.check_covering(attacker_pos, target_pos, attacker_team)[0]:
-            continue
+                continue
         target_occupant = self.combat_board.get(target_pos)
         if target_occupant and target_occupant['team'] != attacker_team:
             valid_tiles.append(target_pos)
@@ -354,9 +354,9 @@ def get_valid_move_tiles(self, slot):
                 continue
             tr, tc = fr + dr, fc + dc
             if 0 <= tr < 4 and 0 <= tc < 4:
-                to_pos = self.rc_to_pos(tr, tc)
+            to_pos = self.rc_to_pos(tr, tc)
                 if self.check_move_validity(from_pos, to_pos, player_team)[0]:
-                    valid_tiles.append(to_pos)
+                valid_tiles.append(to_pos)
     return valid_tiles
 
 def get_tile_feedback(self, slot, action_type=None):
@@ -482,6 +482,49 @@ def initialize_character_hp(self, slot):
     player['character']['max_hp'] = max_hp
     player['character']['current_hp'] = max_hp
 ```
+
+
+**사용 예시:**
+
+1. **전투 시작**: 
+   - `start_combat()` 호출 (phase = 'position_declaration'로 설정)
+   - `get_combat_start_message()` → '전투를 시작합니다.'
+   - `start_position_declaration_phase()` → '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
+
+2. **위치 선언 완료**: 
+   - `resolve_position_declarations()` 완료 후
+   - `start_action_declaration_phase()` → '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(1), round = 1
+
+3. **행동 선언 완료**: 
+   - `check_all_declarations_complete()` 완료 후
+   - `start_resolution_phase()` → '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(current_round)
+
+4. **해결 완료**: 
+   - `resolve_all_actions()` 완료 후
+   - `end_round()` → '라운드 {} 결과를 요약합니다.'.format(current_round) → 다음 라운드 action_declaration 또는 전투 종료
+
+**WebSocket 통합 (PLAN_WEBSOCKET.md 참고):**
+
+```python
+# game_ws.py 예시
+result = game.advance_combat_phase('action_declaration')
+if result['success']:
+    await conmanager.broadcast_to_game(game.id, {
+        "type": result['notification_type'],
+        "phase": result['phase'],
+        "round": result['round'],
+        "message": result['message'],
+        **result['additional_data']
+    })
+```
+
+**참고사항:**
+
+- 모든 메시지는 함수 내에서 하드코딩된 문자열로 정의됩니다.
+- 라운드 번호가 필요한 메시지는 `.format()`을 사용하여 동적으로 생성됩니다.
+- `advance_combat_phase()`는 실제 phase 전환을 담당하며, 메시지와 notification_type을 반환합니다.
+- `get_round_summary_message()`는 phase를 변경하지 않고 메시지만 반환합니다 (라운드 종료 시).
+- 실제 WebSocket 전송은 `game_ws.py`에서 처리합니다 (PLAN_WEBSOCKET.md 참고).
 
 ---
 

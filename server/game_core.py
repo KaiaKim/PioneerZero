@@ -2,13 +2,8 @@ from . import game_bot
 import re
 import time
 
-class Game():
+class SlotManager():
     """
-    Game session management and combat system.
-    
-    METHOD INDEX:
-    =============
-    
     Player Slot Management:
     -----------------------
     ✓ player_factory() - Create new player slot dict
@@ -20,24 +15,29 @@ class Game():
     ✓ get_player_by_user_id() - Find player slot by user ID
     ✓ set_player_ready() - Set player ready state
     ✓ are_all_players_ready() - Check if all players are ready
-    
+    """
+    pass
+
+class PhaseManager():
+    """
     Combat State Management:
     ------------------------
     ✓ start_combat() - Start combat session
     ✓ end_combat() - End combat session
+    [TODO] parse_position_declaration_from_chat() - Parse and validate position declaration from chat
+    [TODO] resolve_position_declarations() - Resolve position declarations and handle butting
+    [TODO] get_adjacent_empty_positions() - Get adjacent empty positions for butted players
+    [TODO] get_empty_team_positions() - Get all empty team positions
+    [TODO] check_all_positions_declared() - Check if all positions are declared (parsing from chat)
     [TODO] start_action_declaration_phase() - Start action declaration phase with timer
     [TODO] handle_timeout() - Handle action declaration timeout
     [TODO] check_all_declarations_complete() - Check if all actions declared
     [TODO] end_round() - End round and check win conditions
-    
-    Combat Calculations:
-    ---------------------
-    [TODO] calculate_priority() - Calculate action priority (sen*10+mst, per*10+mst, etc.)
-    [TODO] calculate_attack_power() - Calculate attack power based on stats
-    [TODO] calculate_max_hp() - Calculate max HP (vtl*5+10)
-    [TODO] initialize_character_hp() - Initialize character HP
-    [TODO] calculate_all_priorities() - Calculate priorities for all actions
-    
+    """
+    pass
+
+class PosManager():
+    """
     Coordinate & Position Helpers:
     -------------------------------
     [TODO] pos_to_rc() - Convert position string ("Y1") to (row_idx, col_idx)
@@ -45,6 +45,22 @@ class Game():
     [TODO] is_front_row() - Check if position is front row (X or A)
     [TODO] is_back_row() - Check if position is back row (Y or B)
     [TODO] check_move_validity() - Validate move destination (distance, team, occupancy)
+    """
+    pass
+
+
+
+class Game():
+    """
+    METHOD INDEX:
+    =============
+    Combat Calculations:
+    ---------------------
+    [TODO] calculate_priority() - Calculate action priority (sen*10+mst, per*10+mst, etc.)
+    [TODO] calculate_attack_power() - Calculate attack power based on stats
+    [TODO] calculate_max_hp() - Calculate max HP (vtl*5+10)
+    [TODO] initialize_character_hp() - Initialize character HP
+    [TODO] calculate_all_priorities() - Calculate priorities for all actions
     
     Combat Validation:
     ------------------
@@ -91,6 +107,19 @@ class Game():
             'action_queue': [],
             'resolved_actions': []
         }
+
+        self.phase_system_strings = [
+            '전투를 시작합니다.', 
+            '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.', 
+            '라운드 n 선언 페이즈입니다. 스킬과 행동을 선언해주세요.', 
+            '라운드 n 선언이 끝났습니다. 계산을 시작합니다.', 
+            '라운드 n 결과를 요약합니다.',
+            '전투가 종료되었습니다.'
+            ]
+
+        self.SlotM = SlotManager(self)
+        self.phaseM = PhaseManager(self)
+        self.posM = PosManager(self)
 
     # ============================================
     # SECTION 1: Player Slot Management

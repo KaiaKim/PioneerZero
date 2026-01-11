@@ -51,6 +51,7 @@ export function genChatMessage(chatMsg) {
     const isError = chatMsg.sort === "error";
     let sender = chatMsg.sender;
     if (isSecret) sender += " 👁";
+    if (isError) sender += " ❌";
     return {
         sender: sender,
         time: chatMsg.time,

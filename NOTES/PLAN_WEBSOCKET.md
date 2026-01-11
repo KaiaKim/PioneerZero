@@ -37,72 +37,56 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     sender = message.get("sender")
     user_info = conmanager.get_user_info(websocket)
     user_id = user_info.get('id')
-    slot = game.get_player_by_user_id(user_id)
+    msg = None
     
     if content and content[0] == "/":
+        # Save the user's command as secret (only visible to the user)
+        secret_msg = dbmanager.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
+        await conmanager.broadcast_to_game(game.id, secret_msg)
+        
         # Handle commands
         command = content[1:]
-        result = "unknown command"
+        result = None
+        err = None
         
-        # 위치 선언 명령어: /위치 A1
-        if command.startswith("위치 "):
-            position = command.split(" ", 1)[1].strip().upper()  # "A1"
-            
-            if not slot:
-                result = "플레이어 슬롯을 찾을 수 없습니다"
+        if not game.combat_state['in_combat']:
+            if "참여" in command:
+                pass
+            elif "출력" in command:
+                pass
             else:
-                # 위치 선언 검증 및 처리
-                validation_result = game.parse_position_declaration_from_chat(slot, position)
-                result = validation_result.get("message", "위치 선언 실패")
-                
-                if validation_result.get("success"):
-                    # 위치 선언 단계인지 확인
-                    if game.combat_state['phase'] == 'position_declaration':
-                        # 채팅 히스토리에 저장 (비밀 선언이므로 sort="secret" 또는 특별 처리)
-                        msg = dbmanager.save_chat(
-                            game.id, 
-                            f"위치 {position} 선언 완료", 
-                            sort="system",  # 또는 "secret" - 다른 플레이어에게는 보이지 않음
-                            sender="System"
-                        )
-                        # 비밀 선언이므로 선언한 플레이어에게만 전송
-                        await websocket.send_json(msg)
-                        
-                        # 모든 위치 선언이 완료되었는지 확인 (비동기 처리 고려)
-                        # 주의: 실제로는 모든 선언이 완료될 때까지 대기하거나,
-                        # 별도의 타이머/체크 로직이 필요할 수 있습니다
-                        # 여기서는 예시만 보여줍니다
-                        declarations = game.parse_position_declarations_from_chat_history()
-                        if game.check_all_positions_declared_from_chat():
-                            # resolve_position_declarations 호출
-                            result = game.resolve_position_declarations(declarations)
-                            # 전투 시작 알림 브로드캐스트
-                            await conmanager.broadcast_to_game(game.id, {
-                                "type": "combat_started",
-                                "combat_state": game.combat_state,
-                                "butting_results": result.get("butted_count", 0)
-                            })
-                    else:
-                        result = "위치 선언 단계가 아닙니다"
+                err = "전투 중이 아닙니다. 위치, 스킬, 행동 명령어는 전투 중에만 사용할 수 있습니다."
         
-        # 행동 선언 명령어 처리 (아래 섹션 참고)
-        elif command.startswith("행동 "):
-            # ...
+        elif game.combat_state['in_combat']:
+            if command.startswith("위치 "):
+                result = game.handle_position_declaration_command(user_id, command)
+            elif command.startswith("행동 "):
+                result = game.handle_action_declaration_command(user_id, command)
+            elif "이동" in command:
+                result = game.move_player(sender, command)
+            elif "스킬" in command:
+                result = "스킬 사용함"
+            else:
+                err = "전투 중입니다. 참여, 출력 명령어는 전투 중에만 사용할 수 있습니다."
         
-        # 기존 명령어들
-        elif "이동" in command:
-            result = game.move_player(sender, command)
-        elif "스킬" in command:
-            result = "스킬 사용함"
+        # Save and broadcast the result as system message (visible to all)
+        if result:
+            msg = dbmanager.save_chat(game.id, result, user_id=user_id)
+        else:
+            err = "알 수 없는 명령어입니다."
         
-        if result != "unknown command":
-            msg = dbmanager.save_chat(game.id, result, sort="system")
-            await conmanager.broadcast_to_game(game.id, msg)
+        if err:
+            msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
+    
     else:
         # Regular chat message
         msg = dbmanager.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
+    
+    if msg:
         await conmanager.broadcast_to_game(game.id, msg)
 ```
+
+**참고**: `game.handle_position_declaration_command()`와 `game.handle_action_declaration_command()`는 위치/행동 선언 처리 및 phase 전환을 담당하는 함수입니다. 내부적으로 phase 전환이 필요할 경우 `game.phase_manager`를 사용하여 phase를 전환하고, 필요 시 WebSocket 브로드캐스트를 수행합니다.
 
 ### 4.3 행동 선언 명령어 (Action Declaration Commands)
 
@@ -130,71 +114,10 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
 
 #### 구현 예시
 ```python
-# server/game_ws.py - handle_chat 함수 내부
+# server/game_ws.py - handle_chat 함수 내부 (전투 중일 때)
 
 elif command.startswith("행동 "):
-    action_str = command.split(" ", 1)[1]  # "근거리공격 X2" 또는 "대기"
-    parts = action_str.split()
-    
-    action_type_map = {
-        "근거리공격": "melee_attack",
-        "원거리공격": "ranged_attack",
-        "전장이동": "battlefield_move",
-        "대기": "wait"
-    }
-    
-    if not slot:
-        result = "플레이어 슬롯을 찾을 수 없습니다"
-    elif game.combat_state['phase'] != 'action_declaration':
-        result = "행동 선언 단계가 아닙니다"
-    else:
-        action_type_kr = parts[0]  # "근거리공격"
-        action_type = action_type_map.get(action_type_kr)
-        
-        if not action_type:
-            result = f"알 수 없는 행동 타입: {action_type_kr}"
-        else:
-            target = None
-            skill_chain = None
-            
-            if action_type in ['melee_attack', 'ranged_attack']:
-                if len(parts) < 2:
-                    result = "공격 대상이 지정되지 않았습니다"
-                else:
-                    target = parts[1].upper()  # "X2"
-                    if len(parts) >= 3:
-                        skill_chain = parts[2]  # "순간가속"
-            elif action_type == 'battlefield_move':
-                if len(parts) < 2:
-                    result = "이동 목적지가 지정되지 않았습니다"
-                else:
-                    target = parts[1].upper()  # "A2"
-            elif action_type == 'wait':
-                if len(parts) >= 2:
-                    skill_chain = parts[1]  # "컨토션"
-            
-            if target or action_type == 'wait':
-                # 행동 선언 검증 및 처리
-                validation_result = game.parse_action_declaration_from_chat(
-                    slot, action_type, target, skill_chain
-                )
-                result = validation_result.get("message", "행동 선언 실패")
-                
-                if validation_result.get("success"):
-                    # 비밀 선언이므로 선언한 플레이어에게만 전송
-                    msg = dbmanager.save_chat(
-                        game.id,
-                        f"행동 선언 완료: {action_str}",
-                        sort="system",
-                        sender="System"
-                    )
-                    await websocket.send_json(msg)
-                    
-                    # 모든 행동 선언이 완료되었는지 확인
-                    if game.check_all_action_declarations_complete_from_chat():
-                        # 우선도 계산 및 해결 단계로 이동
-                        declarations = game.parse_action_declarations_from_chat_history()
-                        game.calculate_all_priorities(declarations)
+    result, phase_broadcasts = game.handle_action_declaration_command(user_id, command)
 ```
 
 ### 4.4 채팅 히스토리에서 선언 파싱 (Parsing Declarations from Chat History)
