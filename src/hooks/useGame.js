@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { quickAuth, getWebSocketUrl } from '../util';
+import { quickAuth, getWebSocketUrl, genChatMessage } from '../util';
 
 export function useGame() {
   const { gameId } = useParams();
@@ -66,59 +66,7 @@ export function useGame() {
         console.log('Users list received:', msg.users);
         setUsers(msg.users || []);
       } else if (msg.type === "players_list") {
-        console.log('Players list received:', msg.players);
-        setPlayers(msg.players || []);
-        plListReceivedRef.current = true;
-        
-        // Get current user info
-        const currentUserId = userInfo.id;
-        const playersList = msg.players || [];
-        
-        // Update localStorage if user is in a slot (to keep it in sync)
-        let userSlotNum = null;
-        for (let i = 0; i < playersList.length; i++) {
-          const player = playersList[i];
-          if (player.info && player.info.id === currentUserId) {
-            userSlotNum = i + 1; // Slot numbers are 1-based
-            break;
-          }
-        }
-        
-        if (userSlotNum) {
-          // User is in a slot, update localStorage
-          localStorage.setItem(storedSlotKey, userSlotNum.toString());
-        } else {
-          // User is not in any slot, but only clear if we haven't attempted auto-join yet
-          if (autoJoinAttemptedRef.current) {
-            localStorage.removeItem(storedSlotKey);
-          }
-        }
-        
-        // Check if user should auto-join their previous slot after page refresh
-        // Only attempt once per connection
-        // Need to rejoin if:
-        // 1. Slot is empty (status 0) or occupied by someone else
-        // 2. Slot is connection-lost (status 2) - even if it's the same user, we need to rejoin to change status to occupied
-        if (!autoJoinAttemptedRef.current && slotNum) {
-          const slotIndex = slotNum - 1;
-          const playerInSlot = playersList[slotIndex];
-          const slotStatus = playerInSlot?.occupy || 0;          
-          const isUserInSlot = playerInSlot.info && playerInSlot.info.id === currentUserId;
-          const needsRejoin = !isUserInSlot || slotStatus === 2;
-          if (needsRejoin) {
-            autoJoinAttemptedRef.current = true;
-            // Wait a bit for WebSocket to be ready, then try to rejoin
-            setTimeout(() => {
-              if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                console.log(`Auto-joining slot ${slotNum} after page refresh (status: ${slotStatus})`);
-                joinPlayerSlot(slotNum);
-              }
-            }, 500);
-          } else {
-            // User is already in the slot with occupied status, mark as attempted to prevent further checks
-            autoJoinAttemptedRef.current = true;
-          }
-        }
+        handlePlayersList(msg.players);
       } else if (msg.type === "join_slot_failed") {
         console.error('Failed to join slot:', msg.message);
         alert('Failed to join slot: ' + msg.message);
@@ -130,36 +78,10 @@ export function useGame() {
         console.error('Failed to set ready state:', msg.message);
         alert('Failed to set ready state: ' + msg.message);
       } else if (msg.type === "chat_history") {
-        const messages = (msg.messages || []).map(chatMsg => {
-          const isSecret = chatMsg.sort === "secret";
-          const isError = chatMsg.sort === "error";
-          let sender = chatMsg.sender;
-          if (isSecret) sender += " 👁";
-          return {
-            sender: sender,
-            time: chatMsg.time,
-            content: chatMsg.content,
-            isSystem: chatMsg.sort === "system",
-            isSecret: isSecret,
-            isError: isError,
-            user_id: chatMsg.user_id || null
-          };
-        });
+        const messages = (msg.messages || []).map(genChatMessage);
         setChatMessages(messages);
       } else if (msg.type === "chat") {
-        const isSecret = msg.sort === "secret";
-        const isError = msg.sort === "error";
-        let sender = msg.sender;
-        if (isSecret) sender += " 👁";
-        const newMessage = {
-          sender: sender,
-          time: msg.time,
-          content: msg.content,
-          isSystem: msg.sort === "system",
-          isSecret: isSecret,
-          isError: isError,
-          user_id: msg.user_id || null
-        };
+        const newMessage = genChatMessage(msg);
         setChatMessages(prev => [...prev, newMessage]);
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
@@ -249,6 +171,68 @@ export function useGame() {
     return true; // TODO: if fail, return false > don't clear the input
   };
 
+  // Handle players_list message
+  const handlePlayersList = (playersList) => {
+    console.log('Players list received:', playersList);
+    setPlayers(playersList || []);
+    plListReceivedRef.current = true;
+    
+    // Get current user info
+    const currentUserId = userInfo.id;
+    const players = playersList || [];
+    
+    // Compute stored slot key and number
+    const storedSlotKey = `player_slot_${gameId}`;
+    const storedSlotNum = localStorage.getItem(storedSlotKey);
+    const slotNum = storedSlotNum ? parseInt(storedSlotNum) : null;
+    
+    // Update localStorage if user is in a slot (to keep it in sync)
+    let userSlotNum = null;
+    for (let i = 0; i < players.length; i++) {
+      const player = players[i];
+      if (player.info && player.info.id === currentUserId) {
+        userSlotNum = i + 1; // Slot numbers are 1-based
+        break;
+      }
+    }
+    
+    if (userSlotNum) {
+      // User is in a slot, update localStorage
+      localStorage.setItem(storedSlotKey, userSlotNum.toString());
+    } else {
+      // User is not in any slot, but only clear if we haven't attempted auto-join yet
+      if (autoJoinAttemptedRef.current) {
+        localStorage.removeItem(storedSlotKey);
+      }
+    }
+    
+    // Check if user should auto-join their previous slot after page refresh
+    // Only attempt once per connection
+    // Need to rejoin if:
+    // 1. Slot is empty (status 0) or occupied by someone else
+    // 2. Slot is connection-lost (status 2) - even if it's the same user, we need to rejoin to change status to occupied
+    if (!autoJoinAttemptedRef.current && slotNum) {
+      const slotIndex = slotNum - 1;
+      const playerInSlot = players[slotIndex];
+      const slotStatus = playerInSlot?.occupy || 0;          
+      const isUserInSlot = playerInSlot.info && playerInSlot.info.id === currentUserId;
+      const needsRejoin = !isUserInSlot || slotStatus === 2;
+      if (needsRejoin) {
+        autoJoinAttemptedRef.current = true;
+        // Wait a bit for WebSocket to be ready, then try to rejoin
+        setTimeout(() => {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            console.log(`Auto-joining slot ${slotNum} after page refresh (status: ${slotStatus})`);
+            joinPlayerSlot(slotNum);
+          }
+        }, 500);
+      } else {
+        // User is already in the slot with occupied status, mark as attempted to prevent further checks
+        autoJoinAttemptedRef.current = true;
+      }
+    }
+  };
+
   useEffect(() => {
     // Auto-scroll chat to bottom when new messages arrive
     if (chatLogRef.current) {
@@ -269,7 +253,7 @@ export function useGame() {
       }
     };
   }, [gameId]);
-
+  
   // Group all action functions together
   const actions = {
     sendChat,

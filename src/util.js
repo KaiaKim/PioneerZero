@@ -46,3 +46,18 @@ export function quickAuth(ws) {
     }
 }
 
+export function genChatMessage(chatMsg) {
+    const isSecret = chatMsg.sort === "secret";
+    const isError = chatMsg.sort === "error";
+    let sender = chatMsg.sender;
+    if (isSecret) sender += " 👁";
+    return {
+        sender: sender,
+        time: chatMsg.time,
+        content: chatMsg.content,
+        isSystem: chatMsg.sort === "system",
+        isSecret: isSecret,
+        isError: isError,
+        user_id: chatMsg.user_id || null
+    };
+}
