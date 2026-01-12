@@ -107,7 +107,6 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "join_room":
                 print(f"Joining room {game_id}")
                 await lobby_ws.handle_join_room(websocket, game_id, game)
-                print("conmanager.game_connections:", conmanager.game_connections)
                 continue
 
             if action == "load_room":
@@ -115,11 +114,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_load_room(websocket, game)
                 continue
             
-            if action == "start_combat":
-                print(f"Starting combat {game_id}")
-                await game_ws.handle_start_combat(game)
-                continue
-
+            # Note: Combat starts automatically when all players are ready
+            # (see "add_bot_to_slot" and "set_ready" handlers below)
+            
             if action == "end_combat":
                 await game_ws.handle_end_combat(websocket, game)
                 continue
@@ -147,7 +144,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_set_ready(websocket, message, game)
                 # Check if all players are ready and start combat if so
                 if game.SlotM.are_all_players_ready() and not game.phaseM.in_combat:
+                    print("current phase1:", game.phaseM.phase)
                     await game_ws.handle_start_combat(game)
+                    print("current phase2:", game.phaseM.phase)
                 continue
                 
     except Exception as e:
