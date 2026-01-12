@@ -28,7 +28,7 @@ async def run_connection_lost_timeout_checks():
     while True:
         try:
             for game_id, game in rooms.items():
-                if game.clear_expired_connection_lost_slots():
+                if game.SlotM.clear_expired_connection_lost_slots():
                     # Broadcast updated players list if any slots were cleared
                     await conmanager.broadcast_to_game(game_id, {
                         'type': 'players_list',
@@ -135,7 +135,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "add_bot_to_slot":
                 await game_ws.handle_add_bot_to_slot(websocket, message, game)
                 # Check if all players are ready and start combat if so
-                if game.are_all_players_ready() and not game.combat_state['in_combat']:
+                if game.SlotM.are_all_players_ready() and not game.phaseM.in_combat:
                     await game_ws.handle_start_combat(game)
                 continue
             
@@ -146,7 +146,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "set_ready":
                 await game_ws.handle_set_ready(websocket, message, game)
                 # Check if all players are ready and start combat if so
-                if game.are_all_players_ready() and not game.combat_state['in_combat']:
+                if game.SlotM.are_all_players_ready() and not game.phaseM.in_combat:
                     await game_ws.handle_start_combat(game)
                 continue
                 
@@ -161,9 +161,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
             # Set player slot to connection-lost instead of removing
-            user_slot = game.get_player_by_user_id(user_info.get('id'))
+            user_slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
             if user_slot:
-                game.set_player_connection_lost(user_slot)
+                game.SlotM.set_player_connection_lost(user_slot)
             # Broadcast updated users list and players list to remaining clients
             await conmanager.broadcast_to_game(game_id, {
                 'type': 'users_list',

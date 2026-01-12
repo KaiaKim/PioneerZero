@@ -27,7 +27,7 @@ async def handle_load_room(websocket: WebSocket, game):
     # Send combat state to the requesting client
     await websocket.send_json({
         "type": "combat_state",
-        "combat_state": game.combat_state
+        "combat_state": game.phaseM.combat_state
     })
     
     # Load and send chat history to the requesting client
@@ -75,7 +75,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     slot_idx = slot - 1
     
     # Check if user is already in a different slot
-    existing_slot = game.get_player_by_user_id(user_info.get('id'))
+    existing_slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
     if existing_slot and existing_slot != slot:
         await websocket.send_json({
             "type": "join_slot_failed",
@@ -83,7 +83,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         })
         return
     
-    result = game.add_player_to_slot(slot, slot_idx, user_info)
+    result = game.SlotM.add_player(slot, slot_idx, user_info)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -111,7 +111,7 @@ async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
     
     slot_idx = slot - 1
     
-    result = game.add_bot_to_slot(slot, slot_idx)
+    result = game.SlotM.add_bot(slot, slot_idx)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -134,7 +134,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     
     # If slot_num not provided, find the user's slot
     if not slot:
-        slot = game.get_player_by_user_id(user_info.get('id'))
+        slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
         if not slot:
             await websocket.send_json({
                 "type": "leave_slot_failed",
@@ -163,7 +163,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
             })
             return
     
-    result = game.remove_player_from_slot(slot, slot_idx)
+    result = game.SlotM.remove_player(slot, slot_idx)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -199,7 +199,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
         return
     
     slot_idx = slot - 1
-    result = game.set_player_ready(slot, slot_idx, user_info, ready)
+    result = game.SlotM.set_player_ready(slot, slot_idx, user_info, ready)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -217,15 +217,15 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
 async def handle_start_combat(game):
     """Handle start_combat - starts combat with 3 second countdown"""
     # Check if combat is already started
-    if game.combat_state['in_combat']:
+    if game.phaseM.in_combat:
         return
     
     # Check if all players are ready
-    if not game.are_all_players_ready():
+    if not game.SlotM.are_all_players_ready():
         return
     
     # Start combat
-    result = game.start_combat()
+    result = game.phaseM.start_combat()
     
     # Start 3 second countdown
     for countdown in [3, 2, 1]:
@@ -240,7 +240,7 @@ async def handle_start_combat(game):
     # After countdown, broadcast combat started
     await conmanager.broadcast_to_game(game.id, {
         "type": "combat_started",
-        "combat_state": game.combat_state
+        "combat_state": game.phaseM.combat_state
     })
 
 
@@ -260,7 +260,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         command = content[1:]
         result = None
         err = None
-        if game.combat_state['in_combat'] == False:
+        if game.phaseM.in_combat == False:
             if "참여" in command:
                 pass
             if "출력" in command:
@@ -268,7 +268,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             else:
                 err = "전투 중이 아닙니다. 위치, 스킬, 행동 명령어는 전투 중에만 사용할 수 있습니다."
 
-        elif game.combat_state['in_combat'] == True:
+        elif game.phaseM.in_combat == True:
             if "이동" in command:
                 result = game.move_player(sender, command)
             elif "스킬" in command:
