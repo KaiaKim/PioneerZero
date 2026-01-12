@@ -5,7 +5,6 @@ from fastapi import WebSocket
 import asyncio
 from .util import conmanager, dbmanager
 
-
 async def handle_load_room(websocket: WebSocket, game):
     """Handle load_room action - loads game state and chat history"""
     vomit_data = game.vomit()
@@ -27,7 +26,13 @@ async def handle_load_room(websocket: WebSocket, game):
     # Send combat state to the requesting client
     await websocket.send_json({
         "type": "combat_state",
-        "combat_state": game.phaseM.combat_state
+        "combat_state": {
+            'in_combat': game.phaseM.in_combat,
+            'current_round': game.phaseM.current_round,
+            'phase': game.phaseM.phase,
+            'action_queue': game.phaseM.action_queue,
+            'resolved_actions': game.phaseM.resolved_actions
+        }
     })
     
     # Load and send chat history to the requesting client
@@ -51,14 +56,6 @@ async def handle_load_room(websocket: WebSocket, game):
         "type": "chat_history",
         "messages": chat_messages
     })
-
-
-async def handle_end_combat(websocket: WebSocket, game):
-    """Send end combat message to all clients in the game. Do not delete data or remove connections."""
-    result = f"전투 {game.id}가 종료되었습니다."
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
-
 
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     """Handle join_player_slot action - adds a player to a waiting room slot"""    
@@ -215,17 +212,12 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
 
 
 async def handle_start_combat(game):
-    """Handle start_combat - starts combat with 3 second countdown"""
-    # Check if combat is already started
-    if game.phaseM.in_combat:
-        return
-    
     # Check if all players are ready
     if not game.SlotM.are_all_players_ready():
         return
     
-    # Start combat
-    result = game.phaseM.start_combat()
+    # Start combat by advancing to preparation phase
+    result = game.phaseM.preperation()
     
     # Start 3 second countdown
     for countdown in [3, 2, 1]:
@@ -240,8 +232,19 @@ async def handle_start_combat(game):
     # After countdown, broadcast combat started
     await conmanager.broadcast_to_game(game.id, {
         "type": "combat_started",
-        "combat_state": game.phaseM.combat_state
+        "combat_state": {
+            'in_combat': game.phaseM.in_combat,
+            'current_round': game.phaseM.current_round,
+            'phase': game.phaseM.phase,
+            'action_queue': game.phaseM.action_queue,
+            'resolved_actions': game.phaseM.resolved_actions
+        }
     })
+    
+    result = game.phaseM.position_declaration()
+    msg = dbmanager.save_chat(game.id, result)
+    await conmanager.broadcast_to_game(game.id, msg)
+
 
 
 async def handle_chat(websocket: WebSocket, message: dict, game):
@@ -250,6 +253,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     sender = message.get("sender")
     user_info = conmanager.get_user_info(websocket)
     user_id = user_info.get('id')
+    player_ids = [player['info']['id'] for player in game.players]
     msg = None
     if content[0] == "/": #we've already checked if content is not empty
         # Save the user's command as secret (only visible to the user)
@@ -257,27 +261,32 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         await conmanager.broadcast_to_game(game.id, secret_msg)
         
         # Handle commands
-        command = content[1:]
+        command = content[1:].split()
         result = None
         err = None
         if game.phaseM.in_combat == False:
-            if "참여" in command:
+            if command[0] == "참여" or command[0] == "join":
                 pass
-            if "출력" in command:
+            elif command[0] == "관전" or command[0] == "leave":
                 pass
             else:
-                err = "전투 중이 아닙니다. 위치, 스킬, 행동 명령어는 전투 중에만 사용할 수 있습니다."
+                err = "사용 가능한 준비 명령어: 참여, 관전."
 
         elif game.phaseM.in_combat == True:
-            if "이동" in command:
-                result = game.move_player(sender, command)
-            elif "스킬" in command:
-                result = "스킬 사용함"
-            elif "행동" in command:
-                result = "행동함"
+            if user_id in player_ids:
+                if command[0] == "위치" or command[0] == "pos":
+                    result = game.posM.declare_position(sender, command)
+                elif command[0] == "이동" or command[0] == "move":
+                    result = game.posM.move_player(sender, command)
+                elif command[0] == "스킬" or command[0] == "skill":
+                    result = game.use_skill(sender, command)
+                elif command[0] == "행동" or command[0] == "act":
+                    result = game.perform_action(sender, command)
+                else:
+                    err = "사용 가능한 전투 명령어: 위치, 이동, 스킬, 행동."
             else:
-                err = "전투 중 입니다. 참여, 출력 명령어는 전투 중에만 사용할 수 있습니다."
-
+                err = "전투 명령어는 전투 참여자만 사용할 수 있습니다."
+        
         # Save and broadcast the result as system message (visible to all)
         if result:
             msg = dbmanager.save_chat(game.id, result, user_id=user_id)

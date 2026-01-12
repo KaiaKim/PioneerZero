@@ -199,122 +199,36 @@ class SlotManager():
         return True
 
 class PhaseManager():
-    """
-    전투 단계 관리를 담당하는 클래스.
-    Game 인스턴스를 받아 Game의 상태에 접근합니다.
-    
-    PhaseManager manages combat phase transitions. Takes a Game instance to access game state.
-    """
-    
-    # Phase 상수 정의
-    PHASE_PREPARATION = 'preparation'
-    PHASE_POSITION_DECLARATION = 'position_declaration'
-    PHASE_ACTION_DECLARATION = 'action_declaration'
-    PHASE_RESOLUTION = 'resolution'
-    PHASE_WRAP_UP = 'wrap-up'
-    
     def __init__(self, game):
-        """
-        Args:
-            game: Game 인스턴스 (combat_state, timer, players에 접근하기 위해)
-        """
         self.game = game
 
         # 전투 상태
         self.in_combat = False
         self.current_round = 0
-        self.phase = self.PHASE_PREPARATION  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'end'
+        self.phase = 'preparation'  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
         self.action_queue = []
         self.resolved_actions = []
     
-    @property
-    def combat_state(self):
-        """
-        Backward compatibility property that returns combat state as a dict.
-        This allows existing code to access combat_state as a dictionary.
-        """
-        return {
-            'in_combat': self.in_combat,
-            'current_round': self.current_round,
-            'phase': self.phase,
-            'action_queue': self.action_queue,
-            'resolved_actions': self.resolved_actions
-        }
-    
-    def advance_combat_phase(self, to_phase=None):
-        """
-        전투 단계를 전환하고 플레이어에게 알림 메시지를 반환하는 마스터 함수.
-        실제 WebSocket 전송은 game_ws.py에서 처리 (PLAN_WEBSOCKET.md 참고).
-        
-        Args:
-            to_phase: 전환할 단계. None이면 현재 단계에 따라 자동 전환.
-                가능한 값: 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
-                
-        Returns:
-            {
-                "success": bool,
-                "phase": str,  # 새로운 단계
-                "round": int,  # 현재 라운드
-                "message": str,  # 플레이어에게 보낼 메시지
-                "notification_type": str,  # WebSocket 메시지 타입
-                "additional_data": dict  # 추가 데이터 (combat_board, timer 등)
-            }
-        """
-        # to_phase가 지정되지 않으면 현재 단계에 따라 자동 전환
-        # Flow: preparation → position_declaration → action_declaration → resolution → (loop) → wrap-up
-        if to_phase is None:
-            if self.phase == self.PHASE_PREPARATION:
-                to_phase = self.PHASE_POSITION_DECLARATION
-            elif self.phase == self.PHASE_POSITION_DECLARATION:
-                to_phase = self.PHASE_ACTION_DECLARATION
-            elif self.phase == self.PHASE_ACTION_DECLARATION:
-                to_phase = self.PHASE_RESOLUTION
-            elif self.phase == self.PHASE_RESOLUTION:
-                to_phase = self.PHASE_ACTION_DECLARATION
-            else:
-                return {"success": False, "message": "유효하지 않은 단계 전환"}
-        
-        additional_data = {}
-        
-        if to_phase == self.PHASE_POSITION_DECLARATION:
-            return self._handle_position_declaration_phase(additional_data)
-        
-        elif to_phase == self.PHASE_ACTION_DECLARATION:
-            return self._handle_action_declaration_phase(additional_data)
-        
-        elif to_phase == self.PHASE_RESOLUTION:
-            return self._handle_resolution_phase(additional_data)
-        
-        elif to_phase == self.PHASE_WRAP_UP:
-            return self._handle_wrap_up_phase(additional_data)
-        
-        return {"success": False, "message": "알 수 없는 단계"}
-    
-    def _handle_position_declaration_phase(self, additional_data):
-        """위치 선언 단계 처리"""
-        self.phase = self.PHASE_POSITION_DECLARATION
+    def preparation(self):
+        """전투 시작 방송"""
         self.in_combat = True
-        self.current_round = 0
-        message = '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
-        notification_type = 'position_declaration_phase'
+        self.phase = 'preparation'
+        return f"전투 {self.game.id}를 시작합니다."
         
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": message,
-            "notification_type": notification_type,
-            "additional_data": additional_data
-        }
+    def position_declaration(self):
+        """위치 선언 단계 처리"""
+        self.phase = 'position_declaration'
+        return '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
+        
+    def start_round(self):
+        """라운드 시작 방송"""
+        self.current_round += 1
+        self.phase = 'action_declaration'
+        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
     
-    def _handle_action_declaration_phase(self, additional_data):
+    def action_declaration(self):
         """행동 선언 단계 처리"""
-        self.phase = self.PHASE_ACTION_DECLARATION
-        if self.current_round == 0:
-            self.current_round = 1
-        message = '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
-        notification_type = 'action_declaration_phase'
-        
+        self.phase = 'action_declaration'
         # 타이머 시작 (60초)
         self.game.timer = {
             'type': 'action_declaration',
@@ -324,96 +238,36 @@ class PhaseManager():
             'paused_at': None,
             'elapsed_before_pause': 0
         }
-        additional_data['timer'] = self.game.timer
-        
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": message,
-            "notification_type": notification_type,
-            "additional_data": additional_data
-        }
+        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
     
-    def _handle_resolution_phase(self, additional_data):
+    def resolution(self):
         """해결 단계 처리"""
-        self.phase = self.PHASE_RESOLUTION
-        message = '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(self.current_round)
-        notification_type = 'resolution_phase'
+        self.phase = 'resolution'
         
         # 타이머 정지
         if self.game.timer.get('is_running'):
             self.game.timer['is_running'] = False
             self.game.timer['elapsed_before_pause'] = time.time() - self.game.timer['start_time']
         
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": message,
-            "notification_type": notification_type,
-            "additional_data": additional_data
-        }
-    
-    def _handle_wrap_up_phase(self, additional_data):
-        """전투 종료 단계 처리"""
-        self.phase = self.PHASE_WRAP_UP
-        self.in_combat = False
-        message = '전투가 종료되었습니다.'
-        notification_type = 'combat_ended'
+        return '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(self.current_round)
+
+    def end_round(self):
+        """라운드 종료 방송"""
+        is_team_defeated, defeated_team = self.check_all_players_defeated()
         
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": message,
-            "notification_type": notification_type,
-            "additional_data": additional_data
-        }
-    
-    def get_combat_start_message(self):
-        """전투 시작 메시지 반환"""
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": '전투를 시작합니다.',
-            "notification_type": "combat_starting"
-        }
-    
-    def start_combat(self):
-        """전투 시작 - combat_state를 초기화하고 preparation 단계로 설정"""
-        self.in_combat = True
-        self.phase = self.PHASE_PREPARATION
-        return f"전투 {self.game.id}를 시작합니다."
-    
-    def end_combat(self):
-        """전투 종료 - combat_state를 종료 상태로 설정"""
+        if is_team_defeated:
+            self.wrap_up(defeated_team)
+        else:
+            self.current_round += 1
+            self.action_declaration()
+
+    def wrap_up(self, defeated_team: int):
+        """전투 종료 단계 처리"""
+        self.phase = 'wrap-up'
         self.in_combat = False
-        self.phase = 'end'
-    
-    def start_position_declaration_phase(self):
-        """위치 선언 단계 시작 (전투 시작 후 호출)"""
-        return self.advance_combat_phase(self.PHASE_POSITION_DECLARATION)
-    
-    def start_action_declaration_phase(self):
-        """행동 선언 단계 시작 (위치 선언 완료 후 호출)"""
-        return self.advance_combat_phase(self.PHASE_ACTION_DECLARATION)
-    
-    def start_resolution_phase(self):
-        """해결 단계 시작 (행동 선언 완료 후 호출)"""
-        return self.advance_combat_phase(self.PHASE_RESOLUTION)
-    
-    def get_round_summary_message(self):
-        """라운드 요약 메시지 반환 (phase는 변경하지 않음)"""
-        return {
-            "success": True,
-            "phase": self.phase,
-            "round": self.current_round,
-            "message": '라운드 {} 결과를 요약합니다.'.format(self.current_round),
-            "notification_type": "round_summary"
-        }
-    
+        winner = 'white' if defeated_team == 0 else 'blue'
+        return '전투가 종료되었습니다. {} 팀이 승리했습니다.'.format(winner)
+
     def check_all_players_defeated(self):
         """
         한 팀의 모든 플레이어가 전투불능인지 확인
@@ -448,37 +302,7 @@ class PhaseManager():
             return True, 1
         else:
             return False, None
-    
-    def end_round(self):
-        """
-        라운드 종료 처리 및 다음 단계로 전환
-        
-        Returns:
-            dict: {
-                "success": bool,
-                "phase": str,
-                "round": int,
-                "message": str,
-                "notification_type": str,
-                "next_phase": dict or None
-            }
-        """
-        summary_result = self.get_round_summary_message()
-        is_team_defeated, defeated_team = self.check_all_players_defeated()
-        
-        if is_team_defeated:
-            wrap_up_result = self.advance_combat_phase(self.PHASE_WRAP_UP)
-            return {
-                **summary_result,
-                "next_phase": wrap_up_result
-            }
-        else:
-            self.current_round += 1
-            action_decl_result = self.start_action_declaration_phase()
-            return {
-                **summary_result,
-                "next_phase": action_decl_result
-            }
+
 
 class PosManager():
     """
@@ -563,8 +387,9 @@ class Game():
     # ============================================
     # SECTION 2: Combat State Management
     # ============================================
-    # Note: start_combat() and end_combat() are now in PhaseManager
-    # Use: self.phaseM.start_combat() and self.phaseM.end_combat()
+    # Note: Combat phase management is handled by PhaseManager
+    # Use: self.phaseM.advance_combat_phase('preparation') to start combat
+    # Use: self.phaseM.advance_combat_phase('wrap-up') to end combat
     
     # ============================================
     # SECTION 3: Combat Calculations

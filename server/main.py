@@ -114,13 +114,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_load_room(websocket, game)
                 continue
             
-            # Note: Combat starts automatically when all players are ready
-            # (see "add_bot_to_slot" and "set_ready" handlers below)
-            
-            if action == "end_combat":
-                await game_ws.handle_end_combat(websocket, game)
-                continue
-            
             if action == "chat":
                 await game_ws.handle_chat(websocket, message, game)
                 continue
