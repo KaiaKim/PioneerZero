@@ -211,39 +211,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
         })
 
 
-async def handle_start_combat(game):
-    # Check if all players are ready
-    if not game.SlotM.are_all_players_ready():
-        return
-    
-    # Start combat by advancing to preparation phase
-    result = game.phaseM.preperation()
-    
-    # Start 3 second countdown
-    for countdown in [3, 2, 1]:
-        await conmanager.broadcast_to_game(game.id, {
-            "type": "combat_countdown",
-            "seconds": countdown
-        })
-        await asyncio.sleep(1)
 
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
-    # After countdown, broadcast combat started
-    await conmanager.broadcast_to_game(game.id, {
-        "type": "combat_started",
-        "combat_state": {
-            'in_combat': game.phaseM.in_combat,
-            'current_round': game.phaseM.current_round,
-            'phase': game.phaseM.phase,
-            'action_queue': game.phaseM.action_queue,
-            'resolved_actions': game.phaseM.resolved_actions
-        }
-    })
-    
-    result = game.phaseM.position_declaration()
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
 
 
 
@@ -258,7 +226,6 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     if content[0] == "/": #we've already checked if content is not empty
         # Save the user's command as secret (only visible to the user)
         secret_msg = dbmanager.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
-        await conmanager.broadcast_to_game(game.id, secret_msg)
         
         # Handle commands
         command = content[1:].split()
@@ -275,13 +242,13 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         elif game.phaseM.in_combat == True:
             if user_id in player_ids:
                 if command[0] == "위치" or command[0] == "pos":
-                    result = game.posM.declare_position(sender, command)
+                    result, err = game.posM.declare_position(sender, command)
                 elif command[0] == "이동" or command[0] == "move":
-                    result = game.posM.move_player(sender, command)
+                    result, err = game.posM.move_player(sender, command)
                 elif command[0] == "스킬" or command[0] == "skill":
-                    result = game.use_skill(sender, command)
+                    result, err = game.use_skill(sender, command)
                 elif command[0] == "행동" or command[0] == "act":
-                    result = game.perform_action(sender, command)
+                    result, err = game.perform_action(sender, command)
                 else:
                     err = "사용 가능한 전투 명령어: 위치, 이동, 스킬, 행동."
             else:
@@ -290,14 +257,170 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         # Save and broadcast the result as system message (visible to all)
         if result:
             msg = dbmanager.save_chat(game.id, result, user_id=user_id)
-        else:
-            err = "알 수 없는 명령어입니다."
-
         if err:
+            msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
+
+        if not result and not err:
+            err = "명령어를 잘못 입력했습니다. 다시 시도해주세요."
             msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
     else:
         # Regular chat message
         msg = dbmanager.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
     
+    if secret_msg:
+        await conmanager.broadcast_to_game(game.id, secret_msg)
+
     await conmanager.broadcast_to_game(game.id, msg)
 
+class PhaseManager():
+    def __init__(self, game):
+        self.game = game
+
+        # 전투 상태
+        self.in_combat = False
+        self.current_round = 0
+        self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
+        self.action_queue = []
+        self.resolved_actions = []
+
+    async def kickoff(self):
+    # Check if all players are ready
+        if not self.game.SlotM.are_all_players_ready():
+            return
+        
+        # Start combat by advancing to preparation phase
+        result = f"전투 {self.game.id}를 시작작합니다."
+        msg = dbmanager.save_chat(self.game.id, result)
+        await conmanager.broadcast_to_game(self.game.id, msg)
+        
+        # Start 3 second countdown
+        for countdown in [3, 2, 1]:
+            await conmanager.broadcast_to_game(self.game.id, {
+                "type": "combat_countdown",
+                "seconds": countdown
+            })
+            await asyncio.sleep(1)
+
+        msg = dbmanager.save_chat(self.game.id, result)
+        await conmanager.broadcast_to_game(self.game.id, msg)
+        # After countdown, broadcast combat started
+        await conmanager.broadcast_to_game(self.game.id, {
+            "type": "combat_started"
+        })
+    
+        self.position_declaration()
+        
+    async def position_declaration(self):
+        """위치 선언 단계 처리"""
+        self.phase = 'position_declaration'
+        result = '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
+        msg = dbmanager.save_chat(self.game.id, result)
+        await conmanager.broadcast_to_game(self.game.id, msg)
+
+        #60 sec countdown
+        for i in range(60):
+            await asyncio.sleep(1)
+            if i % 10 == 0:
+                await conmanager.broadcast_to_game(self.game.id, {
+                    "type": "position_declaration_timer",
+                    "seconds": 60 - i
+                })
+
+        for player in self.game.players:
+            if player['character']['position'] is None:
+                self.posM.assign_random_pos(player)
+        
+        #while players are in same cell:
+            #assign random pos to one of the players
+        '''
+        pos_list = [
+            f'{p['character']['name']}: {p['character']['position']}, ' for p in self.game.players]
+'''
+        result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
+        msg = dbmanager.save_chat(self.game.id, result)
+        await conmanager.broadcast_to_game(self.game.id, msg)
+        
+        self.start_round(1) # 1st round
+        
+    def start_round(self):
+        """라운드 시작 방송"""
+        self.current_round += 1
+        self.phase = 'action_declaration'
+        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
+    
+    def action_declaration(self):
+        """행동 선언 단계 처리"""
+        self.phase = 'action_declaration'
+        # 타이머 시작 (60초)
+        self.game.timer = {
+            'type': 'action_declaration',
+            'start_time': time.time(),
+            'duration': 60,
+            'is_running': True,
+            'paused_at': None,
+            'elapsed_before_pause': 0
+        }
+        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
+    
+    def resolution(self):
+        """해결 단계 처리"""
+        self.phase = 'resolution'
+        
+        # 타이머 정지
+        if self.game.timer.get('is_running'):
+            self.game.timer['is_running'] = False
+            self.game.timer['elapsed_before_pause'] = time.time() - self.game.timer['start_time']
+        
+        return '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(self.current_round)
+
+    def end_round(self):
+        """라운드 종료 방송"""
+        is_team_defeated, defeated_team = self.check_all_players_defeated()
+        
+        if is_team_defeated:
+            self.wrap_up(defeated_team)
+        else:
+            self.current_round += 1
+            self.action_declaration()
+
+    def wrap_up(self, defeated_team: int):
+        """전투 종료 단계 처리"""
+        self.phase = 'wrap-up'
+        self.in_combat = False
+        winner = 'white' if defeated_team == 0 else 'blue'
+        return '전투가 종료되었습니다. {} 팀이 승리했습니다.'.format(winner)
+
+    def check_all_players_defeated(self):
+        """
+        한 팀의 모든 플레이어가 전투불능인지 확인
+        
+        Returns:
+            tuple: (is_team_defeated: bool, defeated_team: int or None)
+                - is_team_defeated: 한 팀이 전투불능인지 여부
+                - defeated_team: 0=white team defeated, 1=blue team defeated, None=no team defeated
+        """
+        white_team_defeated = True
+        blue_team_defeated = True
+        
+        for player in self.game.players:
+            if player.get('occupy') != 1:
+                continue
+            if not player.get('character'):
+                continue
+            
+            team = player.get('team')
+            current_hp = player['character'].get('current_hp', 0)
+            
+            if team == 0:
+                if current_hp > 0:
+                    white_team_defeated = False
+            elif team == 1:
+                if current_hp > 0:
+                    blue_team_defeated = False
+        
+        if white_team_defeated:
+            return True, 0
+        elif blue_team_defeated:
+            return True, 1
+        else:
+            return False, None

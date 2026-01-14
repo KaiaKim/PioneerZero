@@ -123,17 +123,6 @@ class SlotManager():
         return {"success": True, "message": f"Player slot {slot} set to connection-lost."}
     
     def clear_expired_connection_lost_slots(self, duration = 5.0):
-        """
-        Clear connection-lost slots that have exceeded the timeout duration.
-        
-        Behavior:
-        - Combat NOT started: Clear slots after duration (default 5 seconds)
-        - Combat started: Never clear slots (wait infinitely for player to rejoin)
-        """
-        # If combat has started, don't clear any connection-lost slots
-        if self.game.phaseM.in_combat:
-            return False
-        
         # Combat not started - clear expired slots after timeout
         current_time = time.time()
         slots_to_clear = []
@@ -198,111 +187,6 @@ class SlotManager():
         
         return True
 
-class PhaseManager():
-    def __init__(self, game):
-        self.game = game
-
-        # 전투 상태
-        self.in_combat = False
-        self.current_round = 0
-        self.phase = 'preparation'  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
-        self.action_queue = []
-        self.resolved_actions = []
-    
-    def preparation(self):
-        """전투 시작 방송"""
-        self.in_combat = True
-        self.phase = 'preparation'
-        return f"전투 {self.game.id}를 시작합니다."
-        
-    def position_declaration(self):
-        """위치 선언 단계 처리"""
-        self.phase = 'position_declaration'
-        return '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
-        
-    def start_round(self):
-        """라운드 시작 방송"""
-        self.current_round += 1
-        self.phase = 'action_declaration'
-        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
-    
-    def action_declaration(self):
-        """행동 선언 단계 처리"""
-        self.phase = 'action_declaration'
-        # 타이머 시작 (60초)
-        self.game.timer = {
-            'type': 'action_declaration',
-            'start_time': time.time(),
-            'duration': 60,
-            'is_running': True,
-            'paused_at': None,
-            'elapsed_before_pause': 0
-        }
-        return '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(self.current_round)
-    
-    def resolution(self):
-        """해결 단계 처리"""
-        self.phase = 'resolution'
-        
-        # 타이머 정지
-        if self.game.timer.get('is_running'):
-            self.game.timer['is_running'] = False
-            self.game.timer['elapsed_before_pause'] = time.time() - self.game.timer['start_time']
-        
-        return '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(self.current_round)
-
-    def end_round(self):
-        """라운드 종료 방송"""
-        is_team_defeated, defeated_team = self.check_all_players_defeated()
-        
-        if is_team_defeated:
-            self.wrap_up(defeated_team)
-        else:
-            self.current_round += 1
-            self.action_declaration()
-
-    def wrap_up(self, defeated_team: int):
-        """전투 종료 단계 처리"""
-        self.phase = 'wrap-up'
-        self.in_combat = False
-        winner = 'white' if defeated_team == 0 else 'blue'
-        return '전투가 종료되었습니다. {} 팀이 승리했습니다.'.format(winner)
-
-    def check_all_players_defeated(self):
-        """
-        한 팀의 모든 플레이어가 전투불능인지 확인
-        
-        Returns:
-            tuple: (is_team_defeated: bool, defeated_team: int or None)
-                - is_team_defeated: 한 팀이 전투불능인지 여부
-                - defeated_team: 0=white team defeated, 1=blue team defeated, None=no team defeated
-        """
-        white_team_defeated = True
-        blue_team_defeated = True
-        
-        for player in self.game.players:
-            if player.get('occupy') != 1:
-                continue
-            if not player.get('character'):
-                continue
-            
-            team = player.get('team')
-            current_hp = player['character'].get('current_hp', 0)
-            
-            if team == 0:
-                if current_hp > 0:
-                    white_team_defeated = False
-            elif team == 1:
-                if current_hp > 0:
-                    blue_team_defeated = False
-        
-        if white_team_defeated:
-            return True, 0
-        elif blue_team_defeated:
-            return True, 1
-        else:
-            return False, None
-
 
 class PosManager():
     """
@@ -314,10 +198,100 @@ class PosManager():
     [TODO] is_back_row() - Check if position is back row (Y or B)
     [TODO] check_move_validity() - Validate move destination (distance, team, occupancy)
     """
-    pass
     def __init__(self, game):
         self.game = game
 
+        self.ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
+        self.REV_ROW_MAP = {v: k for k, v in self.ROW_MAP.items()}
+
+    def declare_position(self, sender, command):
+        result = None
+        err = None
+
+        position = command[1].strip().upper()
+        player = self.game.players[sender]
+
+        if command[1][0] in self.ROW_MAP:
+            err = "유효하지 않은 열 번호입니다."
+        
+        if int(command[1][1]) not in (1, 2, 3, 4):
+            err = "유효하지 않은 행 번호입니다."
+
+        # Validate position using parse_position_declaration_from_chat logic
+        player_team = player.get('team', 0)
+        r, c = self.pos_to_rc(position)
+        
+        if r < 0 or c < 0 or c > 3:
+            err = "유효하지 않은 위치입니다."
+        
+        # Check if position is in player's team area
+        # Row 0-1 (Y, X) = team 1 (blue), Row 2-3 (A, B) = team 0 (white)
+        position_team = 1 if r <= 1 else 0
+        if position_team != player_team:
+            err = "자신의 진영만 선택할 수 있습니다."
+        
+        result = f"위치 {position} 선언 완료"
+
+        return result, err
+
+    def move_player(self, name, command):
+        """
+        Legacy move command handler (chat command).
+        TODO: Replace with proper combat movement system.
+        """
+        # Row 0: Y1, Y2, Y3, Y4
+        # Row 1: X1, X2, X3, X4
+        # Row 2: A1, A2, A3, A4
+        # Row 3: B1, B2, B3, B4
+        # Find the character object in self.characters that matches the sender's name
+        character_obj = next((c for c in self.players if c['name'] == name), None)
+        current_pos = character_obj['pos'] if character_obj and 'pos' in character_obj else None
+
+        match = re.search(r'\b([YXAB][1-4])\b', command)
+        target_pos = match.group(1) if match else None
+        if target_pos:
+            character_obj["pos"] = target_pos
+            return f"{name} moved from {current_pos} to {target_pos}"
+        else:
+            return f"{name} move failed."
+
+
+    def pos_to_rc(self, pos: str) -> tuple[int, int]:
+        r = self.ROW_MAP.get(pos[0], -1)
+        c = int(pos[1]) - 1
+        return r, c
+
+    def rc_to_pos(self, r: int, c: int) -> str:
+        return f"{self.REV_ROW_MAP.get(r, '?')}{c + 1}"
+
+    def is_front_row(self, pos: str) -> bool:
+        r, _ = self.pos_to_rc(pos)
+        return r == 1 or r == 2
+
+    def is_back_row(self, pos: str) -> bool:
+        r, _ = self.pos_to_rc(pos)
+        return r == 0 or r == 3
+
+    def check_move_validity(self, from_pos: str, to_pos: str, player_team: int) -> tuple[bool, str]:
+        fr, fc = self.pos_to_rc(from_pos)
+        tr, tc = self.pos_to_rc(to_pos)
+        
+        row_dist = abs(fr - tr)
+        col_dist = abs(fc - tc)
+        
+        if row_dist > 1 or col_dist > 1:
+            return False, "이동 거리 초과"
+        if row_dist == 0 and col_dist == 0:
+            return False, "같은 위치"
+        
+        to_team = 1 if tr <= 1 else 0
+        if to_team != player_team:
+            return False, "다른 팀 셀"
+        
+        if self.game.combat_board.get(to_pos) is not None:
+            return False, "이미 차지됨"
+        
+        return True, None
 
 class Game():
     """
@@ -381,16 +355,8 @@ class Game():
             'elapsed_before_pause': 0
         }
 
-        self.phaseM = PhaseManager(self)
         self.posM = PosManager(self)
 
-    # ============================================
-    # SECTION 2: Combat State Management
-    # ============================================
-    # Note: Combat phase management is handled by PhaseManager
-    # Use: self.phaseM.advance_combat_phase('preparation') to start combat
-    # Use: self.phaseM.advance_combat_phase('wrap-up') to end combat
-    
     # ============================================
     # SECTION 3: Combat Calculations
     # ============================================
@@ -398,15 +364,6 @@ class Game():
     # TODO: calculate_attack_power()
     # TODO: calculate_max_hp()
     # TODO: initialize_character_hp()
-    
-    # ============================================
-    # SECTION 4: Coordinate & Position Helpers
-    # ============================================
-    # TODO: pos_to_rc() - Convert position string to (row_idx, col_idx)
-    # TODO: rc_to_pos() - Convert (row_idx, col_idx) to position string
-    # TODO: is_front_row() - Check if position is front row
-    # TODO: is_back_row() - Check if position is back row
-    # TODO: check_move_validity() - Validate move destination
     
     # ============================================
     # SECTION 5: Combat Validation
@@ -440,23 +397,3 @@ class Game():
         }
         return data
 
-    def move_player(self, name, command):
-        """
-        Legacy move command handler (chat command).
-        TODO: Replace with proper combat movement system.
-        """
-        # Row 0: Y1, Y2, Y3, Y4
-        # Row 1: X1, X2, X3, X4
-        # Row 2: A1, A2, A3, A4
-        # Row 3: B1, B2, B3, B4
-        # Find the character object in self.characters that matches the sender's name
-        character_obj = next((c for c in self.players if c['name'] == name), None)
-        current_pos = character_obj['pos'] if character_obj and 'pos' in character_obj else None
-
-        match = re.search(r'\b([YXAB][1-4])\b', command)
-        target_pos = match.group(1) if match else None
-        if target_pos:
-            character_obj["pos"] = target_pos
-            return f"{name} moved from {current_pos} to {target_pos}"
-        else:
-            return f"{name} move failed."
