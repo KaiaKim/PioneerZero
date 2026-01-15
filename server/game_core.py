@@ -330,6 +330,7 @@ class Game():
         self.player_num = player_num #default 4, max 8
         
         self.SlotM = SlotManager(self)
+        self.posM = PosManager(self)
         
         self.players = [
             self.SlotM.player_factory()
@@ -355,7 +356,11 @@ class Game():
             'elapsed_before_pause': 0
         }
 
-        self.posM = PosManager(self)
+        self.in_combat = False
+        self.current_round = 0
+        self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
+        self.action_queue = []
+        self.resolved_actions = []
 
     # ============================================
     # SECTION 3: Combat Calculations
@@ -397,3 +402,38 @@ class Game():
         }
         return data
 
+
+    def check_all_players_defeated(self):
+        """
+        한 팀의 모든 플레이어가 전투불능인지 확인
+        
+        Returns:
+            tuple: (is_team_defeated: bool, defeated_team: int or None)
+                - is_team_defeated: 한 팀이 전투불능인지 여부
+                - defeated_team: 0=white team defeated, 1=blue team defeated, None=no team defeated
+        """
+        white_team_defeated = True
+        blue_team_defeated = True
+        
+        for player in self.players:
+            if player.get('occupy') != 1:
+                continue
+            if not player.get('character'):
+                continue
+            
+            team = player.get('team')
+            current_hp = player['character'].get('current_hp', 0)
+            
+            if team == 0:
+                if current_hp > 0:
+                    white_team_defeated = False
+            elif team == 1:
+                if current_hp > 0:
+                    blue_team_defeated = False
+        
+        if white_team_defeated:
+            return True, 0
+        elif blue_team_defeated:
+            return True, 1
+        else:
+            return False, None

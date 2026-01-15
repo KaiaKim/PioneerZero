@@ -124,7 +124,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "add_bot_to_slot":
                 await game_ws.handle_add_bot_to_slot(websocket, message, game)
-                game.phaseM.kickoff()
+                await game_ws.kickoff(game)
                 continue
             
             if action == "leave_player_slot":
@@ -133,7 +133,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if action == "set_ready":
                 await game_ws.handle_set_ready(websocket, message, game)
-                game.phaseM.kickoff()
+                await game_ws.kickoff(game)
                 continue
                 
     except Exception as e:
