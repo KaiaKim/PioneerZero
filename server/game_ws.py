@@ -272,43 +272,22 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     await conM.broadcast_to_game(game.id, msg)
 
 ### phase flow functions
+async def phase_wrapper(game):
+    phase_task = getattr(game, "phase_task", None)
+    if phase_task and not phase_task.done():
+        return
+    game.phase_task = asyncio.create_task(_phase_flow(game))
 
-
-
-async def _position_declaration_flow(game):
+async def _phase_flow(game):
     try:
-        await timeM.phase_timer(game)
-
-        for player in game.players:
-            if player['character']['pos'] is None:
-                game.posM.assign_random_pos(player)
-
-        #while players are in same cell:
-            #assign random pos to one of the players
-        '''
-        pos_list = [
-            f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
-        '''
-        result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
-        msg = dbM.save_chat(game.id, result)
-        await conM.broadcast_to_game(game.id, msg)
-
-        await start_round(game) # 1st round
+        await kickoff(game)
     except asyncio.CancelledError:
         pass
+    except Exception as exc:
+        print(f"Phase flow error: {exc}")
     finally:
-        if getattr(game, "phase_timer_task", None) is asyncio.current_task():
-            game.phase_timer_task = None
-
-async def _action_declaration_flow(game):
-    try:
-        await timeM.phase_timer(game)
-        await resolution(game)
-    except asyncio.CancelledError:
-        pass
-    finally:
-        if getattr(game, "phase_timer_task", None) is asyncio.current_task():
-            game.phase_timer_task = None
+        if getattr(game, "phase_task", None) is asyncio.current_task():
+            game.phase_task = None
 
 async def kickoff(game):
 # Check if all players are ready
@@ -325,7 +304,6 @@ async def kickoff(game):
     await conM.broadcast_to_game(game.id, {
         "type": "combat_started"
     })
-
     await position_declaration(game)
     
 async def position_declaration(game):
@@ -337,8 +315,33 @@ async def position_declaration(game):
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 
+    async def run_phase():
+        try:
+            await timeM.phase_timer(game)
+
+            for player in game.players:
+                if player['character']['pos'] is None:
+                    game.posM.assign_random_pos(player)
+
+            #while players are in same cell:
+                #assign random pos to one of the players
+            '''
+            pos_list = [
+                f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
+            '''
+            result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
+            msg = dbM.save_chat(game.id, result)
+            await conM.broadcast_to_game(game.id, msg)
+
+            await start_round(game) # 1st round
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if getattr(game, "phase_timer_task", None) is asyncio.current_task():
+                game.phase_timer_task = None
+
     timeM.cancel_phase_timer(game)
-    game.phase_timer_task = asyncio.create_task(_position_declaration_flow(game))
+    game.phase_timer_task = asyncio.create_task(run_phase())
     
 async def start_round(game):
     timeM.cancel_phase_timer(game)
@@ -369,8 +372,18 @@ async def action_declaration(game):
         'paused_at': None,
         'elapsed_before_pause': 0
     }
+    async def run_phase():
+        try:
+            await timeM.phase_timer(game)
+            await resolution(game)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if getattr(game, "phase_timer_task", None) is asyncio.current_task():
+                game.phase_timer_task = None
+
     timeM.cancel_phase_timer(game)
-    game.phase_timer_task = asyncio.create_task(_action_declaration_flow(game))
+    game.phase_timer_task = asyncio.create_task(run_phase())
 
 async def resolution(game):
     await timeM.offset_timer(game)
