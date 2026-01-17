@@ -85,12 +85,6 @@
     z-index: 100;
 }
 
-/* Timer */
-.timer {
-    position: absolute;
-    top: 10px;
-}
-
 /* Waiting Room */
 .waiting-area {
     width: 900px;
@@ -491,11 +485,21 @@
     font-size: 24px;
 }
 
-#phase-countdown {
-    flex: 1;
-    margin-right: 10px;
-    text-align: right;
-    font-weight: normal;
-    color: #ce0000;
+
+.timer {
+    right: 100px;
+    position: absolute;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
     font-size: 25px;
+}
+
+#offset-countdown {
+    color: #0090ce;
+}
+
+#phase-countdown {
+    color: #be0000;
 }

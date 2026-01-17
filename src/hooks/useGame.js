@@ -17,7 +17,7 @@ export function useGame() {
   const [users, setUsers] = useState([]);
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(userInfo.name);
-  const [countdown, setCountdown] = useState(null); // Countdown seconds (3, 2, 1, or null)
+  const [offsetCountdown, setOffsetCountdown] = useState(null); // Offset countdown seconds (3, 2, 1, or null)
   const [combatStarted, setCombatStarted] = useState(false); // Flag to track if combat has started
   const [phaseCountdown, setPhaseCountdown] = useState(null); // Phase timer seconds or null
   const chatLogRef = useRef(null);
@@ -88,13 +88,12 @@ export function useGame() {
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);
-      } else if (msg.type === "combat_countdown") {
-        console.log('Combat countdown:', msg.seconds);
-        setCountdown(msg.seconds);
+      } else if (msg.type === "offset_timer") {
+        setOffsetCountdown(msg.seconds);
       } else if (msg.type === "combat_started") {
         console.log('Combat started!');
         setCombatStarted(true);
-        setCountdown(null);
+        setOffsetCountdown(null);
       } else if (msg.type === "phase_timer") {
         phaseCountdownRef.current = msg.seconds;
         setPhaseCountdown(msg.seconds);
@@ -292,7 +291,7 @@ export function useGame() {
     users,
     players,
     userName,
-    countdown,
+    offsetCountdown,
     phaseCountdown,
     combatStarted,
     chatLogRef,

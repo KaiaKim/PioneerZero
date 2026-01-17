@@ -357,6 +357,9 @@ class Game():
         }
         self.phase_timer_task = None
 
+        self.offset_sec = 3
+        self.phase_sec = 60
+
         self.in_combat = False
         self.current_round = 0
         self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'

@@ -8,7 +8,7 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, actions, chatLogRef, countdown, combatStarted, phaseCountdown } = useGame();
+  const { gameData, chatMessages, characters, users, players, actions, chatLogRef, offsetCountdown, combatStarted, phaseCountdown } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const chatInputRef = useRef(null);
@@ -52,9 +52,8 @@ function Room() {
           controls
           loop
         />
-        <h1 className="timer">00:00</h1>
 
-        {showWaitingArea && <WaitingArea players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user} countdown={countdown} />}
+        {showWaitingArea && <WaitingArea players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user}/>}
 
         <div className="user-list">
           <label className="user-label">접속자 목록 ↓</label>
@@ -104,7 +103,10 @@ function Room() {
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <div id="phase-countdown">{phaseCountdown ?? '∞'}</div>
+          <div className="timer">
+            <div id="offset-countdown">{offsetCountdown ?? ''}</div>
+            <div id="phase-countdown">{phaseCountdown ?? ''}</div>
+          </div>
           <button onClick={() => actions.sendChat(chatInput)}>
             Send
           </button>

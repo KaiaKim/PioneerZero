@@ -279,16 +279,28 @@ def _cancel_phase_timer(game):
     if task and not task.done() and task is not current_task:
         task.cancel()
 
+async def offset_timer(game):
+    seconds = game.offset_sec
+    for i in range(seconds):
+        await conmanager.broadcast_to_game(game.id, {
+            "type": "offset_timer",
+            "seconds": seconds - i
+        })
+        await asyncio.sleep(1)
+
+async def phase_timer(game):
+    seconds = game.phase_sec # 10의 배수
+    for i in range(seconds):
+        await asyncio.sleep(1)
+        if i % 10 == 0:
+            await conmanager.broadcast_to_game(game.id, {
+                "type": "phase_timer",
+                "seconds": seconds - i
+            })
+
 async def _position_declaration_flow(game):
     try:
-        # 60 sec countdown
-        for i in range(60):
-            await asyncio.sleep(1)
-            if i % 10 == 0:
-                await conmanager.broadcast_to_game(game.id, {
-                    "type": "phase_timer",
-                    "seconds": 60 - i
-                })
+        await phase_timer(game)
 
         for player in game.players:
             if player['character']['pos'] is None:
@@ -313,14 +325,7 @@ async def _position_declaration_flow(game):
 
 async def _action_declaration_flow(game):
     try:
-        # 60 sec countdown
-        for i in range(60):
-            await asyncio.sleep(1)
-            if i % 10 == 0:
-                await conmanager.broadcast_to_game(game.id, {
-                    "type": "phase_timer",
-                    "seconds": 60 - i
-                })
+        await phase_timer(game)
         await resolution(game)
     except asyncio.CancelledError:
         pass
@@ -332,15 +337,9 @@ async def kickoff(game):
 # Check if all players are ready
     if not game.SlotM.are_all_players_ready():
         return
-    '''
-    # Start 3 second countdown
-    for countdown in [3, 2, 1]:
-        await conmanager.broadcast_to_game(game.id, {
-            "type": "combat_countdown",
-            "seconds": countdown
-        })
-        await asyncio.sleep(1)
-    '''
+    
+    await offset_timer(game, 3)
+    
     result = f"전투 {game.id}를 시작합니다."
     msg = dbmanager.save_chat(game.id, result)
     await conmanager.broadcast_to_game(game.id, msg)
