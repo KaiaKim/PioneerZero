@@ -221,6 +221,10 @@ class TimeManager:
                 "seconds": seconds - i
             })
             await asyncio.sleep(1)
+        await conM.broadcast_to_game(game.id, {
+            "type": "offset_timer",
+            "seconds": 0
+        })
 
     async def phase_timer(self,game):
         seconds = game.phase_sec # 10의 배수
@@ -231,6 +235,10 @@ class TimeManager:
                     "type": "phase_timer",
                     "seconds": seconds - i
                 })
+        await conM.broadcast_to_game(game.id, {
+            "type": "phase_timer",
+            "seconds": 0
+        })
 
 
 # class instance

@@ -89,14 +89,23 @@ export function useGame() {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);
       } else if (msg.type === "offset_timer") {
-        setOffsetCountdown(msg.seconds);
+        if (msg.seconds > 0) {
+          setOffsetCountdown(msg.seconds);
+        } else {
+          setOffsetCountdown(null);
+        }
       } else if (msg.type === "combat_started") {
         console.log('Combat started!');
         setCombatStarted(true);
         setOffsetCountdown(null);
       } else if (msg.type === "phase_timer") {
-        phaseCountdownRef.current = msg.seconds;
-        setPhaseCountdown(msg.seconds);
+        if (msg.seconds > 0) {
+          phaseCountdownRef.current = msg.seconds;
+          setPhaseCountdown(msg.seconds);
+        } else {
+          phaseCountdownRef.current = null;
+          setPhaseCountdown(null);
+        }
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
