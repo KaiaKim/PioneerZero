@@ -355,6 +355,7 @@ class Game():
             'paused_at': None,
             'elapsed_before_pause': 0
         }
+        self.phase_timer_task = None
 
         self.in_combat = False
         self.current_round = 0

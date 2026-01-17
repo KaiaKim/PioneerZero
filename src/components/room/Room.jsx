@@ -8,7 +8,7 @@ import '../../../style/global.css';
 import '../../../style/room.css';
 
 function Room() {
-  const { gameData, chatMessages, characters, users, players, actions, chatLogRef, countdown, combatStarted } = useGame();
+  const { gameData, chatMessages, characters, users, players, actions, chatLogRef, countdown, combatStarted, phaseCountdown } = useGame();
   const { user, googleLogin, googleLogout } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const chatInputRef = useRef(null);
@@ -104,6 +104,7 @@ function Room() {
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
+          <div id="phase-countdown">{phaseCountdown ?? '∞'}</div>
           <button onClick={() => actions.sendChat(chatInput)}>
             Send
           </button>

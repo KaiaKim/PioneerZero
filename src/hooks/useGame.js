@@ -19,10 +19,12 @@ export function useGame() {
   const [userName, setUserName] = useState(userInfo.name);
   const [countdown, setCountdown] = useState(null); // Countdown seconds (3, 2, 1, or null)
   const [combatStarted, setCombatStarted] = useState(false); // Flag to track if combat has started
+  const [phaseCountdown, setPhaseCountdown] = useState(null); // Phase timer seconds or null
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);
   const autoJoinAttemptedRef = useRef(false);
   const plListReceivedRef = useRef(false);
+  const phaseCountdownRef = useRef(null);
 
   const connectGameWS = () => {
     const wsUrl = getWebSocketUrl();
@@ -93,6 +95,9 @@ export function useGame() {
         console.log('Combat started!');
         setCombatStarted(true);
         setCountdown(null);
+      } else if (msg.type === "phase_timer") {
+        phaseCountdownRef.current = msg.seconds;
+        setPhaseCountdown(msg.seconds);
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -241,6 +246,22 @@ export function useGame() {
   }, [chatMessages]);
 
   useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (phaseCountdownRef.current == null) {
+        return;
+      }
+      if (phaseCountdownRef.current <= 0) {
+        return;
+      }
+      const nextValue = phaseCountdownRef.current - 1;
+      phaseCountdownRef.current = nextValue;
+      setPhaseCountdown(nextValue);
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
     // Reset auto-join flag and players list flag when gameId changes
     autoJoinAttemptedRef.current = false;
     plListReceivedRef.current = false;
@@ -272,6 +293,7 @@ export function useGame() {
     players,
     userName,
     countdown,
+    phaseCountdown,
     combatStarted,
     chatLogRef,
     // Actions grouped together

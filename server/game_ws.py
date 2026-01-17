@@ -273,6 +273,61 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
 
 ### phase flow functions
 
+def _cancel_phase_timer(game):
+    task = getattr(game, "phase_timer_task", None)
+    current_task = asyncio.current_task()
+    if task and not task.done() and task is not current_task:
+        task.cancel()
+
+async def _position_declaration_flow(game):
+    try:
+        # 60 sec countdown
+        for i in range(60):
+            await asyncio.sleep(1)
+            if i % 10 == 0:
+                await conmanager.broadcast_to_game(game.id, {
+                    "type": "phase_timer",
+                    "seconds": 60 - i
+                })
+
+        for player in game.players:
+            if player['character']['pos'] is None:
+                game.posM.assign_random_pos(player)
+
+        #while players are in same cell:
+            #assign random pos to one of the players
+        '''
+        pos_list = [
+            f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
+        '''
+        result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
+        msg = dbmanager.save_chat(game.id, result)
+        await conmanager.broadcast_to_game(game.id, msg)
+
+        await start_round(game) # 1st round
+    except asyncio.CancelledError:
+        pass
+    finally:
+        if getattr(game, "phase_timer_task", None) is asyncio.current_task():
+            game.phase_timer_task = None
+
+async def _action_declaration_flow(game):
+    try:
+        # 60 sec countdown
+        for i in range(60):
+            await asyncio.sleep(1)
+            if i % 10 == 0:
+                await conmanager.broadcast_to_game(game.id, {
+                    "type": "phase_timer",
+                    "seconds": 60 - i
+                })
+        await resolution(game)
+    except asyncio.CancelledError:
+        pass
+    finally:
+        if getattr(game, "phase_timer_task", None) is asyncio.current_task():
+            game.phase_timer_task = None
+
 async def kickoff(game):
 # Check if all players are ready
     if not game.SlotM.are_all_players_ready():
@@ -304,33 +359,12 @@ async def position_declaration(game):
     msg = dbmanager.save_chat(game.id, result)
     await conmanager.broadcast_to_game(game.id, msg)
 
-    #60 sec countdown
-    for i in range(60):
-        await asyncio.sleep(1)
-        if i % 10 == 0:
-            await conmanager.broadcast_to_game(game.id, {
-                "type": "position_declaration_timer",
-                "seconds": 60 - i
-            })
-
-    for player in game.players:
-        if player['character']['pos'] is None:
-            game.posM.assign_random_pos(player)
-    
-    #while players are in same cell:
-        #assign random pos to one of the players
-    '''
-    pos_list = [
-        f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
-    '''
-    result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
-    
-    await start_round(game) # 1st round
+    _cancel_phase_timer(game)
+    game.phase_timer_task = asyncio.create_task(_position_declaration_flow(game))
     
 async def start_round(game):
     """라운드 시작 방송"""
+    _cancel_phase_timer(game)
     result = f'라운드 {game.current_round} 선언 페이즈입니다.'
     msg = dbmanager.save_chat(game.id, result)
     await conmanager.broadcast_to_game(game.id, msg)
@@ -354,8 +388,8 @@ async def action_declaration(game):
         'paused_at': None,
         'elapsed_before_pause': 0
     }
-
-    await resolution(game)
+    _cancel_phase_timer(game)
+    game.phase_timer_task = asyncio.create_task(_action_declaration_flow(game))
 
 async def resolution(game):
     result = f'라운드 {game.current_round} 해결 페이즈입니다. 계산을 시작합니다.'
@@ -363,6 +397,7 @@ async def resolution(game):
     await conmanager.broadcast_to_game(game.id, msg)
 
     game.phase = 'resolution'
+    _cancel_phase_timer(game)
     
     # 타이머 정지
     if game.timer.get('is_running'):
