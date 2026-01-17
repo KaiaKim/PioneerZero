@@ -355,7 +355,6 @@ class Game():
             'paused_at': None,
             'elapsed_before_pause': 0
         }
-        self.phase_timer_task = None
         self.phase_task = None
 
         self.offset_sec = 3

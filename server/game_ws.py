@@ -280,7 +280,36 @@ async def phase_wrapper(game):
 
 async def _phase_flow(game):
     try:
-        await kickoff(game)
+        await timeM.offset_timer(game)
+        if not await kickoff(game):
+            return
+
+        await timeM.offset_timer(game)
+        await position_declaration(game)
+        await timeM.phase_timer(game)
+        await position_resolution(game)
+        
+        defeated_team = None
+        max_rounds = 10
+        for _ in range(max_rounds):
+            await timeM.offset_timer(game)
+            await start_round(game)
+            await timeM.offset_timer(game)
+            await action_declaration(game)
+            await timeM.phase_timer(game)
+
+            await timeM.offset_timer(game)
+            await resolution(game)
+
+            defeated_team = await end_round(game)
+            if defeated_team is not None:
+                break
+
+        if defeated_team is None:
+            defeated_team = game.check_all_players_defeated()[1]
+
+        await timeM.offset_timer(game)
+        await wrap_up(game, defeated_team)
     except asyncio.CancelledError:
         pass
     except Exception as exc:
@@ -292,9 +321,7 @@ async def _phase_flow(game):
 async def kickoff(game):
 # Check if all players are ready
     if not game.SlotM.are_all_players_ready():
-        return
-    
-    await timeM.offset_timer(game)
+        return False
     
     result = f"전투 {game.id}를 시작합니다."
     msg = dbM.save_chat(game.id, result)
@@ -304,60 +331,34 @@ async def kickoff(game):
     await conM.broadcast_to_game(game.id, {
         "type": "combat_started"
     })
-    await position_declaration(game)
+    return True
     
 async def position_declaration(game):
-
-    await timeM.offset_timer(game)
-
     game.phase = 'position_declaration'
     result = '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 
-    async def run_phase():
-        try:
-            await timeM.phase_timer(game)
+async def position_resolution(game):
+    for player in game.players:
+        if player['character']['pos'] is None:
+            game.posM.assign_random_pos(player)
 
-            for player in game.players:
-                if player['character']['pos'] is None:
-                    game.posM.assign_random_pos(player)
+    # while players are in same cell:
+    # assign random pos to one of the players
+    pos_list = [
+        f"{p['character']['name']}: {p['character']['pos']}, " for p in game.players]
+    result = f'위치 선언이 종료되었습니다. 시작 위치는 {pos_list} 입니다.'
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
 
-            #while players are in same cell:
-                #assign random pos to one of the players
-            '''
-            pos_list = [
-                f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
-            '''
-            result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
-            msg = dbM.save_chat(game.id, result)
-            await conM.broadcast_to_game(game.id, msg)
-
-            await start_round(game) # 1st round
-        except asyncio.CancelledError:
-            pass
-        finally:
-            if getattr(game, "phase_timer_task", None) is asyncio.current_task():
-                game.phase_timer_task = None
-
-    timeM.cancel_phase_timer(game)
-    game.phase_timer_task = asyncio.create_task(run_phase())
-    
 async def start_round(game):
-    timeM.cancel_phase_timer(game)
-
-    await timeM.offset_timer(game)
-
+    game.current_round += 1
     result = f'라운드 {game.current_round} 선언 페이즈입니다.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 
-    game.current_round += 1
-    await action_declaration(game)
-
 async def action_declaration(game):
-
-    await timeM.offset_timer(game)
     game.phase = 'action_declaration'
     result = f'스킬과 행동을 선언해주세요.'
     msg = dbM.save_chat(game.id, result)
@@ -372,27 +373,12 @@ async def action_declaration(game):
         'paused_at': None,
         'elapsed_before_pause': 0
     }
-    async def run_phase():
-        try:
-            await timeM.phase_timer(game)
-            await resolution(game)
-        except asyncio.CancelledError:
-            pass
-        finally:
-            if getattr(game, "phase_timer_task", None) is asyncio.current_task():
-                game.phase_timer_task = None
-
-    timeM.cancel_phase_timer(game)
-    game.phase_timer_task = asyncio.create_task(run_phase())
 
 async def resolution(game):
-    await timeM.offset_timer(game)
     game.phase = 'resolution'
     result = f'라운드 {game.current_round} 해결 페이즈입니다. 계산을 시작합니다.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
-
-    timeM.cancel_phase_timer(game)
     
     # 타이머 정지
     if game.timer.get('is_running'):
@@ -405,14 +391,13 @@ async def end_round(game):
     is_team_defeated, defeated_team = game.check_all_players_defeated()
     
     if is_team_defeated:
-        await wrap_up(game, defeated_team)
-    else:
-        await start_round(game)
+        return defeated_team
+
+    return None
 
 async def wrap_up(game, defeated_team: int):
     """전투 종료 단계 처리"""
     game.phase = 'wrap-up'
-    await timeM.offset_timer(game)
     game.in_combat = False
     winner = 'white' if defeated_team == 0 else 'blue'
     return '전투가 종료되었습니다. {} 팀이 승리했습니다.'.format(winner)
