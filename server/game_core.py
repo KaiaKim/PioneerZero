@@ -358,7 +358,7 @@ class Game():
         self.phase_timer_task = None
 
         self.offset_sec = 3
-        self.phase_sec = 60
+        self.phase_sec = 10
 
         self.in_combat = False
         self.current_round = 0

@@ -6,7 +6,8 @@ from fastapi import WebSocket
 import sqlite3
 import os
 from datetime import datetime
-import time
+import asyncio
+
 
 
 class ConnectionManager:
@@ -204,42 +205,35 @@ class DatabaseManager:
 
 class TimeManager:
     def __init__(self):
-        self.timer_type = 'session'
-        self.duration = None
-        self.start_time = None
-        self.pause_time = None
-        self.elapsed_time = 0
-        self.is_paused = False
-        self.is_running = False
+        pass
 
-    def start_timer(self, timer_type='session', duration=None):
-        self.timer_type = timer_type
-        self.duration = duration
-        self.start_time = time.time()
-        self.is_running = True
-        self.is_paused = False
-        self.pause_time = None
-        self.elapsed_time = 0
-    
-    def stop_timer(self):
-        """Stop the timer"""
-        
-    def pause_timer(self):
-        """Pause the timer (preserves elapsed time)"""
-        
-    def resume_timer(self):
-        """Resume a paused timer"""
-        
-    def reset_timer(self):
-        """Reset timer to initial state"""
-        
-    def get_timer_state(self):
-        """Get current timer state (elapsed time, remaining time if countdown)"""
-        
-    def update_timer_type(self, timer_type, duration=None):
-        """Change timer type and optionally set new duration"""
+    def cancel_phase_timer(self, game):
+        task = getattr(game, "phase_timer_task", None)
+        current_task = asyncio.current_task()
+        if task and not task.done() and task is not current_task:
+            task.cancel()
+
+    async def offset_timer(self,game):
+        seconds = game.offset_sec
+        for i in range(seconds):
+            await conM.broadcast_to_game(game.id, {
+                "type": "offset_timer",
+                "seconds": seconds - i
+            })
+            await asyncio.sleep(1)
+
+    async def phase_timer(self,game):
+        seconds = game.phase_sec # 10의 배수
+        for i in range(seconds):
+            await asyncio.sleep(1)
+            if i % 10 == 0:
+                await conM.broadcast_to_game(game.id, {
+                    "type": "phase_timer",
+                    "seconds": seconds - i
+                })
+
 
 # class instance
-dbmanager = DatabaseManager()
-conmanager = ConnectionManager()
-timemanager = TimeManager()
+dbM = DatabaseManager()
+conM = ConnectionManager()
+timeM = TimeManager()

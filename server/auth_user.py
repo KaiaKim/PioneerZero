@@ -2,7 +2,7 @@
 Authentication utility functions for guest session management
 """
 from fastapi import WebSocket
-from .util import conmanager
+from .util import conM
 
 async def handle_user_auth(websocket: WebSocket, auth_message: dict):
     """
@@ -20,7 +20,7 @@ async def handle_user_auth(websocket: WebSocket, auth_message: dict):
         
         print(f"User authenticated: {user_info.get('name') or user_info.get('email')} (id: {user_info.get('id')})")
         # Store user_info with the connection
-        conmanager.set_user_info(websocket, user_info)
+        conM.set_user_info(websocket, user_info)
         await websocket.send_json({
             'type': 'auth_success',
             'user_info': user_info
@@ -41,7 +41,7 @@ async def handle_user_auth(websocket: WebSocket, auth_message: dict):
         'isGuest': True
     }
     # Store user_info with the connection
-    conmanager.set_user_info(websocket, guest_user_info)
+    conM.set_user_info(websocket, guest_user_info)
     await websocket.send_json({
         'type': 'auth_success',
         'guest_id': guest_id,

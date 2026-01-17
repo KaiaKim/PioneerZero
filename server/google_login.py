@@ -9,7 +9,7 @@ import os
 import secrets
 from typing import Dict, Optional
 from dotenv import load_dotenv
-from .util import conmanager
+from .util import conM
 
 # allowed member (later move to DB)
 member_list = ["kaiakim0727@gmail.com"]
@@ -305,7 +305,7 @@ async def handle_google_login(websocket: WebSocket, auth_message: dict):
         'isGuest': False
     }
     # Store user_info with the connection
-    conmanager.set_user_info(websocket, google_user_info)
+    conM.set_user_info(websocket, google_user_info)
     await websocket.send_json({
         'type': 'auth_success',
         'user_info': google_user_info

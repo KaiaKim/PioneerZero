@@ -3,7 +3,7 @@ Game WebSocket handlers
 """
 from fastapi import WebSocket
 import asyncio
-from .util import conmanager, dbmanager
+from .util import conM, dbM, timeM
 import time
 
 async def handle_load_room(websocket: WebSocket, game):
@@ -37,9 +37,9 @@ async def handle_load_room(websocket: WebSocket, game):
     })
     
     # Load and send chat history to the requesting client
-    user_info = conmanager.get_user_info(websocket)
+    user_info = conM.get_user_info(websocket)
     viewer_id = user_info.get('id') if user_info else None
-    chat_history_rows = dbmanager.get_chat_history(game.id, viewer_id=viewer_id)
+    chat_history_rows = dbM.get_chat_history(game.id, viewer_id=viewer_id)
     chat_messages = []
     for row in chat_history_rows:
         # row format: (chat_id, sender, time, content, sort, user_id)
@@ -61,7 +61,7 @@ async def handle_load_room(websocket: WebSocket, game):
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     """Handle join_player_slot action - adds a player to a waiting room slot"""    
     slot = message.get("slot")
-    user_info = conmanager.get_user_info(websocket)
+    user_info = conM.get_user_info(websocket)
 
     if not slot or slot < 1 or slot > game.player_num:
         await websocket.send_json({
@@ -85,7 +85,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     
     if result["success"]:
         # Broadcast updated players list to all clients
-        await conmanager.broadcast_to_game(game.id, {
+        await conM.broadcast_to_game(game.id, {
             "type": "players_list",
             "players": game.players
         })
@@ -113,7 +113,7 @@ async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
     
     if result["success"]:
         # Broadcast updated players list to all clients
-        await conmanager.broadcast_to_game(game.id, {
+        await conM.broadcast_to_game(game.id, {
             "type": "players_list",
             "players": game.players
         })
@@ -128,7 +128,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     """Handle leave_player_slot action - removes a player from a waiting room slot"""
     
     slot = message.get("slot")
-    user_info = conmanager.get_user_info(websocket)
+    user_info = conM.get_user_info(websocket)
     
     # If slot_num not provided, find the user's slot
     if not slot:
@@ -165,7 +165,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     
     if result["success"]:
         # Broadcast updated players list to all clients
-        await conmanager.broadcast_to_game(game.id, {
+        await conM.broadcast_to_game(game.id, {
             "type": "players_list",
             "players": game.players
         })
@@ -180,7 +180,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
     """Handle set_ready action - toggles ready state for a player"""
     slot = message.get("slot")
     ready = message.get("ready")  # boolean: True or False
-    user_info = conmanager.get_user_info(websocket)
+    user_info = conM.get_user_info(websocket)
     
     if slot is None or slot < 1 or slot > game.player_num:
         await websocket.send_json({
@@ -201,7 +201,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
     
     if result["success"]:
         # Broadcast updated players list to all clients
-        await conmanager.broadcast_to_game(game.id, {
+        await conM.broadcast_to_game(game.id, {
             "type": "players_list",
             "players": game.players
         })
@@ -216,14 +216,14 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     """Handle chat messages and commands"""
     content = message.get("content", "")
     sender = message.get("sender")
-    user_info = conmanager.get_user_info(websocket)
+    user_info = conM.get_user_info(websocket)
     user_id = user_info.get('id')
     msg = None
     secret_msg = None
 
     if content[0] == "/": #we've already checked if content is not empty
         # Save the user's command as secret (only visible to the user)
-        secret_msg = dbmanager.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
+        secret_msg = dbM.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
         
         # Handle commands
         command = content[1:].split()
@@ -255,52 +255,29 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         
         # Save and broadcast the result as system message (visible to all)
         if result:
-            msg = dbmanager.save_chat(game.id, result, user_id=user_id)
+            msg = dbM.save_chat(game.id, result, user_id=user_id)
         if err:
-            msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
+            msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)
 
         if not result and not err:
             err = "명령어를 잘못 입력했습니다. 다시 시도해주세요."
-            msg = dbmanager.save_chat(game.id, err, sort="error", user_id=user_id)
+            msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)
     else:
         # Regular chat message
-        msg = dbmanager.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
+        msg = dbM.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
     
     if secret_msg:
-        await conmanager.broadcast_to_game(game.id, secret_msg)
+        await conM.broadcast_to_game(game.id, secret_msg)
 
-    await conmanager.broadcast_to_game(game.id, msg)
+    await conM.broadcast_to_game(game.id, msg)
 
 ### phase flow functions
 
-def _cancel_phase_timer(game):
-    task = getattr(game, "phase_timer_task", None)
-    current_task = asyncio.current_task()
-    if task and not task.done() and task is not current_task:
-        task.cancel()
 
-async def offset_timer(game):
-    seconds = game.offset_sec
-    for i in range(seconds):
-        await conmanager.broadcast_to_game(game.id, {
-            "type": "offset_timer",
-            "seconds": seconds - i
-        })
-        await asyncio.sleep(1)
-
-async def phase_timer(game):
-    seconds = game.phase_sec # 10의 배수
-    for i in range(seconds):
-        await asyncio.sleep(1)
-        if i % 10 == 0:
-            await conmanager.broadcast_to_game(game.id, {
-                "type": "phase_timer",
-                "seconds": seconds - i
-            })
 
 async def _position_declaration_flow(game):
     try:
-        await phase_timer(game)
+        await timeM.phase_timer(game)
 
         for player in game.players:
             if player['character']['pos'] is None:
@@ -313,8 +290,8 @@ async def _position_declaration_flow(game):
             f'{p['character']['name']}: {p['character']['pos']}, ' for p in game.players]
         '''
         result = f'위치 선언이 종료되었습니다. 시작 위치는 temp 입니다.'
-        msg = dbmanager.save_chat(game.id, result)
-        await conmanager.broadcast_to_game(game.id, msg)
+        msg = dbM.save_chat(game.id, result)
+        await conM.broadcast_to_game(game.id, msg)
 
         await start_round(game) # 1st round
     except asyncio.CancelledError:
@@ -325,7 +302,7 @@ async def _position_declaration_flow(game):
 
 async def _action_declaration_flow(game):
     try:
-        await phase_timer(game)
+        await timeM.phase_timer(game)
         await resolution(game)
     except asyncio.CancelledError:
         pass
@@ -338,46 +315,51 @@ async def kickoff(game):
     if not game.SlotM.are_all_players_ready():
         return
     
-    await offset_timer(game, 3)
+    await timeM.offset_timer(game)
     
     result = f"전투 {game.id}를 시작합니다."
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
     
     # After countdown, broadcast combat started
-    await conmanager.broadcast_to_game(game.id, {
+    await conM.broadcast_to_game(game.id, {
         "type": "combat_started"
     })
 
     await position_declaration(game)
     
 async def position_declaration(game):
-    """위치 선언 단계 처리"""
+
+    await timeM.offset_timer(game)
+
     game.phase = 'position_declaration'
     result = '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
 
-    _cancel_phase_timer(game)
+    timeM.cancel_phase_timer(game)
     game.phase_timer_task = asyncio.create_task(_position_declaration_flow(game))
     
 async def start_round(game):
-    """라운드 시작 방송"""
-    _cancel_phase_timer(game)
+    timeM.cancel_phase_timer(game)
+
+    await timeM.offset_timer(game)
+
     result = f'라운드 {game.current_round} 선언 페이즈입니다.'
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
 
     game.current_round += 1
-    game.phase = 'action_declaration'
     await action_declaration(game)
 
 async def action_declaration(game):
-    result = f'스킬과 행동을 선언해주세요.'
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
 
+    await timeM.offset_timer(game)
     game.phase = 'action_declaration'
+    result = f'스킬과 행동을 선언해주세요.'
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
+
     # 타이머 시작 (60초)
     game.timer = {
         'type': 'action_declaration',
@@ -387,16 +369,17 @@ async def action_declaration(game):
         'paused_at': None,
         'elapsed_before_pause': 0
     }
-    _cancel_phase_timer(game)
+    timeM.cancel_phase_timer(game)
     game.phase_timer_task = asyncio.create_task(_action_declaration_flow(game))
 
 async def resolution(game):
-    result = f'라운드 {game.current_round} 해결 페이즈입니다. 계산을 시작합니다.'
-    msg = dbmanager.save_chat(game.id, result)
-    await conmanager.broadcast_to_game(game.id, msg)
-
+    await timeM.offset_timer(game)
     game.phase = 'resolution'
-    _cancel_phase_timer(game)
+    result = f'라운드 {game.current_round} 해결 페이즈입니다. 계산을 시작합니다.'
+    msg = dbM.save_chat(game.id, result)
+    await conM.broadcast_to_game(game.id, msg)
+
+    timeM.cancel_phase_timer(game)
     
     # 타이머 정지
     if game.timer.get('is_running'):
@@ -416,6 +399,7 @@ async def end_round(game):
 async def wrap_up(game, defeated_team: int):
     """전투 종료 단계 처리"""
     game.phase = 'wrap-up'
+    await timeM.offset_timer(game)
     game.in_combat = False
     winner = 'white' if defeated_team == 0 else 'blue'
     return '전투가 종료되었습니다. {} 팀이 승리했습니다.'.format(winner)

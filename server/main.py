@@ -7,7 +7,7 @@ import traceback
 import asyncio
 from dotenv import load_dotenv
 from . import lobby_ws, game_ws, google_login, auth_user, game_core
-from .util import conmanager, dbmanager
+from .util import conM, dbM
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,7 +30,7 @@ async def run_connection_lost_timeout_checks():
             for game_id, game in rooms.items():
                 if game.SlotM.clear_expired_connection_lost_slots():
                     # Broadcast updated players list if any slots were cleared
-                    await conmanager.broadcast_to_game(game_id, {
+                    await conM.broadcast_to_game(game_id, {
                         'type': 'players_list',
                         'players': game.players
                     })
@@ -48,7 +48,7 @@ async def startup_event():
 # Main WebSocket endpoint - routes messages to appropriate handlers
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await conmanager.connect(websocket)
+    await conM.connect(websocket)
 
     try:
         # Wait for authentication message first
@@ -73,13 +73,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if action == "kill_db":
                 #Clean up chat tables for prototype purpose only. Do not use in production.
-                dbmanager.kill_all_chat_tables()
+                dbM.kill_all_chat_tables()
                 rooms.clear()
                 continue
 
             # Route lobby actions
             if action == "list_rooms":
-                chat_tables = dbmanager.get_chat_tables()
+                chat_tables = dbM.get_chat_tables()
                 await lobby_ws.handle_list_rooms(websocket, chat_tables)
                 continue
 
@@ -141,7 +141,7 @@ async def websocket_endpoint(websocket: WebSocket):
         traceback.print_exc()
     finally:
         # Remove user from game users list and set player slot to connection-lost before disconnecting
-        game_id, user_info = await conmanager.leave_game(websocket)
+        game_id, user_info = await conM.leave_game(websocket)
         if game_id and user_info and game_id in rooms:
             game = rooms[game_id]
             # Remove user from game users list
@@ -151,14 +151,14 @@ async def websocket_endpoint(websocket: WebSocket):
             if user_slot:
                 game.SlotM.set_player_connection_lost(user_slot)
             # Broadcast updated users list and players list to remaining clients
-            await conmanager.broadcast_to_game(game_id, {
+            await conM.broadcast_to_game(game_id, {
                 'type': 'users_list',
                 'users': game.users
             })
-            await conmanager.broadcast_to_game(game_id, {
+            await conM.broadcast_to_game(game_id, {
                 'type': 'players_list',
                 'players': game.players
             })
         # Always disconnect when WebSocket closes
-        await conmanager.disconnect(websocket)
+        await conM.disconnect(websocket)
 

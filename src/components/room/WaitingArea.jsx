@@ -154,9 +154,6 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, s
           );
         })}
       </div>
-      {countdown !== null && (
-        <label className="start-label">Starting in {countdown}...</label>
-      )}
     </div>
   );
 }
