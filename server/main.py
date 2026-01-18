@@ -66,6 +66,8 @@ async def websocket_endpoint(websocket: WebSocket):
             print("Error: invalid authentication action")
             return
 
+
+
         # Now continue with normal message loop
         while True:
             message = await websocket.receive_json()
@@ -98,6 +100,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             try:
                 game = rooms[game_id]
+
             except KeyError:
                 print(f"Game {game_id} not found")
                 rooms[game_id] = game_core.Game(game_id)
@@ -135,6 +138,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 await game_ws.handle_set_ready(websocket, message, game)
                 await game_ws.phase_wrapper(game)
                 continue
+            
+            vomit_data = game.vomit()
+            await websocket.send_json(vomit_data)
                 
     except Exception as e:
         print(f"WebSocket error: {e}")
