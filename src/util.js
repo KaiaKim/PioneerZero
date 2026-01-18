@@ -46,6 +46,20 @@ export function quickAuth(ws) {
     }
 }
 
+function formatTime(timeString) {
+    if (!timeString) return '';
+    try {
+        const date = new Date(timeString);
+        const ampm = date.getHours() >= 12 ? '오후' : '오전';
+        const hours = String(date.getHours() % 12 || 12).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        //const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${ampm} ${hours}:${minutes}`;
+    } catch (e) {
+        return timeString.substring(11, 19); // Fallback: extract HH:MM:SS from ISO string
+    }
+}
+
 export function genChatMessage(chatMsg) {
     const isSecret = chatMsg.sort === "secret";
     const isError = chatMsg.sort === "error";
@@ -54,7 +68,7 @@ export function genChatMessage(chatMsg) {
     if (isError) sender += " ❌";
     return {
         sender: sender,
-        time: chatMsg.time,
+        time: formatTime(chatMsg.time),
         content: chatMsg.content,
         isSystem: chatMsg.sort === "system",
         isSecret: isSecret,

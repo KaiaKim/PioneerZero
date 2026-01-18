@@ -346,25 +346,19 @@ class Game():
         # Row 3: B1, B2, B3, B4
         self.game_board = [['cell' for _ in range(4)] for _ in range(4)]
 
-        # 타이머 초기화
-        self.timer = {
-            'type': None,
-            'start_time': None,
-            'duration': None,
-            'is_running': False,
-            'paused_at': None,
-            'elapsed_before_pause': 0
-        }
         self.phase_task = None
 
         self.offset_sec = 3
         self.phase_sec = 10
+        self.max_rounds = 4
 
         self.in_combat = False
         self.current_round = 0
         self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
         self.action_queue = []
         self.resolved_actions = []
+
+        
 
     # ============================================
     # SECTION 3: Combat Calculations
@@ -392,6 +386,19 @@ class Game():
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
     # TODO: end_round() - End round and check win conditions
+
+    def declare_action(self, sender, command):
+        result = None
+        err = None
+
+
+        print("sender: ", sender)
+        print("command: ", command)
+        #action = command[1].strip().upper()
+        #player = self.game.players[sender]
+
+        result = "행동 선언 완료"
+        return result, err
     
     # ============================================
     # SECTION 7: Utility & Data Export

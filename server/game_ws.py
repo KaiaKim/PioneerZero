@@ -247,7 +247,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
                 elif command[0] == "스킬" or command[0] == "skill":
                     result, err = game.use_skill(sender, command)
                 elif command[0] == "행동" or command[0] == "act":
-                    result, err = game.perform_action(sender, command)
+                    result, err = game.declare_action(sender, command)
                 else:
                     err = "사용 가능한 전투 명령어: 위치, 이동, 스킬, 행동."
             else:
@@ -284,14 +284,14 @@ async def _phase_flow(game):
         if not await kickoff(game):
             return
 
+        game.in_combat = True
         await timeM.offset_timer(game)
         await position_declaration(game)
         await timeM.phase_timer(game)
         await position_resolution(game)
         
         defeated_team = None
-        max_rounds = 10
-        for _ in range(max_rounds):
+        for _ in range(game.max_rounds):
             await timeM.offset_timer(game)
             await start_round(game)
             await timeM.offset_timer(game)
@@ -299,7 +299,7 @@ async def _phase_flow(game):
             await timeM.phase_timer(game)
 
             await timeM.offset_timer(game)
-            await resolution(game)
+            await action_resolution(game)
 
             defeated_team = await end_round(game)
             if defeated_team is not None:
@@ -310,6 +310,8 @@ async def _phase_flow(game):
 
         await timeM.offset_timer(game)
         await wrap_up(game, defeated_team)
+        game.in_combat = False
+
     except asyncio.CancelledError:
         pass
     except Exception as exc:
@@ -319,7 +321,6 @@ async def _phase_flow(game):
             game.phase_task = None
 
 async def kickoff(game):
-# Check if all players are ready
     if not game.SlotM.are_all_players_ready():
         return False
     
@@ -327,7 +328,6 @@ async def kickoff(game):
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
     
-    # After countdown, broadcast combat started
     await conM.broadcast_to_game(game.id, {
         "type": "combat_started"
     })
@@ -364,27 +364,11 @@ async def action_declaration(game):
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 
-    # 타이머 시작 (60초)
-    game.timer = {
-        'type': 'action_declaration',
-        'start_time': time.time(),
-        'duration': 60,
-        'is_running': True,
-        'paused_at': None,
-        'elapsed_before_pause': 0
-    }
-
-async def resolution(game):
+async def action_resolution(game):
     game.phase = 'resolution'
     result = f'라운드 {game.current_round} 해결 페이즈입니다. 계산을 시작합니다.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
-    
-    # 타이머 정지
-    if game.timer.get('is_running'):
-        game.timer['is_running'] = False
-        game.timer['elapsed_before_pause'] = time.time() - game.timer['start_time']
-    
 
 async def end_round(game):
     """라운드 종료 방송"""

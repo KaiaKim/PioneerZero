@@ -18,7 +18,7 @@ export function useGame() {
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(userInfo.name);
   const [offsetCountdown, setOffsetCountdown] = useState(null); // Offset countdown seconds (3, 2, 1, or null)
-  const [combatStarted, setCombatStarted] = useState(false); // Flag to track if combat has started
+  const [combatStarted, setCombatStarted] = useState(null); // Flag to track if combat has started
   const [phaseCountdown, setPhaseCountdown] = useState(null); // Phase timer seconds or null
   const chatLogRef = useRef(null);
   const wsRef = useRef(null);

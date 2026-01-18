@@ -1,6 +1,6 @@
 import React from 'react';
 
-function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser, countdown }) {
+function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser, countdown }) {
   // Get user info from currentUser or localStorage as fallback
   const getUserInfo = () => {
     if (currentUser) return currentUser;
@@ -158,5 +158,5 @@ function WaitingArea({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, s
   );
 }
 
-export default WaitingArea;
+export default Slots;
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Lobby from './components/lobby';
-import Room from './components/room/Room';
+import Room from './components/Room';
 import MyCharacter from './components/MyCharacter';
 
 function App() {

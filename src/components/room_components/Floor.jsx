@@ -1,6 +1,6 @@
 import React from 'react';
 
-function FloorArea({ characters }) {
+function Floor({ characters }) {
   const xyCells = ['Y1', 'Y2', 'Y3', 'Y4', 'X1', 'X2', 'X3', 'X4'];
   const abCells = ['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'];
 
@@ -50,5 +50,5 @@ function FloorArea({ characters }) {
   );
 }
 
-export default FloorArea;
+export default Floor;
 
