@@ -100,7 +100,6 @@ async def websocket_endpoint(websocket: WebSocket):
             
             try:
                 game = rooms[game_id]
-
             except KeyError:
                 print(f"Game {game_id} not found")
                 rooms[game_id] = game_core.Game(game_id)
@@ -110,34 +109,21 @@ async def websocket_endpoint(websocket: WebSocket):
             if action == "join_room":
                 print(f"Joining room {game_id}")
                 await lobby_ws.handle_join_room(websocket, game_id, game)
-                continue
-
-            if action == "load_room":
+            elif action == "load_room":
                 print(f"Loading room {game_id}")
                 await game_ws.handle_load_room(websocket, game)
-                continue
-            
-            if action == "chat":
+            elif action == "chat":
                 await game_ws.handle_chat(websocket, message, game)
-                continue
-            
-            if action == "join_player_slot":
+            elif action == "join_player_slot":
                 await game_ws.handle_join_player_slot(websocket, message, game)
-                continue
-            
-            if action == "add_bot_to_slot":
+            elif action == "add_bot_to_slot":
                 await game_ws.handle_add_bot_to_slot(websocket, message, game)
                 await game_ws.phase_wrapper(game)
-                continue
-            
-            if action == "leave_player_slot":
+            elif action == "leave_player_slot":
                 await game_ws.handle_leave_player_slot(websocket, message, game)
-                continue
-            
-            if action == "set_ready":
+            elif action == "set_ready":
                 await game_ws.handle_set_ready(websocket, message, game)
                 await game_ws.phase_wrapper(game)
-                continue
             
             vomit_data = game.vomit()
             await websocket.send_json(vomit_data)

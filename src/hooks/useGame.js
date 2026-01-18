@@ -11,7 +11,7 @@ export function useGame() {
       id: 'temp_id',
     };
   }
-  const [gameData, setGameData] = useState(null);
+  const [vomitData, setVomitData] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [characters, setCharacters] = useState([]);
   const [users, setUsers] = useState([]);
@@ -61,11 +61,9 @@ export function useGame() {
       } else if (msg.type === "join_failed") {
         console.error('Failed to join game:', msg.message);
       } else if (msg.type === "vomit_data") {
-        console.log('Game data received');
-        setGameData(msg);
+        setVomitData(JSON.stringify(msg, null, 2));
         setCharacters(msg.characters || []);
       } else if (msg.type === "users_list") {
-        console.log('Users list received:', msg.users);
         setUsers(msg.users || []);
       } else if (msg.type === "players_list") {
         handlePlayersList(msg.players);
@@ -186,7 +184,6 @@ export function useGame() {
 
   // Handle players_list message
   const handlePlayersList = (playersList) => {
-    console.log('Players list received:', playersList);
     setPlayers(playersList || []);
     plListReceivedRef.current = true;
     
@@ -294,7 +291,7 @@ export function useGame() {
 
   return {
     // State
-    gameData,
+    vomitData,
     chatMessages,
     characters,
     users,

@@ -25,7 +25,6 @@ export function genGuestId() {
 export function quickAuth(ws) {
     const user_info = localStorage.getItem('user_info');
     if (user_info) {
-        console.log("Authenticating with user_info:", user_info);
         const message = {
             action: 'authenticate_user',
             user_info: user_info

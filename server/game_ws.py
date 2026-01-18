@@ -7,11 +7,6 @@ from .util import conM, dbM, timeM
 import time
 
 async def handle_load_room(websocket: WebSocket, game):
-    """Handle load_room action - loads game state and chat history"""
-    vomit_data = game.vomit()
-    # Send to requesting client only
-    await websocket.send_json(vomit_data)
-    
     # Send users list to the requesting client
     await websocket.send_json({
         "type": "users_list",

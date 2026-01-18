@@ -17,7 +17,6 @@ function Room() {
   const { vomitData, chatMessages, characters, users, players, actions, offsetCountdown, combatStarted, phaseCountdown } = useGame();
   const { user } = useAuth();
   const [chatInput, setChatInput] = useState('');
-  const [vomitText, setVomitText] = useState('Game data will appear here.');
   const chatInputRef = useRef(null);
   
   // Show/hide areas based on combat state
@@ -25,18 +24,13 @@ function Room() {
   const showSlots = combatStarted === false;
   const showFloor = combatStarted === true;
 
-  useEffect(() => {
-    const nextText = vomitData ? JSON.stringify(vomitData, null, 2) : 'Game data will appear here.';
-    setVomitText(nextText);
-  }, [vomitData]);
-
   return (
     <div className="room">
       <div className="left-menu">
         <Auth/>
       </div>
       <div className="left-panel">
-        <textarea id="vomit-box" readOnly value={vomitText}/>
+        <textarea id="vomit-box" readOnly value={vomitData}/>
         <MP3/>
         <UserList users={users} />
         {showLoading && <Loading/>}
