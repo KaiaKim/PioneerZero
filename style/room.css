@@ -14,7 +14,6 @@
     background-repeat: no-repeat;
 }
 
-/* Top Menu Bars */
 .left-menu {
     grid-row: 1;
     grid-column: 1 / -1;
@@ -25,7 +24,6 @@
     justify-content: flex-end;
     align-items: center;
     z-index: 1000;
-    background-color: rgba(81, 146, 31, 0.372);
 }
 
 .right-menu {
@@ -42,7 +40,6 @@
     
 }
 
-/* Right Panel */
 .right-panel {
     grid-row: 2;
     grid-column: 2;
@@ -50,4 +47,16 @@
     height: 100%;
     display: flex;
     overflow: hidden;
+}
+
+.left-panel {
+    grid-row: 2;
+    grid-column: 1;
+    perspective: 1200px;
+    perspective-origin: center center;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }

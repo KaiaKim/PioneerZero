@@ -1,16 +1,50 @@
-
-/* Game Container */
-.left-panel {
-    grid-row: 2;
-    grid-column: 1;
-    perspective: 1200px;
-    perspective-origin: center center;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
+/*
+ * ============================================================================
+ * INDEX / TABLE OF CONTENTS
+ * ============================================================================
+ * 
+ * 1. VOMIT BOX
+ *    - #vomit-box (Line 44)
+ *    - #vomit-box::-webkit-scrollbar (Line 60)
+ * 
+ * 2. AUDIO
+ *    - #bgm (Line 65)
+ * 
+ * 3. WAITING ROOM / SLOTS
+ *    - .waiting-area (Line 73)
+ *    - .waiting-grid (Line 86)
+ *    - .waiting-cell (Line 94)
+ *    - .waiting-thumbnail (Line 107)
+ *    - .waiting-thumbnail.occupied (Line 120)
+ *    - .waiting-thumbnail.connection-lost (Line 127)
+ *    - .waiting-thumbnail div (Line 146)
+ *    - .connection-lost-indicator (Line 132)
+ *    - .thunder-emoji (Line 141)
+ *    - .player-join-but, .add-bot-but (Line 153)
+ *    - .player-leave-but (Line 157)
+ *    - .waiting-name (Line 178)
+ *    - .waiting-ready-label (Line 185)
+ *    - .waiting-ready (Line 194)
+ *    - .start-label (Line 200)
+ * 
+ * 4. USER LIST
+ *    - .user-list (Line 215)
+ *    - .user-label (Line 228)
+ *    - .user-items (Line 235)
+ *    - .user-items li (Line 246)
+ * 
+ * 5. 3D FLOOR GRID
+ *    - .floor-area (Line 254)
+ *    - .floor-grid (Line 263)
+ *    - .floor-section (Line 272)
+ *    - .grid-3d (Line 276)
+ *    - .cell (Line 286)
+ *    - .floor-section.team-blue .cell (Line 296)
+ *    - .floor-section.team-white .cell (Line 301)
+ *    - .token (Line 306)
+ * 
+ * ============================================================================
+ */
 
 
 /* Vomit Box */
@@ -284,178 +318,4 @@
     transform: rotateX(-90deg) rotateY(20deg) translateY(-50%) translateZ(40px);
     object-fit: contain;
     pointer-events: none;
-}
-
-/*chat*/
-.chat-area {
-    padding: 8px;
-    font-size: 14px;
-    gap: 4px;
-    background-color: rgb(157, 189, 219);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.chat-area label {
-    color: #000000;
-    font-weight: bold;
-    font-size: 15px;
-}
-
-.chat-area > div:not(#chat-log) {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chat-area button {
-    margin-left: auto;
-    width: 80px;
-    height: 40px;
-}
-
-/* Chat Log */
-#chat-log {
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    border: 1px solid #000;
-    box-sizing: border-box;
-    align-items: flex-start;
-    justify-content: flex-start;
-    background-color: rgb(0, 0, 0);
-}
-
-.chat-message {
-    border: 1px solid #333;
-    background-color: #1a1a1a;
-    padding: 8px;
-    border-radius: 4px;
-    width: 80%;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.chat-message-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-}
-
-.chat-message-name {
-    font-weight: bold;
-    color: #4a9eff;
-    font-size: 14px;
-}
-
-.chat-message-time {
-    color: #888;
-    font-size: 12px;
-    font-style: italic;
-}
-
-.chat-message-content {
-    color: #fff;
-    font-size: 14px;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-}
-
-.chat-message.system {
-    background-color: #2a2a2a;
-    border-color: #555;
-}
-
-.chat-message.system .chat-message-name {
-    color: #ffaa00;
-}
-
-.chat-message.own-message {
-    align-self: flex-end;
-    background-color: #1a3a5a;
-    border-color: #4a9eff;
-    max-width: 80%;
-}
-
-.chat-message.own-message .chat-message-header {
-    flex-direction: row-reverse;
-}
-
-.chat-message.secret {
-    background-color: #1a3a5a7b;
-    border-color: #4a9eff52;
-    font-style: italic;
-}
-
-.chat-message.secret .chat-message-name {
-    font-style: italic;
-}
-
-.chat-message.secret .chat-message-content {
-    color: #b8b8b8;
-    font-style: italic;
-}
-
-.chat-message.error {
-    background-color: #5a1a1a;
-    border-color: #8b0000;
-}
-
-.chat-message.error .chat-message-name {
-    color: #ff4444;
-}
-
-.chat-message.error .chat-message-content {
-    color: #ff6666;
-}
-
-/* Chat Input */
-#chat-input {
-    width: 100%;
-    height: 15%;
-    border: 1px solid #000;
-    padding: 10px;
-    font-size: 14px;
-}
-
-/* Profile */
-.profile-image {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-}
-
-#chat-char {
-    font-size: 24px;
-}
-
-
-.timer {
-    right: 100px;
-    position: absolute;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 10px;
-    font-size: 25px;
-}
-
-#offset-countdown {
-    color: #000000;
-}
-
-#phase-countdown {
-    color: #be0000;
 }

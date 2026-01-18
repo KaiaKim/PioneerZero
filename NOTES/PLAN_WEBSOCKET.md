@@ -96,29 +96,23 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
 ```
 
 #### 예시
-- `/행동 근거리공격 X2` - X2를 대상으로 근거리 공격
-- `/행동 원거리공격 Y1` - Y1을 대상으로 원거리 공격
-- `/행동 원거리공격 Y1 순간가속` - 순간가속 스킬 체인과 함께 원거리 공격
-- `/행동 전장이동 A2` - A2로 이동
-- `/행동 대기` - 대기 행동
-- `/행동 대기 컨토션` - 컨토션 스킬 체인과 함께 대기
+**예시:**
+- `/근거리공격 X2` `/melee X2` - X2를 대상으로 근거리 공격
+- `/원거리공격 Y1` `/range Y1` - Y1을 대상으로 원거리 공격
+- `/이동 A2` `/move A2` - A2로 이동
+- `/대기` `/wait` - 대기
+- `/원거리공격 순간가속 Y1` - 순간가속 스킬 체인과 함께 원거리 공격
+- `/대기 컨토션` - 컨토션 스킬 체인과 함께 대기
 
 #### 처리 흐름
-1. 사용자가 채팅에 `/행동 근거리공격 X2` 입력
+1. 사용자가 채팅에 `/근거리공격 X2` 입력
 2. `handle_chat()` 함수에서 슬래시 명령어 감지
-3. 명령어 파싱: `command = "행동 근거리공격 X2"`
+3. 명령어 파싱: `command = "근거리공격 X2"`
 4. 행동 타입, 대상, 스킬 추출
 5. `game.parse_action_declaration_from_chat(slot, action_type, target, skill_chain)` 호출하여 검증
 6. 검증 성공 시 채팅 히스토리에 저장 (비밀 선언)
 7. 모든 행동 선언이 완료되었는지 확인
 
-#### 구현 예시
-```python
-# server/game_ws.py - handle_chat 함수 내부 (전투 중일 때)
-
-elif command.startswith("행동 "):
-    result, phase_broadcasts = game.handle_action_declaration_command(user_id, command)
-```
 
 ### 4.4 채팅 히스토리에서 선언 파싱 (Parsing Declarations from Chat History)
 
@@ -275,21 +269,7 @@ def check_all_action_declarations_complete_from_chat(self):
 ```json
 {
     "type": "action_declaration_phase",
-    "round": 1,
-    "time_limit": 60,
-    "timer_started": true
-}
-```
-
-#### 타이머 업데이트 (1초마다 브로드캐스트)
-```json
-{
-    "type": "timer_update",
-    "timer_type": "action_declaration",
-    "elapsed": 15,
-    "remaining": 45,
-    "is_running": true,
-    "duration": 60
+    "round": 1
 }
 ```
 
@@ -356,24 +336,6 @@ def check_all_action_declarations_complete_from_chat(self):
 }
 ```
 ## 5. 구현 단계 (Implementation Steps) FRONT
-
-### Phase 4: 타이머 시스템 통합 (Timer System Integration)
-
-1. **타이머 메서드 구현** (`server/game_core.py`)
-   - `start_timer()` 구현 (TIMER_PLAN.md 참고)
-   - `stop_timer()` 구현
-   - `get_timer_state()` 구현
-   - `start_action_declaration_timer()` 구현 (60초 카운트다운)
-
-2. **백그라운드 태스크** (`server/main.py`)
-   - `timer_broadcast_task()` 구현
-   - 1초마다 모든 게임의 타이머 상태 브로드캐스트
-   - 행동 선언 단계 중인 게임만 타이머 업데이트 전송
-
-3. **타이머 브로드캐스트 함수** (`server/game_ws.py`)
-   - `broadcast_timer_update()` 구현
-   - 게임의 모든 클라이언트에 타이머 상태 전송
-
 ### Phase 5: WebSocket 핸들러 구현 (WebSocket Handler Implementation)
 
 1. **`server/game_ws.py`에 핸들러 추가**
@@ -385,16 +347,7 @@ def check_all_action_declarations_complete_from_chat(self):
 2. **브로드캐스트 함수**
    - `broadcast_combat_state()`
    - `broadcast_action_resolution()`
-   - `broadcast_timer_update()` (타이머 업데이트, 1초마다)
 
-3. **타이머 관리 함수**
-   - `start_action_declaration_timer()` 구현
-     - 60초 타이머 시작
-     - timer_type='action_declaration', duration=60
-   - `stop_action_declaration_timer()` 구현
-     - 행동 선언 단계 종료 시 타이머 중지
-   - `get_timer_state()` 구현 (TIMER_PLAN.md 참고)
-     - 현재 타이머 상태 반환 (elapsed, remaining)
 
 3. **타일 피드백 핸들러 구현 예시**
 ```python
@@ -460,9 +413,6 @@ async def handle_request_tile_feedback(websocket: WebSocket, message: dict, game
    - 전투 보드 상태
    - 타일 피드백 상태 관리 (`validAttackTiles`, `validMoveTiles`)
    - `requestTileFeedback()` 함수 추가
-   - 타이머 상태 관리 (`timerState` - TIMER_PLAN.md 참고)
-   - `timer_update` 메시지 핸들러 추가
-   - 행동 선언 단계에서 타이머 표시 (60초 카운트다운)
 
 **useGame 훅 확장 예시:**
 ```javascript
@@ -473,13 +423,6 @@ export function useGame() {
   
   const [validAttackTiles, setValidAttackTiles] = useState([]);
   const [validMoveTiles, setValidMoveTiles] = useState([]);
-  const [timerState, setTimerState] = useState({
-    type: null,
-    elapsed: 0,
-    remaining: null,
-    isRunning: false,
-    duration: null
-  });
   
   // WebSocket 메시지 핸들러에 추가
   ws.onmessage = (event) => {
@@ -490,19 +433,9 @@ export function useGame() {
     if (msg.type === "tile_feedback") {
       setValidAttackTiles(msg.valid_attack_tiles || []);
       setValidMoveTiles(msg.valid_move_tiles || []);
-    } else if (msg.type === "timer_update") {
-      // 타이머 업데이트 (TIMER_PLAN.md 참고)
-      setTimerState({
-        type: msg.timer_type,
-        elapsed: msg.elapsed,
-        remaining: msg.remaining,
-        isRunning: msg.is_running,
-        duration: msg.duration
-      });
     } else if (msg.type === "action_declaration_phase") {
       // 행동 선언 단계 시작
       setCombatPhase('action_declaration');
-      // 타이머는 timer_update 메시지로 별도 업데이트됨
     }
   };
   
@@ -517,8 +450,7 @@ export function useGame() {
     // ... 기존 반환값 ...
     validAttackTiles,
     validMoveTiles,
-    requestTileFeedback,
-    timerState  // 타이머 상태 추가
+    requestTileFeedback
   };
 }
 ```

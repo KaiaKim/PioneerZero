@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useGame } from '../../hooks/useGame';
 
-function Chat({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions }) {
+function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions }) {
   const { chatLogRef } = useGame();
 
   // Handle chat input keydown
@@ -71,5 +71,20 @@ function Chat({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRe
   );
 }
 
-export default Chat;
+function ChatOverlay(){
+  return (
+    <div id="vn-container">
+        <div id="standing-layer"></div>
+        <div id="ui-layer">
+            <div id="name-plate"></div>
+            <div id="dialogue-box">
+                <div id="text-area"></div>
+                <div id="next-arrow"></div>
+            </div>
+        </div>
+    </div>
+  )
+}
+
+export { ChatBox, ChatOverlay };
 

@@ -2,15 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGame } from '../hooks/useGame';
 import Auth from './auth';
-import Slots from './room_components/Slots';
-import Floor from './room_components/Floor';
-import Chat from './room_components/Chat';
-import MP3 from './room_components/MP3';
-import UserList from './room_components/UserList';
-import Loading from './room_components/Loading';
+import Slots from './room/Slots';
+import Floor from './room/Floor';
+import {ChatBox, ChatOverlay} from './room/Chat';
+import MP3 from './room/MP3';
+import UserList from './room/UserList';
+import Loading from './room/Loading';
 import '../../style/global.css';
 import '../../style/room.css';
 import '../../style/room_components.css';
+import '../../style/chat.css';
 
 
 function Room() {
@@ -36,10 +37,12 @@ function Room() {
         {showLoading && <Loading/>}
         {showSlots && <Slots players={players} addBotToSlot={actions.addBotToSlot} joinPlayerSlot={actions.joinPlayerSlot} leavePlayerSlot={actions.leavePlayerSlot} setReady={actions.setReady} currentUser={user}/>}
         {showFloor && <Floor characters={characters} />}
+
+        <ChatOverlay/>
       </div>
       <div className="right-menu">&gt;|</div>
       <div className="right-panel">
-        <Chat chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} />
+        <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} />
       </div>
     </div>
   );

@@ -1,0 +1,327 @@
+/*
+ * ============================================================================
+ * INDEX / TABLE OF CONTENTS
+ * ============================================================================
+ * 
+ * 1. CHAT AREA
+ *    - .chat-area (Line 28)
+ *    - .chat-area label (Line 41)
+ *    - .chat-area > div:not(#chat-log) (Line 47)
+ *    - .chat-area button (Line 53)
+ * 
+ * 2. CHAT LOG
+ *    - #chat-log (Line 60)
+ * 
+ * 3. CHAT MESSAGE
+ *    - .chat-message (Line 77)
+ *    - .chat-message-header (Line 88)
+ *    - .chat-message-name (Line 95)
+ *    - .chat-message-time (Line 101)
+ *    - .chat-message-content (Line 107)
+ * 
+ * 4. CHAT MESSAGE VARIANTS
+ *    - .chat-message.system (Line 114)
+ *    - .chat-message.system .chat-message-name (Line 119)
+ *    - .chat-message.own-message (Line 123)
+ *    - .chat-message.own-message .chat-message-header (Line 130)
+ *    - .chat-message.secret (Line 134)
+ *    - .chat-message.secret .chat-message-name (Line 140)
+ *    - .chat-message.secret .chat-message-content (Line 144)
+ *    - .chat-message.error (Line 149)
+ *    - .chat-message.error .chat-message-name (Line 154)
+ *    - .chat-message.error .chat-message-content (Line 158)
+ * 
+ * 5. CHAT INPUT
+ *    - #chat-input (Line 163)
+ * 
+ * 6. PROFILE
+ *    - .profile-image (Line 172)
+ *    - #chat-char (Line 178)
+ * 
+ * 7. TIMER
+ *    - .timer (Line 183)
+ *    - #offset-countdown (Line 193)
+ *    - #phase-countdown (Line 197)
+ * 
+ * ============================================================================
+ */
+
+
+/*chat*/
+.chat-area {
+    padding: 8px;
+    font-size: 14px;
+    gap: 4px;
+    background-color: rgb(157, 189, 219);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.chat-area label {
+    color: #000000;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.chat-area > div:not(#chat-log) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-area button {
+    margin-left: auto;
+    width: 80px;
+    height: 40px;
+}
+
+/* Chat Log */
+#chat-log {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    align-items: flex-start;
+    justify-content: flex-start;
+    background-color: rgb(0, 0, 0);
+}
+
+.chat-message {
+    border: 1px solid #333;
+    background-color: #1a1a1a;
+    padding: 8px;
+    border-radius: 4px;
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chat-message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-message-name {
+    font-weight: bold;
+    color: #4a9eff;
+    font-size: 14px;
+}
+
+.chat-message-time {
+    color: #888;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.chat-message-content {
+    color: #fff;
+    font-size: 14px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.chat-message.system {
+    background-color: #2a2a2a;
+    border-color: #555;
+}
+
+.chat-message.system .chat-message-name {
+    color: #ffaa00;
+}
+
+.chat-message.own-message {
+    align-self: flex-end;
+    background-color: #1a3a5a;
+    border-color: #4a9eff;
+    max-width: 80%;
+}
+
+.chat-message.own-message .chat-message-header {
+    flex-direction: row-reverse;
+}
+
+.chat-message.secret {
+    background-color: #1a3a5a7b;
+    border-color: #4a9eff52;
+    font-style: italic;
+}
+
+.chat-message.secret .chat-message-name {
+    font-style: italic;
+}
+
+.chat-message.secret .chat-message-content {
+    color: #b8b8b8;
+    font-style: italic;
+}
+
+.chat-message.error {
+    background-color: #5a1a1a;
+    border-color: #8b0000;
+}
+
+.chat-message.error .chat-message-name {
+    color: #ff4444;
+}
+
+.chat-message.error .chat-message-content {
+    color: #ff6666;
+}
+
+/* Chat Input */
+#chat-input {
+    width: 100%;
+    height: 15%;
+    border: 1px solid #000;
+    padding: 10px;
+    font-size: 14px;
+}
+
+/* Profile */
+.profile-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+#chat-char {
+    font-size: 24px;
+}
+
+/*timer*/
+.timer {
+    right: 100px;
+    position: absolute;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    font-size: 25px;
+}
+
+#offset-countdown {
+    color: #000000;
+}
+
+#phase-countdown {
+    color: #be0000;
+}
+
+/*chat overlay*/
+
+/* { margin: 0; padding: 0; box-sizing: border-box; } */
+#vn-container {
+    position: absolute;
+    bottom: 3vh;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+    max-width: 90vw;
+    background-color: #f4919191;
+}
+
+#standing-layer {
+    width: 45vw;
+    max-width: 550px;
+    min-width: 300px;
+    height: 60vh;
+    max-height: 750px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: -10vh;
+    transform-origin: bottom center;
+    position: relative;
+    z-index: 1;
+}
+
+#standing-layer img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+#ui-layer {
+    width: 55vw;
+    max-width: 800px;
+    min-width: 400px;
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+#name-plate {
+    display: inline-block;
+    background: rgba(30, 30, 30, 0.95);
+    color: white;
+    padding: 0.8vh 2.5vw;
+    font-weight: bold;
+    font-size: clamp(16px, 1.8vh, 26px);
+    border-radius: 0.6vh 0.6vh 0 0;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-bottom: none;
+    margin-left: 1vw;
+    font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    position: relative;
+    z-index: 10;
+}
+
+#name-plate.hidden {
+    display: none;
+}
+
+#dialogue-box {
+    background: rgba(15, 15, 15, 0.88);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 1vh;
+    padding: 2.5vh 3.5vw;
+    min-height: 15vh;
+    max-height: 20vh;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    z-index: 5;
+}
+
+#text-area {
+    color: white;
+    font-size: clamp(14px, 1.6vh, 24px);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    word-break: break-all;
+    height: 100%;
+}
+
+#next-arrow {
+    position: absolute;
+    bottom: 1.5vh;
+    right: 2vw;
+    width: 2vh;
+    height: 2vh;
+    border-right: 0.3vh solid rgba(255,255,255,0.8);
+    border-bottom: 0.3vh solid rgba(255,255,255,0.8);
+    transform: rotate(45deg);
+    animation: bounce 0.8s infinite alternate;
+    display: none;
+    z-index: 20;
+}
