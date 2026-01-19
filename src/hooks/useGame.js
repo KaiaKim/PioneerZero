@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { quickAuth, getWebSocketUrl, genChatMessage } from '../util';
+import { quickAuth, getWebSocketUrl, genChatMessage, renderDialogue } from '../util';
 
 
 export function useGame() {
@@ -26,6 +26,8 @@ export function useGame() {
   const autoJoinAttemptedRef = useRef(false);
   const plListReceivedRef = useRef(false);
   const phaseCountdownRef = useRef(null);
+  const chatQue = useRef([]);
+  const isOverlayBusy = useRef(false);
 
   const connectGameWS = () => {
     const wsUrl = getWebSocketUrl();
@@ -73,7 +75,12 @@ export function useGame() {
       } else if (msg.type === "chat") {
         const newMessage = genChatMessage(msg);
         setChatMessages(prev => [...prev, newMessage]);
-        
+        if (msg.sort === "user" || msg.sort === "system") {
+          enqueueChatOverlay({
+            sender: newMessage.sender,
+            content: newMessage.content
+          });
+        }
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);
@@ -138,6 +145,26 @@ export function useGame() {
         }
       }, 500);
     }
+  };
+
+  const enqueueChatOverlay = (chatMessage) => {
+    chatQue.current.push(chatMessage);
+    processChatQueue();
+  };
+
+  const processChatQueue = () => {
+    if (isOverlayBusy.current) {
+      return;
+    }
+    const nextMessage = chatQue.current.shift();
+    if (!nextMessage) {
+      return;
+    }
+    isOverlayBusy.current = true;
+    renderDialogue(nextMessage.sender, nextMessage.content, false, true, () => {
+      isOverlayBusy.current = false;
+      processChatQueue();
+    });
   };
 
   const loadGame = () => {

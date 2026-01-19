@@ -78,9 +78,25 @@ export function genChatMessage(chatMsg) {
 
 
 // ========== 대화 렌더링 (페이지 지원) ==========
-function renderDialogue(speakerName, messageText, isDesc, isUnregistered) {
+let dialogueCompleteCallback = null;
+let dialogueCompleteRenderId = 0;
+
+export function renderDialogue(speakerName, messageText, isDesc, isUnregistered, onComplete = null) {
+    currentRenderId++;
+    const thisRenderId = currentRenderId;
+    dialogueCompleteCallback = onComplete;
+    dialogueCompleteRenderId = thisRenderId;
+
     if (vdSettings.isOverlayHidden) {
       lastRenderedData = { speakerName, messageText, isDesc, isUnregistered };
+      if (onComplete) {
+        const delay = parseInt(vdSettings.autoTurnDelay) || 2500;
+        setTimeout(() => {
+          if (dialogueCompleteRenderId === thisRenderId) {
+            onComplete();
+          }
+        }, delay);
+      }
       return;
     }
   
@@ -93,9 +109,6 @@ function renderDialogue(speakerName, messageText, isDesc, isUnregistered) {
     root.style.display = "block";
     root.style.visibility = "visible";
     root.style.opacity = "0";
-  
-    currentRenderId++;
-    const thisRenderId = currentRenderId;
   
     let cleanText = messageText;
     cleanText = cleanText.replace(/^\d{1,2}:\d{2}\s?[AP]M[^:]+:\s*/gi, "");
@@ -233,6 +246,16 @@ function renderDialogue(speakerName, messageText, isDesc, isUnregistered) {
       autoTurnTimeout = setTimeout(() => {
         currentPageIndex++;
         typePage(currentPageIndex);
+      }, delay);
+    } else if (dialogueCompleteCallback && dialogueCompleteRenderId === currentRenderId) {
+      const delay = parseInt(vdSettings.autoTurnDelay) || 2500;
+      const cb = dialogueCompleteCallback;
+      const cbRenderId = dialogueCompleteRenderId;
+      dialogueCompleteCallback = null;
+      autoTurnTimeout = setTimeout(() => {
+        if (cbRenderId === currentRenderId) {
+          cb();
+        }
       }, delay);
     }
   }
