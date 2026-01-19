@@ -1,0 +1,156 @@
+"""
+Global variables and core server setup for the FastAPI server
+"""
+from fastapi import FastAPI, WebSocket
+import uuid
+import traceback
+import asyncio
+from dotenv import load_dotenv
+from . import lobby_ws, game_ws, google_login, auth_user, game_core
+from .util import conM, dbM
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Global game sessions dictionary: {game_id: Game object}
+# Games are loaded lazily from the database when accessed
+rooms = {}
+
+# FastAPI app instance
+app = FastAPI()
+
+# Include OAuth router
+app.include_router(google_login.router)
+
+# Background task to periodically check for connection-lost timeouts
+async def run_connection_lost_timeout_checks():
+    """Periodically runs connection-lost timeout checks for all games"""
+    while True:
+        try:
+            for game_id, game in rooms.items():
+                if game.SlotM.clear_expired_connection_lost_slots():
+                    # Broadcast updated players list if any slots were cleared
+                    await conM.broadcast_to_game(game_id, {
+                        'type': 'players_list',
+                        'players': game.players
+                    })
+            await asyncio.sleep(1)  # Check every second
+        except Exception as e:
+            print(f"Error in connection-lost timeout check: {e}")
+            await asyncio.sleep(1)
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on server startup"""
+    asyncio.create_task(run_connection_lost_timeout_checks())
+
+
+# Main WebSocket endpoint - routes messages to appropriate handlers
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await conM.connect(websocket)
+
+    try:
+        # Wait for authentication message first
+        auth_message = await websocket.receive_json()
+        auth_action = auth_message.get('action')
+
+        # Handle Google OAuth authentication
+        if auth_action == 'google_login':
+            await google_login.handle_google_login(websocket, auth_message)
+        # Handle guest authentication (existing flow)
+        elif auth_action == 'authenticate_user':
+            await auth_user.handle_user_auth(websocket, auth_message)
+        else:
+            await websocket.close()
+            print("Error: invalid authentication action")
+            return
+
+
+
+        # Now continue with normal message loop
+        while True:
+            message = await websocket.receive_json()
+            action = message.get("action")
+
+            if action == "kill_db":
+                #Clean up chat tables for prototype purpose only. Do not use in production.
+                dbM.kill_all_chat_tables()
+                rooms.clear()
+                continue
+
+            # Route lobby actions
+            if action == "list_rooms":
+                chat_tables = dbM.get_chat_tables()
+                await lobby_ws.handle_list_rooms(websocket, chat_tables)
+                continue
+
+            if action == "create_room":
+                game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
+                player_num = message.get("player_num", 4)  # Get player_num from message, default to 4
+                rooms[game_id] = await lobby_ws.handle_create_room(websocket, game_id, player_num)  # create a new game session
+                continue
+
+            # Get the game_id from message only (required for all game actions)
+            game_id = message.get("game_id")
+            if not game_id:
+                print(f"No game_id")
+                #await websocket.send_json({"type": "no_game_id"})
+                continue
+            
+            try:
+                game = rooms[game_id]
+            except KeyError:
+                print(f"Game {game_id} not found")
+                rooms[game_id] = game_core.Game(game_id)
+                game = rooms[game_id]
+
+            # Route game actions
+            if action == "join_room":
+                print(f"Joining room {game_id}")
+                await lobby_ws.handle_join_room(websocket, game_id, game)
+            elif action == "load_room":
+                print(f"Loading room {game_id}")
+                await game_ws.handle_load_room(websocket, game)
+            elif action == "chat":
+                await game_ws.handle_chat(websocket, message, game)
+            elif action == "join_player_slot":
+                await game_ws.handle_join_player_slot(websocket, message, game)
+            elif action == "add_bot_to_slot":
+                await game_ws.handle_add_bot_to_slot(websocket, message, game)
+                await game_ws.phase_wrapper(game)
+            elif action == "leave_player_slot":
+                await game_ws.handle_leave_player_slot(websocket, message, game)
+            elif action == "set_ready":
+                await game_ws.handle_set_ready(websocket, message, game)
+                await game_ws.phase_wrapper(game)
+            
+            vomit_data = game.vomit()
+            await websocket.send_json(vomit_data)
+                
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        traceback.print_exc()
+    finally:
+        # Remove user from game users list and set player slot to connection-lost before disconnecting
+        game_id, user_info = await conM.leave_game(websocket)
+        if game_id and user_info and game_id in rooms:
+            game = rooms[game_id]
+            # Remove user from game users list
+            game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
+            # Set player slot to connection-lost instead of removing
+            user_slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
+            if user_slot:
+                game.SlotM.set_player_connection_lost(user_slot)
+            # Broadcast updated users list and players list to remaining clients
+            await conM.broadcast_to_game(game_id, {
+                'type': 'users_list',
+                'users': game.users
+            })
+            await conM.broadcast_to_game(game_id, {
+                'type': 'players_list',
+                'players': game.players
+            })
+        # Always disconnect when WebSocket closes
+        await conM.disconnect(websocket)
+

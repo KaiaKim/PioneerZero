@@ -1,23 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { genGuestId, quickAuth } from '../util';
+import { genGuestId, quickAuth, getWebSocketUrl, getApiBaseUrl } from '../util';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [authWs, setAuthWs] = useState(null);
   const wsRef = useRef(null);
 
-  useEffect(() => {
-    connectAuthWebSocket();
-
-    return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectAuthWebSocket = (skipQuickAuth = false) => {
-    const wsUrl = `ws://localhost:8000/ws`;
+  const connectAuthWS = (skipQuickAuth = false) => {
+    const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
     let guest_id = null;
 
@@ -80,7 +70,7 @@ export function useAuth() {
     const sessionId = crypto.randomUUID();
     
     // Open OAuth popup with session_id as query parameter
-    const popupUrl = `http://localhost:8000/auth/google/login?session_id=${sessionId}`;
+    const popupUrl = `${getApiBaseUrl()}/auth/google/login?session_id=${sessionId}`;
     const popup = window.open(
       popupUrl,
       'google_oauth',
@@ -95,7 +85,7 @@ export function useAuth() {
     // Listen for OAuth callback message
     const messageListener = (event) => {
       // Verify origin for security
-      if (event.origin !== 'http://localhost:8000') {
+      if (event.origin !== getApiBaseUrl()) {
         return;
       }
 
@@ -123,7 +113,7 @@ export function useAuth() {
         }
         
         // Create new connection for Google auth (skip quickAuth to avoid double authentication)
-        const ws = connectAuthWebSocket(true);
+        const ws = connectAuthWS(true);
         
         // Wait for WebSocket to open before sending auth message
         const checkConnection = setInterval(() => {
@@ -186,6 +176,16 @@ export function useAuth() {
     localStorage.removeItem('user_info');
     setUser(null);
   };
+
+  useEffect(() => {
+    connectAuthWS();
+
+    return () => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
 
   return { user, googleLogin, googleLogout };
 }

@@ -1,0 +1,321 @@
+/*
+ * ============================================================================
+ * INDEX / TABLE OF CONTENTS
+ * ============================================================================
+ * 
+ * 1. VOMIT BOX
+ *    - #vomit-box (Line 44)
+ *    - #vomit-box::-webkit-scrollbar (Line 60)
+ * 
+ * 2. AUDIO
+ *    - #bgm (Line 65)
+ * 
+ * 3. WAITING ROOM / SLOTS
+ *    - .waiting-area (Line 73)
+ *    - .waiting-grid (Line 86)
+ *    - .waiting-cell (Line 94)
+ *    - .waiting-thumbnail (Line 107)
+ *    - .waiting-thumbnail.occupied (Line 120)
+ *    - .waiting-thumbnail.connection-lost (Line 127)
+ *    - .waiting-thumbnail div (Line 146)
+ *    - .connection-lost-indicator (Line 132)
+ *    - .thunder-emoji (Line 141)
+ *    - .player-join-but, .add-bot-but (Line 153)
+ *    - .player-leave-but (Line 157)
+ *    - .waiting-name (Line 178)
+ *    - .waiting-ready-label (Line 185)
+ *    - .waiting-ready (Line 194)
+ *    - .start-label (Line 200)
+ * 
+ * 4. USER LIST
+ *    - .user-list (Line 215)
+ *    - .user-label (Line 228)
+ *    - .user-items (Line 235)
+ *    - .user-items li (Line 246)
+ * 
+ * 5. 3D FLOOR GRID
+ *    - .floor-area (Line 254)
+ *    - .floor-grid (Line 263)
+ *    - .floor-section (Line 272)
+ *    - .grid-3d (Line 276)
+ *    - .cell (Line 286)
+ *    - .floor-section.team-blue .cell (Line 296)
+ *    - .floor-section.team-white .cell (Line 301)
+ *    - .token (Line 306)
+ * 
+ * ============================================================================
+ */
+
+
+/* Vomit Box */
+#vomit-box {
+    display: flex;
+    width: 400px;
+    height: 100%;
+    position: absolute;
+    top: 15;
+    left: 0;
+    z-index: -1;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: white;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#vomit-box::-webkit-scrollbar {
+    display: none;
+}
+
+/* Audio */
+#bgm {
+    position: absolute;
+    top: 50px;
+    right: 410px;
+    z-index: 100;
+}
+
+/* Waiting Room */
+.waiting-area {
+    width: 900px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.waiting-grid {
+    width: 100%;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.waiting-cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    min-height: 250px;
+    gap: 10px;
+}
+
+.waiting-thumbnail {
+    width: 130px;
+    height: 160px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background-color: #4a4a4a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.waiting-thumbnail.occupied {
+    background-image: var(--token-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.waiting-thumbnail.connection-lost {
+    background-color: rgba(168, 87, 20, 0.9); /* Dark orange */
+    position: relative;
+}
+
+.connection-lost-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2em;
+    z-index: 10;
+}
+
+.thunder-emoji {
+    display: block;
+    font-size: 2em;
+}
+
+.waiting-thumbnail div {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.player-join-but, .add-bot-but {
+    margin: 3px;
+}
+
+.player-leave-but {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: red;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
+}
+
+.waiting-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+}
+
+.waiting-ready-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.waiting-ready {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.start-label {
+    display: block;
+    width: 800px;
+    margin: 0 auto;
+    margin-top: 20px;
+    background-color: #000000;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    font-size: 22px;
+    padding: 10px 20px;
+    border-radius: 4px;
+}
+
+/* user List */
+.user-list {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    height: 200px;
+    margin-left: auto;
+    margin-top: auto;
+    align-self: flex-end;
+}
+
+.user-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.user-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.user-items li {
+    color: #fff;
+    padding: 5px 10px;
+    background-color: rgba(42, 42, 42, 0.8);
+    border-radius: 4px;
+}
+
+/* 3D Floor Grid */
+.floor-area {
+    transform-style: preserve-3d;
+    transform: rotateX(60deg) rotateZ(20deg);
+    width: 400px;
+    height: 400px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.floor-grid {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 50px;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.floor-section {
+    transform-style: preserve-3d;
+}
+
+.grid-3d {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+.floor-section.team-blue .cell {
+    background: #1e3a8a;
+    color: white;
+}
+
+.floor-section.team-white .cell {
+    background: #eeeeee;
+    color: black;
+}
+
+.token {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    transform-style: preserve-3d;
+    transform: rotateX(-90deg) rotateY(20deg) translateY(-50%) translateZ(40px);
+    object-fit: contain;
+    pointer-events: none;
+}
