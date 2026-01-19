@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { quickAuth, getWebSocketUrl, genChatMessage } from '../util';
 
+
 export function useGame() {
   const { gameId } = useParams();
   let userInfo = JSON.parse(localStorage.getItem('user_info'));
@@ -44,18 +45,7 @@ export function useGame() {
       let slotNum = storedSlotNum ? parseInt(storedSlotNum) : null;
 
       if (msg.type === "auth_success") {
-        setUserName(msg.user_info.name);
-        localStorage.setItem('user_info', JSON.stringify(msg.user_info));
-        // If players_list was already received, try auto-join now that we have user info
-        if (plListReceivedRef.current && !autoJoinAttemptedRef.current && slotNum) {
-          autoJoinAttemptedRef.current = true;
-          setTimeout(() => {
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              console.log(`Auto-joining slot ${slotNum} after authentication`);
-              joinPlayerSlot(slotNum);
-            }
-          }, 500);
-        }
+        handleAuthSuccess(msg, slotNum);
       } else if (msg.type === "joined_game") {
         loadGame();
       } else if (msg.type === "join_failed") {
@@ -132,6 +122,21 @@ export function useGame() {
     messageGameWS({
       action: 'join_room'
     });
+  };
+
+  const handleAuthSuccess = (msg, slotNum) => {
+    setUserName(msg.user_info.name);
+    localStorage.setItem('user_info', JSON.stringify(msg.user_info));
+    // If players_list was already received, try auto-join now that we have user info
+    if (plListReceivedRef.current && !autoJoinAttemptedRef.current && slotNum) {
+      autoJoinAttemptedRef.current = true;
+      setTimeout(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          console.log(`Auto-joining slot ${slotNum} after authentication`);
+          joinPlayerSlot(slotNum);
+        }
+      }, 500);
+    }
   };
 
   const loadGame = () => {
