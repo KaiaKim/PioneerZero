@@ -73,6 +73,7 @@ export function useGame() {
       } else if (msg.type === "chat") {
         const newMessage = genChatMessage(msg);
         setChatMessages(prev => [...prev, newMessage]);
+        
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);

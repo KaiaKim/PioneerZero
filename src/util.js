@@ -76,66 +76,6 @@ export function genChatMessage(chatMsg) {
     };
 }
 
-  // Handle players_list message
-  const handlePlayersList = (playersList) => {
-    setPlayers(playersList || []);
-    plListReceivedRef.current = true;
-    
-    // Get current user info
-    const currentUserId = userInfo.id;
-    const players = playersList || [];
-    
-    // Compute stored slot key and number
-    const storedSlotKey = `player_slot_${gameId}`;
-    const storedSlotNum = localStorage.getItem(storedSlotKey);
-    const slotNum = storedSlotNum ? parseInt(storedSlotNum) : null;
-    
-    // Update localStorage if user is in a slot (to keep it in sync)
-    let userSlotNum = null;
-    for (let i = 0; i < players.length; i++) {
-      const player = players[i];
-      if (player.info && player.info.id === currentUserId) {
-        userSlotNum = i + 1; // Slot numbers are 1-based
-        break;
-      }
-    }
-    
-    if (userSlotNum) {
-      // User is in a slot, update localStorage
-      localStorage.setItem(storedSlotKey, userSlotNum.toString());
-    } else {
-      // User is not in any slot, but only clear if we haven't attempted auto-join yet
-      if (autoJoinAttemptedRef.current) {
-        localStorage.removeItem(storedSlotKey);
-      }
-    }
-    
-    // Check if user should auto-join their previous slot after page refresh
-    // Only attempt once per connection
-    // Need to rejoin if:
-    // 1. Slot is empty (status 0) or occupied by someone else
-    // 2. Slot is connection-lost (status 2) - even if it's the same user, we need to rejoin to change status to occupied
-    if (!autoJoinAttemptedRef.current && slotNum) {
-      const slotIndex = slotNum - 1;
-      const playerInSlot = players[slotIndex];
-      const slotStatus = playerInSlot?.occupy || 0;          
-      const isUserInSlot = playerInSlot.info && playerInSlot.info.id === currentUserId;
-      const needsRejoin = !isUserInSlot || slotStatus === 2;
-      if (needsRejoin) {
-        autoJoinAttemptedRef.current = true;
-        // Wait a bit for WebSocket to be ready, then try to rejoin
-        setTimeout(() => {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log(`Auto-joining slot ${slotNum} after page refresh (status: ${slotStatus})`);
-            joinPlayerSlot(slotNum);
-          }
-        }, 500);
-      } else {
-        // User is already in the slot with occupied status, mark as attempted to prevent further checks
-        autoJoinAttemptedRef.current = true;
-      }
-    };
-  }
 
 // ========== 대화 렌더링 (페이지 지원) ==========
 function renderDialogue(speakerName, messageText, isDesc, isUnregistered) {
