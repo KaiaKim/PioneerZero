@@ -242,13 +242,14 @@
     min-width: 300px;
     height: 60vh;
     max-height: 750px;
-    display: flex;
+    display: none;
     align-items: flex-end;
     justify-content: center;
     margin-bottom: -10vh;
     transform-origin: bottom center;
     position: relative;
     z-index: 1;
+    background-color: #54e47380;
 }
 
 #standing-layer img {

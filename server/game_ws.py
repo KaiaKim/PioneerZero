@@ -236,13 +236,13 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             player_ids = [player['info']['id'] for player in game.players]
             if user_id in player_ids:
                 if command[0] == "위치" or command[0] == "pos":
-                    result, err = game.posM.declare_position(sender, command)
+                    result, err = game.posM.declare_position(user_id, command)
                 elif command[0] == "이동" or command[0] == "move":
-                    result, err = game.posM.move_player(sender, command)
+                    result, err = game.posM.move_player(user_id, command)
                 elif command[0] == "스킬" or command[0] == "skill":
-                    result, err = game.use_skill(sender, command)
+                    result, err = game.use_skill(user_id, command)
                 elif command[0] == "행동" or command[0] == "act":
-                    result, err = game.declare_action(sender, command)
+                    result, err = game.declare_action(user_id, command)
                 else:
                     err = "사용 가능한 전투 명령어: 위치, 이동, 스킬, 행동."
             else:
@@ -318,6 +318,9 @@ async def _phase_flow(game):
 async def kickoff(game):
     if not game.SlotM.are_all_players_ready():
         return False
+
+    # Save initial combat snapshot (one-time backup)
+    dbM.save_game_session(game)
     
     result = f"전투 {game.id}를 시작합니다."
     msg = dbM.save_chat(game.id, result)

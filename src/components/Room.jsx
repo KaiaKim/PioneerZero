@@ -31,7 +31,7 @@ function Room() {
         <Auth/>
       </div>
       <div className="left-panel">
-        <textarea id="vomit-box" readOnly value={vomitData}/>
+        <textarea id="vomit-box" readOnly value={vomitData ?? ''}/>
         <MP3/>
         <UserList users={users} />
         {showLoading && <Loading/>}

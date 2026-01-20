@@ -7,6 +7,7 @@ import sqlite3
 import os
 from datetime import datetime
 import asyncio
+import json
 
 
 
@@ -111,6 +112,7 @@ class DatabaseManager:
         self.DATABASE_PATH = 'main.db'
         self.conn = sqlite3.connect(self.DATABASE_PATH)
         self.cursor = self.conn.cursor()
+        self.create_game_sessions_table()
 
     def create_chat_table(self, game_id):
         self.cursor.execute(f'''
@@ -139,7 +141,7 @@ class DatabaseManager:
     def get_chat_tables(self):
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
         chat_tables = [row[0] for row in self.cursor.fetchall()]
-        return chat_tables
+        return [name for name in chat_tables if name != "rooms"]
 
     def get_chat_history(self, game_id, viewer_id=None, limit=None):
         query = f'SELECT chat_id, sender, time, content, sort, user_id FROM "{game_id}"'
@@ -161,13 +163,68 @@ class DatabaseManager:
         messages = self.cursor.fetchall()
         return messages
 
-    def restore_game_from_chat(self, game_id):
-        """Load a Game object from chat history. For now, creates a new Game instance."""
+    def restore_game_from_chat(self, game_id, game=None):
+        """No-op: load_game_session handles restore for now."""
+        return
+
+    def create_game_sessions_table(self):
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS rooms (
+                game_id TEXT PRIMARY KEY,
+                updated_at TEXT,
+                player_num INTEGER,
+                phase_sec INTEGER,
+                max_round INTEGER,
+                state_json TEXT
+            )
+        ''')
+        self.conn.commit()
+
+    def save_game_session(self, game):
+        updated_at = datetime.now().isoformat()
+        state_json = game.dict_to_json()
+        self.cursor.execute('''
+            INSERT INTO rooms (game_id, updated_at, player_num, phase_sec, max_round, state_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(game_id) DO UPDATE SET
+                updated_at = excluded.updated_at,
+                player_num = excluded.player_num,
+                phase_sec = excluded.phase_sec,
+                max_round = excluded.max_round,
+                state_json = excluded.state_json
+        ''', (
+            game.id,
+            updated_at,
+            game.player_num,
+            game.phase_sec,
+            game.max_rounds,
+            state_json
+        ))
+        self.conn.commit()
+
+    def load_game_session(self, game_id):
+        self.cursor.execute('''
+            SELECT state_json, player_num, phase_sec, max_round
+            FROM rooms
+            WHERE game_id = ?
+        ''', (game_id,))
+        row = self.cursor.fetchone()
+        if not row:
+            return None
+        state_json, player_num, phase_sec, max_round = row
         from .game_core import Game
-        # TODO: Reconstruct Game state from chat_history if needed
-        # For now, return a new Game instance with the game_id
-        game = Game(game_id)
+        game = Game.json_to_dict(state_json)
+        if player_num:
+            game.player_num = player_num
+        if phase_sec:
+            game.phase_sec = phase_sec
+        if max_round:
+            game.max_rounds = max_round
         return game
+
+    def get_room_ids(self):
+        self.cursor.execute("SELECT game_id FROM rooms")
+        return [row[0] for row in self.cursor.fetchall()]
 
     def kill_all_chat_tables(self):
         """Delete all tables in the main.db database."""
@@ -197,6 +254,7 @@ class DatabaseManager:
                     print(f"    Error dropping table {table_name}: {e}")
             
             self.conn.commit()
+            self.create_game_sessions_table()
             print(f"Successfully deleted {deleted_count} table(s).")
         except Exception as e:
             print(f"Error killing database: {e}")

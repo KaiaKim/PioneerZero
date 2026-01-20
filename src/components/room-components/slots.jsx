@@ -77,10 +77,13 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
 
   // Generate slot numbers dynamically based on players array length (4-8)
   const slotNumbers = Array.from({ length: players.length || 4 }, (_, i) => i + 1);
+  
+  // Calculate grid columns: game.player_num / 2
+  const gridColumns = Math.floor((players.length || 4) / 2);
 
   return (
     <div className="waiting-area" style={{ display: 'flex' }}>
-      <div className="waiting-grid">
+      <div className="waiting-grid" style={{ '--grid-columns': gridColumns }}>
         {slotNumbers.map((num) => {
           const status = getSlotStatus(num);
           const isEmpty = isSlotEmpty(num);
@@ -93,9 +96,13 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
           const tokenImage = status === 1 && player?.character?.token_image 
             ? player.character.token_image 
             : null;
+          
+          // Determine team class: first half = blue, second half = white
+          const totalPlayers = players.length || 4;
+          const teamClass = slotIndex < (totalPlayers / 2) ? 'teamBlue' : 'teamWhite';
 
           return (
-            <div key={num} className="waiting-cell">
+            <div key={num} className={`waiting-cell ${teamClass}`}>
               <div 
                 className={`waiting-thumbnail ${
                   status === 1 ? 'occupied' : 

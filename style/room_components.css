@@ -1,5 +1,17 @@
 /*
  * ============================================================================
+ * CSS VARIABLES
+ * ============================================================================
+ */
+:root {
+    --team-blue-bg: #1e3a8a;
+    --team-blue-text: white;
+    --team-white-bg: #eeeeee;
+    --team-white-text: black;
+}
+
+/*
+ * ============================================================================
  * INDEX / TABLE OF CONTENTS
  * ============================================================================
  * 
@@ -94,8 +106,9 @@
     width: 100%;
     margin: auto;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(var(--grid-columns, 2), 200px);
     gap: 10px;
+    justify-content: center;
 }
 
 .waiting-cell {
@@ -109,6 +122,26 @@
     background-color: #2a2a2a;
     min-height: 250px;
     gap: 10px;
+}
+
+.waiting-cell.teamWhite {
+    background-color: var(--team-white-bg);
+    color: var(--team-white-text);
+}
+
+.waiting-cell.teamWhite .waiting-name,
+.waiting-cell.teamWhite .waiting-ready-label {
+    color: var(--team-white-text);
+}
+
+.waiting-cell.teamBlue {
+    background-color: var(--team-blue-bg);
+    color: var(--team-blue-text);
+}
+
+.waiting-cell.teamBlue .waiting-name,
+.waiting-cell.teamBlue .waiting-ready-label {
+    color: var(--team-blue-text);
 }
 
 .waiting-thumbnail {
@@ -301,13 +334,13 @@
 }
 
 .floor-section.team-blue .cell {
-    background: #1e3a8a;
-    color: white;
+    background: var(--team-blue-bg);
+    color: var(--team-blue-text);
 }
 
 .floor-section.team-white .cell {
-    background: #eeeeee;
-    color: black;
+    background: var(--team-white-bg);
+    color: var(--team-white-text);
 }
 
 .token {

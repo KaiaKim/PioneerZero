@@ -1,6 +1,7 @@
 from . import game_bot
 import re
 import time
+import json
 
 class SlotManager():
     """
@@ -57,12 +58,14 @@ class SlotManager():
         
         # Slot is empty (status 0) - add player
         # Create player object with user_info and slot number
+        # Team logic: first half = blue (1), second half = white (0)
+        team = 1 if slot_idx < (self.game.player_num / 2) else 0  # 0=white, 1=blue
         player_obj = {
             'info': user_info,
             'character': game_bot.default_character,
             "slot": slot,
             'ready': False,  # Players must check ready checkbox
-            'team': slot % 2, # 0=white,1=blue
+            'team': team,
             'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
         }
         self.game.players[slot_idx] = player_obj
@@ -90,12 +93,14 @@ class SlotManager():
         }
         
         # Create player object with bot info and bot character
+        # Team logic: first half = blue (1), second half = white (0)
+        team = 1 if slot_idx < (self.game.player_num / 2) else 0  # 0=white, 1=blue
         player_obj = {
             'info': bot_info,
             'character': bot_character,
             'slot': slot,
             'ready': True, #bots are always ready
-            'team': slot % 2,  # 0=white, 1=blue
+            'team': team,
             'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
         }
         self.game.players[slot_idx] = player_obj
@@ -207,11 +212,12 @@ class PosManager():
     def declare_position(self, sender, command):
         result = None
         err = None
-
+        idx = self.game.SlotM.get_player_by_user_id(sender)-1
         position = command[1].strip().upper()
-        player = self.game.players[sender]
+        player = self.game.players[idx]
 
-        if command[1][0] in self.ROW_MAP:
+
+        if command[1][0] not in self.ROW_MAP:
             err = "유효하지 않은 열 번호입니다."
         
         if int(command[1][1]) not in (1, 2, 3, 4):
@@ -403,6 +409,67 @@ class Game():
     # ============================================
     # SECTION 7: Utility & Data Export
     # ============================================
+
+    def dict_to_json(self):
+        """Serialize the initial combat snapshot to JSON."""
+        def serialize_player(player, slot_num):
+            if not player:
+                return None
+            return {
+                "info": player.get("info"),
+                "character": player.get("character"),
+                "slot": player.get("slot", slot_num),
+                "team": player.get("team", slot_num % 2),
+                "occupy": player.get("occupy", 0),
+                "pos": player.get("pos")
+            }
+
+        payload = {
+            "id": self.id,
+            "player_num": self.player_num,
+            "players": [
+                serialize_player(player, idx + 1) for idx, player in enumerate(self.players)
+            ],
+            "game_board": self.game_board,
+            "current_round": self.current_round,
+            "connection_lost_timers": self.connection_lost_timers
+        }
+        return json.dumps(payload)
+
+    @classmethod
+    def json_to_dict(cls, json_blob):
+        """Deserialize initial combat snapshot JSON into a Game instance."""
+        data = json.loads(json_blob) if isinstance(json_blob, str) else json_blob
+        game_id = data.get("id")
+        player_num = data.get("player_num", 4)
+        game = cls(game_id, player_num)
+
+        players_data = data.get("players", [])
+        players = []
+        for idx in range(player_num):
+            slot_num = idx + 1
+            base_player = game.SlotM.player_factory(slot_num)
+            if idx < len(players_data) and players_data[idx]:
+                stored = players_data[idx]
+                base_player["info"] = stored.get("info")
+                base_player["character"] = stored.get("character")
+                base_player["slot"] = stored.get("slot", slot_num)
+                base_player["team"] = stored.get("team", slot_num % 2)
+                base_player["occupy"] = stored.get("occupy", 0)
+                base_player["pos"] = stored.get("pos")
+
+                info = base_player.get("info") or {}
+                is_bot = info.get("is_bot") or (
+                    info.get("id") and str(info.get("id")).startswith("bot_")
+                )
+                base_player["ready"] = True if is_bot else False
+            players.append(base_player)
+
+        game.players = players
+        game.game_board = data.get("game_board", game.game_board)
+        game.current_round = data.get("current_round", 0)
+        game.connection_lost_timers = data.get("connection_lost_timers", {})
+        return game
     
     def vomit(self):
         data = {

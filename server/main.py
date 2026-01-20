@@ -43,6 +43,11 @@ async def run_connection_lost_timeout_checks():
 async def startup_event():
     """Start background tasks on server startup"""
     asyncio.create_task(run_connection_lost_timeout_checks())
+    # Prototype: load all saved rooms from snapshot
+    for game_id in dbM.get_room_ids():
+        game = dbM.load_game_session(game_id)
+        if game:
+            rooms[game_id] = game
 
 
 # Main WebSocket endpoint - routes messages to appropriate handlers
