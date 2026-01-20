@@ -78,16 +78,151 @@ export function genChatMessage(chatMsg) {
 
 
 // ========== 대화 렌더링 (페이지 지원) ==========
+// ========== 전역 변수 (최소화) ==========
+let vdSettings = { charAssets: {}, charSettings: {}, isOverlayHidden: false };
+let typeInterval = null;
+let autoTurnTimeout = null;
+let currentEmotions = {};
+let lastSpeaker = null;
+let messageCounter = 0;
+let positionCheckInterval = null;
+let lastAdjustTime = 0;
+const ADJUST_THROTTLE = 500;
+let currentRenderId = 0;
+let initialLastMessageId = null;
+
+// [Logic] 엔진 초기화 상태
+let isEngineReady = false;
+let stabilizationTimer = null;
+let failSafeTimer = null;
+
+// [Debounce] 채팅 동기화
+let emotionSyncTimeout = null;
+
+// 페이지 넘김
+let dialoguePages = [];
+let currentPageIndex = 0;
+let isTyping = false;
+let currentFullText = "";
+let lastRenderedData = null;
+let resizeTimeout = null;
+let dialogueElements = {
+    root: null,
+    standingLayer: null,
+    uiLayer: null,
+    dialogueBox: null,
+    namePlate: null,
+    textArea: null,
+    nextArrow: null,
+};
+
+
+
 let dialogueCompleteCallback = null;
 let dialogueCompleteRenderId = 0;
+
+export function setDialogueElements(elements) {
+    dialogueElements = {
+        ...dialogueElements,
+        ...elements,
+    };
+}
+
+function getDialogueElements() {
+    return dialogueElements;
+}
+
+// ========== 텍스트 페이지 나누기 로직 ==========
+function paginateText(text, container) {
+  if (!text) return [];
+
+  const { root, dialogueBox } = getDialogueElements();
+  if (!root || !dialogueBox) return [text];
+
+  const pages = [];
+  const tempDiv = document.createElement("div");
+
+  const computedStyle = window.getComputedStyle(container);
+  tempDiv.style.width = computedStyle.width;
+  tempDiv.style.fontFamily = computedStyle.fontFamily;
+  tempDiv.style.fontSize = computedStyle.fontSize;
+  tempDiv.style.fontWeight = computedStyle.fontWeight;
+  tempDiv.style.lineHeight = computedStyle.lineHeight;
+  tempDiv.style.letterSpacing = computedStyle.letterSpacing;
+  tempDiv.style.whiteSpace = "pre-wrap";
+  tempDiv.style.wordBreak = "break-all";
+  tempDiv.style.position = "absolute";
+  tempDiv.style.visibility = "hidden";
+  tempDiv.style.left = "-9999px";
+
+  root.appendChild(tempDiv);
+
+  const boxStyle = window.getComputedStyle(dialogueBox);
+  let maxH = parseFloat(boxStyle.maxHeight) || parseFloat(boxStyle.height);
+  const paddingY =
+    parseFloat(boxStyle.paddingTop) + parseFloat(boxStyle.paddingBottom);
+  const borderY =
+    parseFloat(boxStyle.borderTopWidth) +
+    parseFloat(boxStyle.borderBottomWidth);
+  const availableHeight = maxH - paddingY - borderY - 2;
+
+  let remainingText = text;
+
+  while (remainingText.length > 0) {
+    let low = 0;
+    let high = remainingText.length;
+    let bestFit = 0;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      tempDiv.innerText = remainingText.substring(0, mid);
+
+      if (tempDiv.clientHeight <= availableHeight) {
+        bestFit = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    if (bestFit === 0) bestFit = 1;
+
+    pages.push(remainingText.substring(0, bestFit));
+    remainingText = remainingText.substring(bestFit);
+  }
+
+  tempDiv.remove();
+  return pages;
+}
 
 export function renderDialogue(speakerName, messageText, isDesc, isUnregistered, onComplete = null) {
     currentRenderId++;
     const thisRenderId = currentRenderId;
     dialogueCompleteCallback = onComplete;
     dialogueCompleteRenderId = thisRenderId;
+    const {
+      root,
+      standingLayer,
+      uiLayer,
+      namePlate,
+      textArea,
+      nextArrow,
+    } = getDialogueElements();
 
     if (vdSettings.isOverlayHidden) {
+      lastRenderedData = { speakerName, messageText, isDesc, isUnregistered };
+      if (onComplete) {
+        const delay = parseInt(vdSettings.autoTurnDelay) || 2500;
+        setTimeout(() => {
+          if (dialogueCompleteRenderId === thisRenderId) {
+            onComplete();
+          }
+        }, delay);
+      }
+      return;
+    }
+
+    if (!root || !standingLayer || !uiLayer || !namePlate || !textArea || !nextArrow) {
       lastRenderedData = { speakerName, messageText, isDesc, isUnregistered };
       if (onComplete) {
         const delay = parseInt(vdSettings.autoTurnDelay) || 2500;
@@ -114,12 +249,6 @@ export function renderDialogue(speakerName, messageText, isDesc, isUnregistered,
     cleanText = cleanText.replace(/^\d{1,2}:\d{2}\s?[AP]M[^:]+:\s*/gi, "");
     cleanText = cleanText.replace(/^\d{1,2}:\d{2}:\d{2}\s?[AP]M[^:]+:\s*/gi, "");
     cleanText = cleanText.replace(/^\d{1,2}:\d{2}\s?[^:]+:\s*/g, "");
-  
-    const standingLayer = shadow.getElementById("standing-layer");
-    const namePlate = shadow.getElementById("name-plate");
-    const textArea = shadow.getElementById("text-area");
-    const nextArrow = shadow.getElementById("next-arrow");
-    const uiLayer = shadow.getElementById("ui-layer");
   
     if (!uiLayer.hasAttribute("data-click-listener")) {
       uiLayer.addEventListener("click", handleDialogueClick);
@@ -187,7 +316,7 @@ export function renderDialogue(speakerName, messageText, isDesc, isUnregistered,
         currentPageIndex = 0;
         if (dialoguePages.length > 0) typePage(0);
         root.style.opacity = "1";
-        adjustVNPosition();
+        //adjustVNPosition(); // Position adjustment disabled for now
       } catch (error) {
         console.error("[VD Render] 페이지 나누기 오류:", error);
         textArea.innerText = cleanText;
@@ -199,8 +328,8 @@ export function renderDialogue(speakerName, messageText, isDesc, isUnregistered,
   function typePage(pageIndex) {
     if (pageIndex >= dialoguePages.length) return;
   
-    const textArea = shadow.getElementById("text-area");
-    const nextArrow = shadow.getElementById("next-arrow");
+    const { textArea, nextArrow } = getDialogueElements();
+    if (!textArea || !nextArrow) return;
     const textToType = dialoguePages[pageIndex];
     currentFullText = textToType;
   
@@ -235,10 +364,10 @@ export function renderDialogue(speakerName, messageText, isDesc, isUnregistered,
     
     isTyping = false;
   
-    const textArea = shadow.getElementById("text-area");
+    const { textArea, nextArrow } = getDialogueElements();
+    if (!textArea || !nextArrow) return;
     textArea.innerText = currentFullText;
   
-    const nextArrow = shadow.getElementById("next-arrow");
     if (currentPageIndex < dialoguePages.length - 1) {
       nextArrow.style.display = "none";
   

@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useGame } from '../../hooks/useGame';
+import { setDialogueElements } from '../../util';
 
 function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions }) {
   const { chatLogRef } = useGame();
@@ -72,14 +73,46 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
 }
 
 function ChatOverlay(){
+  const rootRef = useRef(null);
+  const standingLayerRef = useRef(null);
+  const uiLayerRef = useRef(null);
+  const dialogueBoxRef = useRef(null);
+  const namePlateRef = useRef(null);
+  const textAreaRef = useRef(null);
+  const nextArrowRef = useRef(null);
+
+  useEffect(() => {
+    setDialogueElements({
+      root: rootRef.current,
+      standingLayer: standingLayerRef.current,
+      uiLayer: uiLayerRef.current,
+      dialogueBox: dialogueBoxRef.current,
+      namePlate: namePlateRef.current,
+      textArea: textAreaRef.current,
+      nextArrow: nextArrowRef.current,
+    });
+
+    return () => {
+      setDialogueElements({
+        root: null,
+        standingLayer: null,
+        uiLayer: null,
+        dialogueBox: null,
+        namePlate: null,
+        textArea: null,
+        nextArrow: null,
+      });
+    };
+  }, []);
+
   return (
-    <div id="vn-container">
-        <div id="standing-layer"></div>
-        <div id="ui-layer">
-            <div id="name-plate"></div>
-            <div id="dialogue-box">
-                <div id="text-area"></div>
-                <div id="next-arrow"></div>
+    <div id="vn-container" ref={rootRef}>
+        <div id="standing-layer" ref={standingLayerRef}></div>
+        <div id="ui-layer" ref={uiLayerRef}>
+            <div id="name-plate" ref={namePlateRef}></div>
+            <div id="dialogue-box" ref={dialogueBoxRef}>
+                <div id="text-area" ref={textAreaRef}></div>
+                <div id="next-arrow" ref={nextArrowRef}></div>
             </div>
         </div>
     </div>

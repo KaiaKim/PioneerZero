@@ -108,7 +108,7 @@ class ConnectionManager:
 
 class DatabaseManager:
     def __init__(self):
-        self.DATABASE_PATH = 'chat.db'
+        self.DATABASE_PATH = 'main.db'
         self.conn = sqlite3.connect(self.DATABASE_PATH)
         self.cursor = self.conn.cursor()
 
@@ -170,7 +170,7 @@ class DatabaseManager:
         return game
 
     def kill_all_chat_tables(self):
-        """Delete all tables in the chat.db database."""
+        """Delete all tables in the main.db database."""
         try:
             # Check if database file exists
             if not os.path.exists(self.DATABASE_PATH):
