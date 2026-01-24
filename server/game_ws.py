@@ -6,6 +6,8 @@ import asyncio
 from .util import conM, dbM, timeM
 import time
 
+skill_list = ["스킬1", "스킬2", "스킬3", "스킬4"]
+
 async def handle_load_room(websocket: WebSocket, game):
     # Send users list to the requesting client
     await websocket.send_json({
@@ -235,16 +237,18 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         elif game.in_combat == True:
             player_ids = [player['info']['id'] for player in game.players]
             if user_id in player_ids:
-                if command[0] == "위치" or command[0] == "pos":
-                    result, err = game.posM.declare_position(user_id, command)
-                elif command[0] == "이동" or command[0] == "move":
-                    result, err = game.posM.move_player(user_id, command)
-                elif command[0] == "스킬" or command[0] == "skill":
-                    result, err = game.use_skill(user_id, command)
-                elif command[0] == "행동" or command[0] == "act":
-                    result, err = game.declare_action(user_id, command)
-                else:
-                    err = "사용 가능한 전투 명령어: 위치, 이동, 스킬, 행동."
+                if game.phase == "position_declaration":
+                    if command[0] == "위치" or command[0] == "pos":
+                        result, err = game.posM.declare_position(user_id, command)
+                elif game.phase == "action_declaration":
+                    if command[0] in skill_list:
+                        result, err = game.declare_skill(user_id, command)
+                        # TODO: add in action queue
+                    elif command[0] in ["근거리공격", "원거리공격", "대기"]:
+                        result, err = game.declare_attack(user_id, command)
+                        # TODO: add in action queue
+                    else:
+                        err = "사용 가능한 전투 명령어가 아닙니다."
             else:
                 err = "전투 명령어는 전투 참여자만 사용할 수 있습니다."
         

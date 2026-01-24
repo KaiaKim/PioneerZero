@@ -300,36 +300,6 @@ class PosManager():
         return True, None
 
 class Game():
-    """
-    METHOD INDEX:
-    =============
-    Combat Calculations:
-    ---------------------
-    [TODO] calculate_priority() - Calculate action priority (sen*10+mst, per*10+mst, etc.)
-    [TODO] calculate_attack_power() - Calculate attack power based on stats
-    [TODO] calculate_max_hp() - Calculate max HP (vtl*5+10)
-    [TODO] initialize_character_hp() - Initialize character HP
-    [TODO] calculate_all_priorities() - Calculate priorities for all actions
-    
-    Combat Validation:
-    ------------------
-    [TODO] check_range() - Check if attack is within valid range
-    [TODO] check_covering() - Check covering for ranged attacks
-    [TODO] get_valid_attack_tiles() - Get list of valid attack target tiles
-    [TODO] get_valid_move_tiles() - Get list of valid move destination tiles
-    [TODO] get_tile_feedback() - Get tile feedback info (attack/move valid tiles)
-    
-    Action Resolution:
-    ------------------
-    [TODO] declare_action() - Handle action declaration from player
-    [TODO] resolve_action() - Resolve and execute a single action
-    [TODO] resolve_all_actions() - Resolve all actions in action_queue
-    
-    Utility & Data Export:
-    ----------------------
-    ✓ vomit() - Export game state as dict
-    ✓ move_player() - Legacy move command handler (chat command)
-    """
     
     def __init__(self, id, player_num = 4):
         self.id = id
@@ -393,7 +363,19 @@ class Game():
     # TODO: calculate_all_priorities() - Calculate all action priorities
     # TODO: end_round() - End round and check win conditions
 
-    def declare_action(self, sender, command):
+    def declare_attack(self, sender, command):
+        result = None
+        err = None
+        
+        print("sender: ", sender)
+        print("command: ", command)
+        #action = command[1].strip().upper()
+        #player = self.game.players[sender]
+
+        result = "행동 선언 완료"
+        return result, err
+    
+    def declare_skill(self, sender, command):
         result = None
         err = None
 
@@ -405,7 +387,6 @@ class Game():
 
         result = "행동 선언 완료"
         return result, err
-    
     # ============================================
     # SECTION 7: Utility & Data Export
     # ============================================
