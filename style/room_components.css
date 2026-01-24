@@ -352,3 +352,29 @@
     object-fit: contain;
     pointer-events: none;
 }
+
+
+/* Action Queue */
+.action-queue {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 300px;
+    background-color: rgba(55, 143, 169, 0.5);
+    border-radius: 10px;
+    z-index: 100;
+    padding: 10px;
+}
+
+.action-queue.draggable {
+    cursor: grab;
+}
+
+.action-queue.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.action-queue input {
+    width: 80px;
+}

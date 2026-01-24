@@ -24,33 +24,15 @@ character = {
 class Game():
     def __init__(self, id, player_num=4):
         # ... 기존 코드 ...
-        
         self.combat_state = {
             'in_combat': False,
             'current_round': 0,
             'phase': 'preparation',  # 'preparation', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
-            'action_queue': [],
-            'resolved_actions': []
+            'action_queue': [],  # 공격과 스킬이 등록되는 큐 (즉시 실행되지 않음)
+            'resolved_actions': [],
+            'early_submission_pending': False  # 모든 플레이어가 일찍 제출한 경우 확정 대기 상태
         }
-        # 선언 데이터는 채팅 히스토리에서 파싱 (PLAN_WEBSOCKET.md 참고)
-        
-        # 전투 보드 (4x4): row_idx 0=Y, 1=X, 2=A, 3=B | col_idx 0-3 = 1-4
-        # XY = team 1 (blue), AB = team 0 (white)
-        self.combat_board = {
-            'Y1': None, 'Y2': None, 'Y3': None, 'Y4': None,
-            'X1': None, 'X2': None, 'X3': None, 'X4': None,
-            'A1': None, 'A2': None, 'A3': None, 'A4': None,
-            'B1': None, 'B2': None, 'B3': None, 'B4': None
-        }
-        
-        self.timer = {
-            'type': None,
-            'start_time': None,
-            'duration': None,
-            'is_running': False,
-            'paused_at': None,
-            'elapsed_before_pause': 0
-        }
+
 ```
 
 ### 1.3 데이터 구조
@@ -66,53 +48,15 @@ position_declaration = {
 
 action_data = {
     'slot': 1,
-    'action_type': 'melee_attack',  # 'melee_attack', 'ranged_attack', 'battlefield_move', 'wait'
-    'skill_chain': None,
-    'target': 'X2',
+    'action_type': 'melee_attack',  # 'melee_attack', 'ranged_attack', 'wait' (전장이동은 스킬로 처리)
+    'skill_chain': None,  # 스킬은 단독 사용 또는 공격과 조합 가능
+    'target': 'X2',  # 캐릭터 이름 또는 위치, 미지정 시 '자신'
     'target_slot': 2,
-    'move_to': 'A2',
     'priority': 44,
     'attack_power': 12,
     'resolved': False
 }
 ```
-
----
-
-## 2. 데이터 플로우
-
-### 2.1 전투 시작
-
-```
-1. 전투 시작 브로드캐스트 → 3초 후 FloorArea 전환
-2. 위치 선언 단계: `/위치 A1` (채팅 명령어, PLAN_WEBSOCKET.md 참고)
-3. 버팅 처리: 같은 위치 선언 시 나중 선언자가 인접 빈칸으로 이동
-4. 최종 위치 배치: combat_board 및 player['character']['pos'] 업데이트
-5. phase = 'preparation', round = 1
-```
-
-### 2.2 라운드 플로우
-
-1. 행동 선언: 60초 타이머, 채팅 명령어로 비밀 제출
-2. 우선도 계산: action_queue에 우선도 순 정렬
-3. 해결: action_queue 순차 처리, 결과 기록
-4. 라운드 종료: 전투 불능/승리 조건 체크
-
-### 2.3 우선도 계산
-
-- 근거리공격: sen*10 + mst
-- 원거리공격: per*10 + mst
-- 전장이동: (sen+per)*5 + mst
-- 대기: 100 + mst
-- 스킬 체인 보정 적용 후 내림차순 정렬
-
-### 2.4 행동 해결
-
-- 근거리공격: 전방↔전방, 사거리 1, 공격력 (per*2)+(sen*3)+5
-- 원거리공격: 사거리 2~3, 전방→전방 불가, 커버링 체크, 공격력 (per*3)+(sen*2)
-- 전장이동: 최대 1 거리, 같은 팀 셀만, 빈칸 확인
-- 대기: 특수 효과 적용
-
 ---
 
 ## 3. 핵심 로직 구현
@@ -121,6 +65,9 @@ action_data = {
 
 ```python
 def calculate_priority(self, slot, action_type, skill_chain=None):
+    """
+    공격 우선도 계산 (전장이동은 스킬로 처리되므로 제외)
+    """
     player = self.players[slot - 1]
     stats = player['character']['stats']
     
@@ -128,10 +75,9 @@ def calculate_priority(self, slot, action_type, skill_chain=None):
         base_priority = stats['sen'] * 10 + stats['mst']
     elif action_type == 'ranged_attack':
         base_priority = stats['per'] * 10 + stats['mst']
-    elif action_type == 'battlefield_move':
-        base_priority = (stats['sen'] + stats['per']) * 5 + stats['mst']
     elif action_type == 'wait':
         base_priority = 100 + stats['mst']
+    #else is not needed because no submission is already process as 'wait'
     
     if skill_chain:
         from server.skills import SKILLS
@@ -187,15 +133,22 @@ def is_back_row(self, pos: str) -> bool:
     r, _ = self.pos_to_rc(pos)
     return r == 0 or r == 3
 
-def check_move_validity(self, from_pos: str, to_pos: str, player_team: int) -> tuple[bool, str]:
+def check_move_validity(self, from_pos: str, to_pos: str, player_team: int, max_distance: int = 1) -> tuple[bool, str]:
+    """
+    이동 유효성 검사
+    max_distance: 최대 이동 거리 (기본값 1, 스킬에 따라 2 등으로 변경 가능)
+    """
     fr, fc = self.pos_to_rc(from_pos)
     tr, tc = self.pos_to_rc(to_pos)
     
     row_dist = abs(fr - tr)
     col_dist = abs(fc - tc)
     
-    if row_dist > 1 or col_dist > 1:
-        return False, "이동 거리 초과"
+    # 체비셰프 거리 (상하좌우 대각선 모두 포함)
+    distance = max(row_dist, col_dist)
+    
+    if distance > max_distance:
+        return False, f"이동 거리 초과 (최대 {max_distance}칸)"
     if row_dist == 0 and col_dist == 0:
         return False, "같은 위치"
     
@@ -258,10 +211,25 @@ def check_covering(self, attacker_pos, target_pos, attacker_team):
     return True, None
 ```
 
-### 3.6 행동 해결
+### 3.5.1 대상 지정 헬퍼
+
+```python
+def find_slot_by_name(self, character_name):
+    """캐릭터 이름으로 slot 찾기"""
+    for i, player in enumerate(self.players):
+        if player.get('character') and player['character'].get('name') == character_name:
+            return i + 1
+    return None
+```
+
+### 3.6 공격 해결
 
 ```python
 def resolve_action(self, action_data):
+    """
+    공격 해결 (전장이동은 스킬로 처리되므로 제외)
+    대상 지정: 캐릭터 이름 또는 위치, 미지정 시 '자신'
+    """
     slot = action_data['slot']
     action_type = action_data['action_type']
     player = self.players[slot - 1]
@@ -270,7 +238,25 @@ def resolve_action(self, action_data):
     result = {'slot': slot, 'action_type': action_type, 'success': False, 'message': '', 'damage_dealt': 0, 'target_hp_after': None}
     
     if action_type in ['melee_attack', 'ranged_attack']:
-        target_pos = action_data.get('target')
+        target = action_data.get('target', '자신')  # 미지정 시 '자신'
+        
+        # 대상이 캐릭터 이름인지 위치인지 판단
+        if target == '자신':
+            target_pos = attacker_pos
+            target_slot = slot
+        elif target in self.combat_board:
+            # 위치 지정
+            target_pos = target
+            occupant = self.combat_board.get(target_pos)
+            target_slot = occupant['slot'] if occupant else None
+        else:
+            # 캐릭터 이름 지정 - 현재 위치에서 찾기
+            target_slot = self.find_slot_by_name(target)
+            if target_slot:
+                target_pos = self.players[target_slot - 1]['character']['pos']
+            else:
+                return {**result, 'message': "대상 찾을 수 없음"}
+        
         if not target_pos:
             return {**result, 'message': "대상 미지정"}
         
@@ -280,32 +266,16 @@ def resolve_action(self, action_data):
         
         if action_type == 'ranged_attack' and not action_data.get('ignore_covering', False):
             covering_ok, covering_msg = self.check_covering(attacker_pos, target_pos, player['team'])
-                if not covering_ok:
+            if not covering_ok:
                 return {**result, 'message': covering_msg}
         
         attack_power = self.calculate_attack_power(slot, action_type, action_data.get('skill_chain'))
-        target_slot = action_data.get('target_slot')
         
         if target_slot:
             target_char = self.players[target_slot - 1]['character']
             damage = attack_power
             target_char['current_hp'] = max(0, target_char['current_hp'] - damage)
             return {**result, 'success': True, 'damage_dealt': damage, 'target_hp_after': target_char['current_hp']}
-    
-    elif action_type == 'battlefield_move':
-        move_to = action_data.get('move_to')
-        if not move_to:
-            return {**result, 'message': "목적지 미지정"}
-        
-        move_ok, move_msg = self.check_move_validity(attacker_pos, move_to, player['team'])
-        if not move_ok:
-            return {**result, 'message': move_msg}
-        
-        old_pos = attacker_pos
-        player['character']['pos'] = move_to
-        self.combat_board[old_pos] = None
-        self.combat_board[move_to] = {'slot': slot, 'name': player['character']['name'], 'team': player['team']}
-        return {**result, 'success': True, 'message': f"{old_pos}→{move_to}"}
     
     elif action_type == 'wait':
         return {**result, 'success': True, 'message': "대기"}
@@ -339,7 +309,11 @@ def get_valid_attack_tiles(self, slot, action_type):
             valid_tiles.append(target_pos)
     return valid_tiles
 
-def get_valid_move_tiles(self, slot):
+def get_valid_move_tiles(self, slot, max_distance: int = 1):
+    """
+    유효한 이동 타일 계산
+    max_distance: 최대 이동 거리 (스킬에 따라 다를 수 있음, 기본값 1)
+    """
     player = self.players[slot - 1]
     from_pos = player['character']['pos']
     player_team = player['team']
@@ -348,23 +322,31 @@ def get_valid_move_tiles(self, slot):
     
     valid_tiles = []
     fr, fc = self.pos_to_rc(from_pos)
-    for dr in [-1, 0, 1]:
-        for dc in [-1, 0, 1]:
+    # 체비셰프 거리로 체크 (상하좌우 대각선 모두 포함)
+    for dr in range(-max_distance, max_distance + 1):
+        for dc in range(-max_distance, max_distance + 1):
             if dr == 0 and dc == 0:
+                continue
+            # 체비셰프 거리 체크
+            if max(abs(dr), abs(dc)) > max_distance:
                 continue
             tr, tc = fr + dr, fc + dc
             if 0 <= tr < 4 and 0 <= tc < 4:
-            to_pos = self.rc_to_pos(tr, tc)
-                if self.check_move_validity(from_pos, to_pos, player_team)[0]:
-                valid_tiles.append(to_pos)
+                to_pos = self.rc_to_pos(tr, tc)
+                if self.check_move_validity(from_pos, to_pos, player_team, max_distance)[0]:
+                    valid_tiles.append(to_pos)
     return valid_tiles
 
 def get_tile_feedback(self, slot, action_type=None):
+    """
+    타일 피드백 (이동은 스킬로 처리되므로 action_type으로는 공격만)
+    """
     result = {'valid_attack_tiles': [], 'valid_move_tiles': []}
     if action_type in ['melee_attack', 'ranged_attack']:
         result['valid_attack_tiles'] = self.get_valid_attack_tiles(slot, action_type)
-    if action_type == 'battlefield_move' or action_type is None:
-        result['valid_move_tiles'] = self.get_valid_move_tiles(slot)
+    # 이동 타일은 스킬별로 계산 (스킬 시스템에서 처리)
+    if action_type is None:
+        result['valid_move_tiles'] = self.get_valid_move_tiles(slot)  # 기본 이동 스킬용
     return result
 ```
 
@@ -484,47 +466,12 @@ def initialize_character_hp(self, slot):
 ```
 
 
-**사용 예시:**
+**큐 시스템:**
+- 공격과 스킬은 즉시 실행되지 않고 큐에 등록됨
+- 효과, 우선도, 공격력이 미리 계산되어 표시됨
+- 플레이어는 확정 전에 큐에 등록된 내용을 미리 볼 수 있음
+- 모든 플레이어가 제한 시간 전에 제출하면 확정할지 묻는 알림창 표시
 
-1. **전투 시작**: 
-   - `start_combat()` 호출 (phase = 'position_declaration'로 설정)
-   - `get_combat_start_message()` → '전투를 시작합니다.'
-   - `start_position_declaration_phase()` → '위치 선언 페이즈입니다. 시작 위치를 선언해주세요.'
-
-2. **위치 선언 완료**: 
-   - `resolve_position_declarations()` 완료 후
-   - `start_action_declaration_phase()` → '라운드 {} 선언 페이즈입니다. 스킬과 행동을 선언해주세요.'.format(1), round = 1
-
-3. **행동 선언 완료**: 
-   - `check_all_declarations_complete()` 완료 후
-   - `start_resolution_phase()` → '라운드 {} 선언이 끝났습니다. 계산을 시작합니다.'.format(current_round)
-
-4. **해결 완료**: 
-   - `resolve_all_actions()` 완료 후
-   - `end_round()` → '라운드 {} 결과를 요약합니다.'.format(current_round) → 다음 라운드 action_declaration 또는 전투 종료
-
-**WebSocket 통합 (PLAN_WEBSOCKET.md 참고):**
-
-```python
-# game_ws.py 예시
-result = game.advance_combat_phase('action_declaration')
-if result['success']:
-    await conmanager.broadcast_to_game(game.id, {
-        "type": result['notification_type'],
-        "phase": result['phase'],
-        "round": result['round'],
-        "message": result['message'],
-        **result['additional_data']
-    })
-```
-
-**참고사항:**
-
-- 모든 메시지는 함수 내에서 하드코딩된 문자열로 정의됩니다.
-- 라운드 번호가 필요한 메시지는 `.format()`을 사용하여 동적으로 생성됩니다.
-- `advance_combat_phase()`는 실제 phase 전환을 담당하며, 메시지와 notification_type을 반환합니다.
-- `get_round_summary_message()`는 phase를 변경하지 않고 메시지만 반환합니다 (라운드 종료 시).
-- 실제 WebSocket 전송은 `game_ws.py`에서 처리합니다 (PLAN_WEBSOCKET.md 참고).
 
 ---
 
@@ -586,32 +533,4 @@ if result['success']:
     ]
 }
 ```
-
-**버팅 규칙**: 같은 위치 선언 시 나중 선언자가 인접 빈칸(없으면 전체 빈칸)으로 이동
-
----
-
-## 5. 구현 단계
-
-### Phase 1: 데이터 구조 확장
-
-1. `Game.__init__()`에 `combat_state`, `combat_board`, `timer` 추가
-2. 캐릭터 데이터에 `max_hp` 필드 추가
-
-### Phase 2: 핵심 계산 함수
-
-1. `calculate_priority()`, `calculate_attack_power()`
-2. 좌표 헬퍼: `pos_to_rc()`, `rc_to_pos()`, `is_front_row()`, `is_back_row()`
-3. `check_range()`, `check_covering()`, `check_move_validity()`
-4. `get_valid_attack_tiles()`, `get_valid_move_tiles()`, `get_tile_feedback()`
-5. `calculate_max_hp()`, `initialize_character_hp()`
-
-### Phase 3: 전투 플로우
-
-1. `start_combat()`: phase = 'position_declaration'
-2. 위치 선언: `parse_position_declaration_from_chat()`, `resolve_position_declarations()` (채팅 파싱은 PLAN_WEBSOCKET.md 참고)
-3. 행동 선언: `start_action_declaration_phase()`, `parse_action_declaration_from_chat()`, 타이머 처리 (채팅 파싱은 PLAN_WEBSOCKET.md 참고)
-4. 우선도 계산: `calculate_all_priorities()`, `action_queue` 정렬
-5. 행동 해결: `resolve_action()`
-6. 라운드 종료: `end_round()`, 전투 불능/승리 조건 체크
 

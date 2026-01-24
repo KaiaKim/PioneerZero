@@ -8,6 +8,7 @@ import {ChatBox, ChatOverlay} from './room-components/chat';
 import MP3 from './room-components/mp3';
 import UserList from './room-components/userList';
 import Loading from './room-components/loading';
+import ActionQueue from './room-components/que';
 import '../../style/global.css';
 import '../../style/room.css';
 import '../../style/room_components.css';
@@ -44,6 +45,8 @@ function Room() {
       <div className="right-panel">
         <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} />
       </div>
+      <ActionQueue/>
+
     </div>
   );
 }
