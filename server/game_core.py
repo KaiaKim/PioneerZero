@@ -335,6 +335,38 @@ class Game():
         self.resolved_actions = []
 
         
+    def _build_action_data(self, slot, action_type, skill_chain=None, target="자신"):
+        return {
+            "slot": slot,
+            "action_type": action_type,
+            "skill_chain": skill_chain,
+            "target": target,
+            "target_slot": None,
+            "priority": None,
+            "attack_power": None,
+            "resolved": False
+        }
+
+    def _upsert_action_queue(self, action_data):
+        slot = action_data.get("slot")
+        if slot is None:
+            return
+        self.action_queue = [
+            action for action in self.action_queue if action.get("slot") != slot
+        ]
+        self.action_queue.append(action_data)
+
+    def get_action_submission_status(self):
+        submitted_slots = {action.get("slot") for action in self.action_queue}
+        status_list = []
+        for idx in range(self.player_num):
+            slot = idx + 1
+            status_list.append({
+                "slot": slot,
+                "submitted": slot in submitted_slots
+            })
+        return status_list
+
 
     # ============================================
     # SECTION 3: Combat Calculations
@@ -367,10 +399,26 @@ class Game():
         result = None
         err = None
         
-        print("sender: ", sender)
-        print("command: ", command)
-        #action = command[1].strip().upper()
-        #player = self.game.players[sender]
+        slot = self.SlotM.get_player_by_user_id(sender)
+        if not slot:
+            err = "플레이어 슬롯을 찾을 수 없습니다."
+            return result, err
+
+        action_map = {
+            "근거리공격": "melee_attack",
+            "원거리공격": "ranged_attack",
+            "대기": "wait"
+        }
+        action_type = action_map.get(command[0])
+        if not action_type:
+            err = "유효하지 않은 행동입니다."
+            return result, err
+
+        target = "자신"
+        if len(command) > 1:
+            target = command[1].strip()
+        action_data = self._build_action_data(slot, action_type, target=target)
+        self._upsert_action_queue(action_data)
 
         result = "행동 선언 완료"
         return result, err
@@ -379,11 +427,22 @@ class Game():
         result = None
         err = None
 
+        slot = self.SlotM.get_player_by_user_id(sender)
+        if not slot:
+            err = "플레이어 슬롯을 찾을 수 없습니다."
+            return result, err
 
-        print("sender: ", sender)
-        print("command: ", command)
-        #action = command[1].strip().upper()
-        #player = self.game.players[sender]
+        skill_name = command[0]
+        target = "자신"
+        if len(command) > 1:
+            target = command[1].strip()
+        action_data = self._build_action_data(
+            slot,
+            "skill",
+            skill_chain=skill_name,
+            target=target
+        )
+        self._upsert_action_queue(action_data)
 
         result = "행동 선언 완료"
         return result, err

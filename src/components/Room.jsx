@@ -16,7 +16,7 @@ import '../../style/chat.css';
 
 
 function Room() {
-  const { vomitData, chatMessages, characters, users, players, actions, offsetCountdown, combatStarted, phaseCountdown } = useGame();
+  const { vomitData, chatMessages, characters, users, players, actions, offsetCountdown, combatStarted, phaseCountdown, actionSubmissionStatus } = useGame();
   const { user } = useAuth();
   const [chatInput, setChatInput] = useState('');
   const chatInputRef = useRef(null);
@@ -45,7 +45,7 @@ function Room() {
       <div className="right-panel">
         <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} />
       </div>
-      <ActionQueue/>
+      <ActionQueue players={players} actionSubmissionStatus={actionSubmissionStatus} />
 
     </div>
   );

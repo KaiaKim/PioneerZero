@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const ActionQueue = () => {
+const ActionQueue = ({ players = [], actionSubmissionStatus = [] }) => {
   const containerRef = useRef(null);
   const dragState = useRef({ active: false, offsetX: 0, offsetY: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +69,16 @@ const ActionQueue = () => {
     };
   }, []);
 
+  const submissionBySlot = useMemo(() => {
+    const map = new Map();
+    for (const entry of actionSubmissionStatus || []) {
+      if (entry && typeof entry.slot === "number") {
+        map.set(entry.slot, entry.submitted === true);
+      }
+    }
+    return map;
+  }, [actionSubmissionStatus]);
+
   const handlePointerDown = (event) => {
     if (event.button !== 0) {
       return;
@@ -108,6 +118,30 @@ const ActionQueue = () => {
       }
     >
       <h3>Action Queue</h3>
+      {players.length > 0 && (
+        <div className="action-queue-status">
+          <div className="action-queue-status-title">제출 현황</div>
+          <ul>
+            {players.map((player, index) => {
+              const slot = player?.slot ?? index + 1;
+              const name =
+                player?.character?.name ||
+                player?.info?.name ||
+                `Slot ${slot}`;
+              const submitted = submissionBySlot.get(slot) === true;
+              return (
+                <li
+                  key={slot}
+                  className={submitted ? "submitted" : "pending"}
+                >
+                  <span>{name}</span>
+                  <span>{submitted ? "제출" : "미제출"}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       <div>
         <label>공격:</label>
         <select>

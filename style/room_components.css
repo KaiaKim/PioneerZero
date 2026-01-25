@@ -366,6 +366,35 @@
     padding: 10px;
 }
 
+.action-queue-status {
+    margin-bottom: 10px;
+}
+
+.action-queue-status-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.action-queue-status ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.action-queue-status li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.action-queue-status li.submitted {
+    opacity: 0.85;
+}
+
+.action-queue-status li.pending {
+    opacity: 0.6;
+}
+
 .action-queue.draggable {
     cursor: grab;
 }

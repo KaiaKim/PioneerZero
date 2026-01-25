@@ -28,7 +28,7 @@ async def handle_load_room(websocket: WebSocket, game):
             'in_combat': game.in_combat,
             'current_round': game.current_round,
             'phase': game.phase,
-            'action_queue': game.action_queue,
+            'action_submission_status': game.get_action_submission_status(),
             'resolved_actions': game.resolved_actions
         }
     })
@@ -243,10 +243,18 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
                 elif game.phase == "action_declaration":
                     if command[0] in skill_list:
                         result, err = game.declare_skill(user_id, command)
-                        # TODO: add in action queue
+                        if result and not err:
+                            await conM.broadcast_to_game(game.id, {
+                                "type": "action_submission_update",
+                                "action_submission_status": game.get_action_submission_status()
+                            })
                     elif command[0] in ["근거리공격", "원거리공격", "대기"]:
                         result, err = game.declare_attack(user_id, command)
-                        # TODO: add in action queue
+                        if result and not err:
+                            await conM.broadcast_to_game(game.id, {
+                                "type": "action_submission_update",
+                                "action_submission_status": game.get_action_submission_status()
+                            })
                     else:
                         err = "사용 가능한 전투 명령어가 아닙니다."
             else:
@@ -362,9 +370,14 @@ async def start_round(game):
 
 async def action_declaration(game):
     game.phase = 'action_declaration'
+    game.action_queue = []
     result = f'스킬과 행동을 선언해주세요.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
+    await conM.broadcast_to_game(game.id, {
+        "type": "action_submission_update",
+        "action_submission_status": game.get_action_submission_status()
+    })
 
 async def action_resolution(game):
     game.phase = 'resolution'

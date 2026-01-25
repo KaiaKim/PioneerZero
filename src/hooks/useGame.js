@@ -18,6 +18,7 @@ export function useGame() {
   const [users, setUsers] = useState([]);
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(userInfo.name);
+  const [actionSubmissionStatus, setActionSubmissionStatus] = useState([]);
   const [offsetCountdown, setOffsetCountdown] = useState(null); // Offset countdown seconds (3, 2, 1, or null)
   const [combatStarted, setCombatStarted] = useState(null); // Flag to track if combat has started
   const [phaseCountdown, setPhaseCountdown] = useState(null); // Phase timer seconds or null
@@ -84,6 +85,7 @@ export function useGame() {
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);
+        setActionSubmissionStatus(msg.combat_state?.action_submission_status || []);
       } else if (msg.type === "offset_timer") {
         if (msg.seconds > 0) {
           setOffsetCountdown(msg.seconds);
@@ -102,6 +104,8 @@ export function useGame() {
           phaseCountdownRef.current = null;
           setPhaseCountdown(null);
         }
+      } else if (msg.type === "action_submission_update") {
+        setActionSubmissionStatus(msg.action_submission_status || []);
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -333,6 +337,7 @@ export function useGame() {
     offsetCountdown,
     phaseCountdown,
     combatStarted,
+    actionSubmissionStatus,
     chatLogRef,
     // Actions grouped together
     actions
