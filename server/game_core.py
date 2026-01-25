@@ -397,19 +397,16 @@ class Game():
 
     def declare_attack(self, sender, command):
         result = None
+        action_type = None
+        target = "자신"
         err = None
         
         slot = self.SlotM.get_player_by_user_id(sender)
         if not slot:
             err = "플레이어 슬롯을 찾을 수 없습니다."
-            return result, err
 
         action_type = command[0]
-        if action_type not in {"근거리공격", "원거리공격", "대기"}:
-            err = "유효하지 않은 행동입니다."
-            return result, err
 
-        target = "자신"
         if len(command) > 1:
             target = command[1].strip()
         action_data = self._build_action_data(slot, action_type, target=target)
@@ -424,29 +421,12 @@ class Game():
         #   "target": <target_id_or_name>,
         #   ... (other fields as needed)
         # }
-        result = action_data
-        return result, err
+        result = '행동 선언 완료: ' + command
+        return result, action_data, err
     
     def declare_skill(self, sender, command):
         result = None
         err = None
-
-        slot = self.SlotM.get_player_by_user_id(sender)
-        if not slot:
-            err = "플레이어 슬롯을 찾을 수 없습니다."
-            return result, err
-
-        skill_name = command[0]
-        target = "자신"
-        if len(command) > 1:
-            target = command[1].strip()
-        action_data = self._build_action_data(
-            slot,
-            "skill",
-            skill_chain=skill_name,
-            target=target
-        )
-        self._upsert_action_queue(action_data)
 
         result = "행동 선언 완료"
         return result, err

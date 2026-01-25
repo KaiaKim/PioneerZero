@@ -87,7 +87,7 @@ export function useGame() {
       } else if (msg.type === "combat_state") {
         console.log('Combat state received:', msg.combat_state);
         setCombatStarted(msg.combat_state?.in_combat || false);
-        setActionSubmissionStatus(msg.combat_state?.action_submission_status || []);
+        setActionSubmissionStatus(msg.combat_state?.submitted || []);
       } else if (msg.type === "offset_timer") {
         if (msg.seconds > 0) {
           setOffsetCountdown(msg.seconds);
@@ -107,7 +107,7 @@ export function useGame() {
           setPhaseCountdown(null);
         }
       } else if (msg.type === "action_submission_update") {
-        setActionSubmissionStatus(msg.action_submission_status || []);
+        setActionSubmissionStatus(msg.submitted || []);
       } else if (msg.type === "declared_attack") {
         // Check if this declared attack is for the current user
         const currentUserId = userInfo.id;

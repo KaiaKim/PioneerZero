@@ -28,7 +28,7 @@ async def handle_load_room(websocket: WebSocket, game):
             'in_combat': game.in_combat,
             'current_round': game.current_round,
             'phase': game.phase,
-            'action_submission_status': game.get_action_submission_status(),
+            'submitted': game.get_action_submission_status(),
             'resolved_actions': game.resolved_actions
         }
     })
@@ -219,9 +219,6 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     secret_msg = None
 
     if content[0] == "/": #we've already checked if content is not empty
-        # Save the user's command as secret (only visible to the user)
-        secret_msg = dbM.save_chat(game.id, content, sender=sender, sort="secret", user_id=user_id)
-        
         # Handle commands
         command = content[1:].split()
         result = None
@@ -242,23 +239,22 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
                         result, err = game.posM.declare_position(user_id, command)
                 elif game.phase == "action_declaration":
                     if command[0] in ["근거리공격", "원거리공격", "대기"]:
-                        submit, err = game.declare_attack(user_id, command)
-                        if submit and not err:
-                            result = '행동 선언 완료'
+                        result, action_data, err = game.declare_attack(user_id, command)
+                        if result and not err:
                             await websocket.send_json({
                                 "type": "declared_attack",
-                                "attack_info": submit
+                                "attack_info": action_data
                             })
                             await conM.broadcast_to_game(game.id, {
                                 "type": "action_submission_update",
-                                "action_submission_status": game.get_action_submission_status()
+                                "submitted": game.get_action_submission_status()
                             })
                     elif command[0] in skill_list:
                         result, err = game.declare_skill(user_id, command)
                         if result and not err:
                             await conM.broadcast_to_game(game.id, {
                                 "type": "action_submission_update",
-                                "action_submission_status": game.get_action_submission_status()
+                                "submitted": game.get_action_submission_status()
                             })
 
                     else:
@@ -268,7 +264,8 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
         
         # Save and broadcast the result as system message (visible to all)
         if result:
-            msg = dbM.save_chat(game.id, result, user_id=user_id)
+            secret_msg = dbM.save_chat(game.id, result, sender=sender, sort="secret", user_id=user_id)
+            # Save the user's command as secret (only visible to the user)
         if err:
             msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)
         if not result and not err:
@@ -381,7 +378,7 @@ async def action_declaration(game):
     await conM.broadcast_to_game(game.id, msg)
     await conM.broadcast_to_game(game.id, {
         "type": "action_submission_update",
-        "action_submission_status": game.get_action_submission_status()
+        "submitted": game.get_action_submission_status()
     })
 
 async def action_resolution(game):
