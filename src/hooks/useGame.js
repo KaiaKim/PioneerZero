@@ -19,6 +19,7 @@ export function useGame() {
   const [players, setPlayers] = useState([]); // Array of player objects: {info, character, slot, team, occupy, pos}
   const [userName, setUserName] = useState(userInfo.name);
   const [actionSubmissionStatus, setActionSubmissionStatus] = useState([]);
+  const [declaredAttack, setDeclaredAttack] = useState(null); // Current user's declared attack info
   const [offsetCountdown, setOffsetCountdown] = useState(null); // Offset countdown seconds (3, 2, 1, or null)
   const [combatStarted, setCombatStarted] = useState(null); // Flag to track if combat has started
   const [phaseCountdown, setPhaseCountdown] = useState(null); // Phase timer seconds or null
@@ -27,6 +28,7 @@ export function useGame() {
   const autoJoinAttemptedRef = useRef(false);
   const plListReceivedRef = useRef(false);
   const phaseCountdownRef = useRef(null);
+  const playersRef = useRef([]);
   const chatQue = useRef([]);
   const isOverlayBusy = useRef(false);
 
@@ -106,6 +108,18 @@ export function useGame() {
         }
       } else if (msg.type === "action_submission_update") {
         setActionSubmissionStatus(msg.action_submission_status || []);
+      } else if (msg.type === "declared_attack") {
+        // Check if this declared attack is for the current user
+        const currentUserId = userInfo.id;
+        const attackInfo = msg.attack_info;
+        if (attackInfo && attackInfo.slot) {
+          // Find if this slot belongs to the current user
+          const currentPlayers = playersRef.current || [];
+          const playerInSlot = currentPlayers.find(p => p?.slot === attackInfo.slot);
+          if (playerInSlot?.info?.id === currentUserId) {
+            setDeclaredAttack(attackInfo);
+          }
+        }
       } else if (msg.type === "no_game") {
         console.log('No active game found');
       }
@@ -221,7 +235,9 @@ export function useGame() {
 
   // Handle players_list message
   const handlePlayersList = (playersList) => {
-    setPlayers(playersList || []);
+    const playersArray = playersList || [];
+    setPlayers(playersArray);
+    playersRef.current = playersArray;
     plListReceivedRef.current = true;
     
     // Get current user info
@@ -338,6 +354,7 @@ export function useGame() {
     phaseCountdown,
     combatStarted,
     actionSubmissionStatus,
+    declaredAttack,
     chatLogRef,
     // Actions grouped together
     actions

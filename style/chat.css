@@ -234,6 +234,7 @@
     align-items: center;
     transition: all 0.3s ease;
     max-width: 90vw;
+    pointer-events: none;
 }
 
 #standing-layer {
@@ -265,8 +266,6 @@
     min-width: 400px;
     position: relative;
     z-index: 2;
-    pointer-events: auto;
-    cursor: pointer;
 }
 
 #name-plate {
@@ -300,6 +299,8 @@
     overflow: hidden;
     position: relative;
     z-index: 5;
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 #text-area {

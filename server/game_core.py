@@ -326,7 +326,7 @@ class Game():
 
         self.offset_sec = 3
         self.phase_sec = 10
-        self.max_rounds = 4
+        self.max_rounds = 100
 
         self.in_combat = False
         self.current_round = 0
@@ -404,13 +404,8 @@ class Game():
             err = "플레이어 슬롯을 찾을 수 없습니다."
             return result, err
 
-        action_map = {
-            "근거리공격": "melee_attack",
-            "원거리공격": "ranged_attack",
-            "대기": "wait"
-        }
-        action_type = action_map.get(command[0])
-        if not action_type:
+        action_type = command[0]
+        if action_type not in {"근거리공격", "원거리공격", "대기"}:
             err = "유효하지 않은 행동입니다."
             return result, err
 
@@ -420,7 +415,16 @@ class Game():
         action_data = self._build_action_data(slot, action_type, target=target)
         self._upsert_action_queue(action_data)
 
-        result = "행동 선언 완료"
+        # action_data is expected to be a dictionary containing the declared action's details,
+        # such as the player's slot, action type, target, and other action-specific data.
+        # For example:
+        # {
+        #   "slot": <player_slot_number>,
+        #   "type": "근거리공격" | "원거리공격" | "대기",
+        #   "target": <target_id_or_name>,
+        #   ... (other fields as needed)
+        # }
+        result = action_data
         return result, err
     
     def declare_skill(self, sender, command):

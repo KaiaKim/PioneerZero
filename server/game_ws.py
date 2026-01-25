@@ -241,20 +241,26 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
                     if command[0] == "위치" or command[0] == "pos":
                         result, err = game.posM.declare_position(user_id, command)
                 elif game.phase == "action_declaration":
-                    if command[0] in skill_list:
+                    if command[0] in ["근거리공격", "원거리공격", "대기"]:
+                        submit, err = game.declare_attack(user_id, command)
+                        if submit and not err:
+                            result = '행동 선언 완료'
+                            await websocket.send_json({
+                                "type": "declared_attack",
+                                "attack_info": submit
+                            })
+                            await conM.broadcast_to_game(game.id, {
+                                "type": "action_submission_update",
+                                "action_submission_status": game.get_action_submission_status()
+                            })
+                    elif command[0] in skill_list:
                         result, err = game.declare_skill(user_id, command)
                         if result and not err:
                             await conM.broadcast_to_game(game.id, {
                                 "type": "action_submission_update",
                                 "action_submission_status": game.get_action_submission_status()
                             })
-                    elif command[0] in ["근거리공격", "원거리공격", "대기"]:
-                        result, err = game.declare_attack(user_id, command)
-                        if result and not err:
-                            await conM.broadcast_to_game(game.id, {
-                                "type": "action_submission_update",
-                                "action_submission_status": game.get_action_submission_status()
-                            })
+
                     else:
                         err = "사용 가능한 전투 명령어가 아닙니다."
             else:
@@ -265,7 +271,6 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             msg = dbM.save_chat(game.id, result, user_id=user_id)
         if err:
             msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)
-
         if not result and not err:
             err = "명령어를 잘못 입력했습니다. 다시 시도해주세요."
             msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)

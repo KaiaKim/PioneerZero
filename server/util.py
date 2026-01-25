@@ -67,7 +67,7 @@ class ConnectionManager:
             self.connection_to_game.pop(dead_conn, None)
             if dead_conn in self.active_connections:
                 self.active_connections.remove(dead_conn)
-    
+
     async def broadcast_to_game(self, game_id: str, message: dict):
         """Broadcast message only to connections in a specific game"""
         if game_id not in self.game_connections:

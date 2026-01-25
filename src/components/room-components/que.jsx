@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const ActionQueue = ({ players = [], actionSubmissionStatus = [] }) => {
+const ActionQueue = ({ players = [], actionSubmissionStatus = [], declaredAttack = null }) => {
   const containerRef = useRef(null);
+  const attackTypeSelectRef = useRef(null);
+  const attackTargetInputRef = useRef(null);
   const dragState = useRef({ active: false, offsetX: 0, offsetY: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [showGlow, setShowGlow] = useState(false);
   const [position, setPosition] = useState(() => {
     if (typeof window === "undefined") {
       return null;
@@ -102,9 +105,41 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [] }) => {
     event.preventDefault();
   };
 
+  // Update form fields when declaredAttack changes
+  useEffect(() => {
+    if (declaredAttack && attackTypeSelectRef.current && attackTargetInputRef.current) {
+      const actionType = declaredAttack.action_type || declaredAttack.type;
+      if (actionType && ["근거리공격", "원거리공격", "대기"].includes(actionType)) {
+        attackTypeSelectRef.current.value = actionType;
+      }
+      if (declaredAttack.target) {
+        attackTargetInputRef.current.value = declaredAttack.target;
+      }
+      
+      // Trigger glow animation
+      setShowGlow(true);
+      const timer = setTimeout(() => {
+        setShowGlow(false);
+      }, 600); // Match animation duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [declaredAttack]);
+
+  const playerCount = players.length;
+  const submittedCount = useMemo(() => {
+    if (!playerCount) {
+      return 0;
+    }
+    return players.reduce((count, player, index) => {
+      const slot = player?.slot ?? index + 1;
+      return submissionBySlot.get(slot) === true ? count + 1 : count;
+    }, 0);
+  }, [players, playerCount, submissionBySlot]);
+
   return (
     <div
-      className={`action-queue ${isDragging ? "is-dragging" : "draggable"}`}
+      className={`action-queue ${isDragging ? "is-dragging" : "draggable"} ${showGlow ? "glow-animation" : ""}`}
       ref={containerRef}
       onPointerDown={handlePointerDown}
       style={
@@ -118,39 +153,15 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [] }) => {
       }
     >
       <h3>Action Queue</h3>
-      {players.length > 0 && (
-        <div className="action-queue-status">
-          <div className="action-queue-status-title">제출 현황</div>
-          <ul>
-            {players.map((player, index) => {
-              const slot = player?.slot ?? index + 1;
-              const name =
-                player?.character?.name ||
-                player?.info?.name ||
-                `Slot ${slot}`;
-              const submitted = submissionBySlot.get(slot) === true;
-              return (
-                <li
-                  key={slot}
-                  className={submitted ? "submitted" : "pending"}
-                >
-                  <span>{name}</span>
-                  <span>{submitted ? "제출" : "미제출"}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
       <div>
         <label>공격:</label>
-        <select>
-          <option value="melee_attack">근거리 공격</option>
-          <option value="ranged_attack">원거리 공격</option>
-          <option value="wait">대기</option>
+        <select ref={attackTypeSelectRef} className="action-queue-attack-type">
+          <option value="근거리공격">근거리 공격</option>
+          <option value="원거리공격">원거리 공격</option>
+          <option value="대기">대기</option>
         </select>
         <label>공격대상:</label>
-        <input type="text" placeholder="예: Y1" />
+        <input ref={attackTargetInputRef} className="action-queue-attack-target" type="text" placeholder="예: Y1" />
       </div>
       <div>
         <label>스킬:</label>
@@ -163,9 +174,16 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [] }) => {
         <label>스킬 대상:</label>
         <input type="text" placeholder="자신"/>
       </div>
-      <div><label>우선도:</label></div>
-      <div><label>공격력:</label></div>
-      <div><label>효과:</label></div>
+      <div><label className="action-queue-priority">우선도:0</label><label className="action-queue-attack-power"> 공격력:0</label></div>
+      <div><label className="action-queue-effect">효과:</label></div>
+      {playerCount > 0 && (
+        <div className="action-queue-status">
+          제출현황: {submittedCount}/{playerCount}
+        </div>
+      )}
+      <label>빠른진행:</label>
+      <input type="checkbox" />
+
     </div>
   );
 };

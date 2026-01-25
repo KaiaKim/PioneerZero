@@ -366,35 +366,6 @@
     padding: 10px;
 }
 
-.action-queue-status {
-    margin-bottom: 10px;
-}
-
-.action-queue-status-title {
-    font-weight: bold;
-    margin-bottom: 4px;
-}
-
-.action-queue-status ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.action-queue-status li {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-}
-
-.action-queue-status li.submitted {
-    opacity: 0.85;
-}
-
-.action-queue-status li.pending {
-    opacity: 0.6;
-}
-
 .action-queue.draggable {
     cursor: grab;
 }
@@ -406,4 +377,27 @@
 
 .action-queue input {
     width: 80px;
+}
+
+.action-queue-priority, .action-queue-attack-power {
+    display: inline-flex;
+    width: 40%;
+    
+}
+
+/* Action Queue Glow Animation */
+@keyframes action-queue-glow {
+    0% {
+        box-shadow: inset 0 0 0 0 rgba(255, 255, 0, 0);
+    }
+    50% {
+        box-shadow: inset 0 0 20px 10px rgba(248, 255, 183, 0.8), inset 0 0 40px 20px rgba(248, 255, 183, 0.8);
+    }
+    100% {
+        box-shadow: inset 0 0 0 0 rgba(255, 255, 0, 0);
+    }
+}
+
+.action-queue.glow-animation {
+    animation: action-queue-glow 0.2s ease-in-out;
 }
