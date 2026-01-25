@@ -160,7 +160,7 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [], declaredAttack
           <option value="원거리공격">원거리 공격</option>
           <option value="대기">대기</option>
         </select>
-        <label>공격대상:</label>
+        <label>대상:</label>
         <input ref={attackTargetInputRef} className="action-queue-attack-target" type="text" placeholder="예: Y1" />
       </div>
       <div>
@@ -171,18 +171,23 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [], declaredAttack
           <option value="skill3">스킬3</option>
           <option value="skill4">스킬4</option>
         </select>
-        <label>스킬 대상:</label>
+        <label>대상:</label>
         <input type="text" placeholder="자신"/>
       </div>
-      <div><label className="action-queue-priority">우선도:0</label><label className="action-queue-attack-power"> 공격력:0</label></div>
-      <div><label className="action-queue-effect">효과:</label></div>
+      <div>
+        <label className="action-queue-priority">우선도:0</label>
+        <label className="action-queue-attack-power"> 공격력:0</label>
+        <label className="action-queue-effect">효과:</label>
+      </div>
       {playerCount > 0 && (
         <div className="action-queue-status">
-          제출현황: {submittedCount}/{playerCount}
+          <div className="action-queue-status-text">제출현황: {submittedCount}/{playerCount}</div>
+          <div className="action-queue-quick-progress">
+            <label>빠른진행:</label>
+            <input className="action-queue-quick-progress-checkbox" type="checkbox" />
+          </div>
         </div>
       )}
-      <label>빠른진행:</label>
-      <input type="checkbox" />
 
     </div>
   );
