@@ -6,6 +6,7 @@ import uuid
 import traceback
 from ..util import conM, dbM
 from ..services.game.core import Game
+from ..services.game import slot as slot_funcs
 from . import auth, lobby
 from .game import chat, flow, slot
 
@@ -105,9 +106,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
             # Set player slot to connection-lost instead of removing
-            user_slot = game.Slot.get_player_by_user_id(user_info.get('id'))
+            user_slot = slot_funcs.get_player_by_user_id(game, user_info.get('id'))
             if user_slot:
-                game.Slot.set_player_connection_lost(user_slot)
+                slot_funcs.set_player_connection_lost(game, user_slot)
             # Broadcast updated users list and players list to remaining clients
             await conM.broadcast_to_game(game_id, {
                 'type': 'users_list',

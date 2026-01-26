@@ -35,7 +35,11 @@ server/
 ├── services/            # Business logic
 │   ├── __init__.py
 │   └── game/
-│       └── core.py      # Game class
+│       ├── __init__.py
+│       ├── core.py      # Game class only
+│       ├── slot.py      # Slot management functions
+│       ├── position.py  # Position management functions
+│       └── characters.py # Character data constants
 └── models/              # Data models (optional. Do not implement yet.)
     └── __init__.py
 ```
@@ -165,11 +169,10 @@ server/
 **Purpose:** Chat message and command handling  
 **External Dependencies:**
 - `fastapi` (WebSocket)
-- `asyncio`
-- `time`
 
 **Internal Dependencies:**
-- `util` (conM, dbM, timeM)
+- `util` (conM, dbM)
+- `services.game.position` (for position management functions)
 
 **Key Functions:**
 - `handle_chat()` - Handle chat messages and commands
@@ -221,21 +224,14 @@ server/
 #### `services/game/core.py`
 **Purpose:** Core Game class and game state management  
 **External Dependencies:**
-- `re`
-- `time`
 - `json`
 
 **Internal Dependencies:**
-- None (character data merged from bot.py)
+- `services.game.slot` - Slot management functions
+- `services.game.position` - Position management functions
 
 **Key Classes:**
 - `Game` - Main game state class
-- `_Slot` - Player slot management (private class)
-- `_Pos` - Position/coordinate management (private class)
-
-**Key Data:**
-- `default_character` - Default character template
-- `bots` - List of bot character definitions
 
 **Key Methods:**
 - `declare_attack()` - Handle attack declarations
@@ -244,6 +240,64 @@ server/
 - `json_to_dict()` - Deserialize game state
 - `vomit()` - Export game data
 - `check_all_players_defeated()` - Check win conditions
+
+---
+
+#### `services/game/slot.py`
+**Purpose:** Slot management functions for player slot operations  
+**External Dependencies:**
+- `time`
+
+**Internal Dependencies:**
+- `services.game.characters` (default_character, bots)
+
+**Key Functions:**
+- `player_factory()` - Create new player slot dict
+- `add_player()` - Add human player to slot
+- `add_bot()` - Add bot player to slot
+- `remove_player()` - Remove player from slot
+- `set_player_connection_lost()` - Mark player as connection-lost
+- `clear_expired_connection_lost_slots()` - Cleanup expired connection-lost slots
+- `get_player_by_user_id()` - Find player slot by user ID
+- `set_player_ready()` - Set player ready state
+- `are_all_players_ready()` - Check if all players are ready
+
+---
+
+#### `services/game/position.py`
+**Purpose:** Position management functions for coordinate operations  
+**External Dependencies:**
+- `re`
+
+**Internal Dependencies:**
+- `services.game.slot` (local import in `declare_position`)
+
+**Key Functions:**
+- `declare_position()` - Declare position for a player
+- `move_player()` - Legacy move command handler
+- `pos_to_rc()` - Convert position string to (row_idx, col_idx)
+- `rc_to_pos()` - Convert (row_idx, col_idx) to position string
+- `is_front_row()` - Check if position is front row
+- `is_back_row()` - Check if position is back row
+- `check_move_validity()` - Validate move destination
+
+**Key Constants:**
+- `ROW_MAP` - Row mapping dictionary
+- `REV_ROW_MAP` - Reverse row mapping dictionary
+
+---
+
+#### `services/game/characters.py`
+**Purpose:** Character data constants  
+**External Dependencies:**
+- None
+
+**Internal Dependencies:**
+- None
+
+**Key Data:**
+- `default_character` - Default character template
+- `bots` - List of bot character definitions
 
 ---
 
@@ -259,16 +313,25 @@ main.py
 │   │   ├── util.py (conM, dbM)
 │   │   └── services/game/core.py (Game)
 │   ├── routers/game/chat.py
-│   │   └── util.py (conM, dbM, timeM)
+│   │   ├── util.py (conM, dbM)
+│   │   └── services/game/position.py
 │   ├── routers/game/flow.py
-│   │   └── util.py (conM, dbM, timeM)
+│   │   ├── util.py (conM, dbM, timeM)
+│   │   └── services/game/slot.py
 │   ├── routers/game/slot.py
-│   │   └── util.py (conM)
+│   │   ├── util.py (conM)
+│   │   └── services/game/slot.py
 │   ├── services/game/core.py (Game)
+│   │   ├── services/game/slot.py
+│   │   └── services/game/position.py
 │   └── util.py (conM, dbM)
 ├── routers/auth.py
 │   └── util.py (conM)
 ├── services/game/core.py
+│   ├── services/game/slot.py
+│   │   └── services/game/characters.py
+│   └── services/game/position.py
+│       └── services/game/slot.py (local import)
 └── util.py (no module-level dependencies)
 ```
 
@@ -287,8 +350,8 @@ main.py
 2. `services/game/core.py` - Used by routers (websocket, lobby) and util
 
 **Most Independent Modules:**
-1. `services/game/core.py` - No internal dependencies (character data merged into core)
-2. `routers/game/slot.py` - Only depends on util
+1. `services/game/characters.py` - No dependencies (character data constants)
+2. `services/game/position.py` - Only depends on slot (local import)
 3. `routers/auth.py` - Only depends on util
 
 ## Key Design Patterns
@@ -299,7 +362,7 @@ main.py
    - `services/` - Business logic and core functionality
    - `util.py` - Shared utilities and infrastructure
 3. **Singleton Managers:** `conM`, `dbM`, `timeM` are singleton instances in `util.py`
-4. **Manager Classes:** `_Slot`, `_Pos` (private classes) are defined in `services/game/core.py` and instantiated per-game in `Game` class as `game.Slot` and `game.Pos`
+4. **Function-Based Architecture:** Slot and position management are module-level functions (not classes) that take `game` as first parameter
 5. **WebSocket Handlers:** All handler functions follow pattern `handle_<action>()`
 6. **Game State:** Centralized in `Game` class, managed through `rooms` dict in `routers/websocket.py`
 
@@ -317,7 +380,10 @@ main.py
     - `routers/game/slot.py` - Player slot management handlers
   - `routers/websocket.py` - Main WebSocket endpoint routing
 - **`services/`** - Business logic and core functionality:
-  - `services/game/core.py` - Core game logic (Game class, `_Slot`, `_Pos` managers, character data)
+  - `services/game/core.py` - Core game logic (Game class only)
+  - `services/game/slot.py` - Slot management functions
+  - `services/game/position.py` - Position management functions
+  - `services/game/characters.py` - Character data constants
 - **`util.py`** - Shared utilities (ConnectionManager, DatabaseManager, TimeManager)
 - **`main.py`** - FastAPI app setup and configuration
 
@@ -332,6 +398,53 @@ main.py
 ### Module Details
 
 - `util.py` contains singleton manager classes (ConnectionManager, DatabaseManager, TimeManager) and is the most central dependency
-- `services/game/core.py` defines the core `Game` class, `_Slot`, and `_Pos` managers, plus character data (`default_character`, `bots`) that was merged from `bot.py`
+- `services/game/core.py` defines the core `Game` class only (reduced from 582 to 240 lines)
+- `services/game/slot.py` contains slot management functions (converted from `_Slot` class)
+- `services/game/position.py` contains position management functions (converted from `_Pos` class)
+- `services/game/characters.py` contains character data constants (`default_character`, `bots`)
 - Authentication is combined in `routers/auth.py` (both OAuth and guest sessions)
 - All WebSocket routing is centralized in `routers/websocket.py` for easier maintenance
+- Slot and position functions are called as `slot.function(game, ...)` and `position.function(game, ...)` instead of `game.Slot.method(...)`
+
+---
+
+## Previous File Structure (Commit d379d30763c003cca8a23f9156816dea3631f684)
+
+For comparison, here is the file structure from commit `d379d30763c003cca8a23f9156816dea3631f684` (before the domain-driven refactoring):
+
+```
+server/
+├── __init__.py
+├── main.py              # WebSocket routing + app setup
+├── util.py              # Shared utilities (conM, dbM, timeM)
+├── google_login.py      # Google OAuth authentication
+├── auth_user.py         # Guest authentication
+├── lobby_ws.py          # Lobby WebSocket handlers
+├── game_core.py         # Game class + _Slot + _Pos classes + character data (582 lines)
+├── game_bot.py          # Bot character data (later merged into game_core.py)
+└── game_ws.py           # Game WebSocket handlers (temporary, later moved)
+```
+
+### Key Differences
+
+**Before (Commit d379d307):**
+- Flat structure with all files in `server/` root
+- `game_core.py` was a monolithic 582-line file containing:
+  - `Game` class
+  - `_Slot` class (player slot management)
+  - `_Pos` class (position management)
+  - Character data (`default_character`, `bots`)
+- Separate files: `google_login.py`, `auth_user.py`, `lobby_ws.py`
+- No separation between routing and business logic
+
+**After (Current):**
+- Domain-driven structure with `routers/` and `services/` folders
+- `services/game/core.py` reduced to 240 lines (Game class only)
+- Separated into domain modules:
+  - `services/game/slot.py` - Slot management functions
+  - `services/game/position.py` - Position management functions
+  - `services/game/characters.py` - Character data
+- Merged authentication: `routers/auth.py` (Google OAuth + guest)
+- Organized handlers: `routers/game/` (chat, flow, slot)
+- Function-based architecture: Slot and position are now functions, not classes
+- Added `config.py` for centralized configuration

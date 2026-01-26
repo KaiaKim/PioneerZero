@@ -1,17 +1,13 @@
-import re
-import time
 import json
+from . import slot, position
 
 class Game():
     def __init__(self, id, player_num = 4):
         self.id = id
         self.player_num = player_num #default 4, max 8
         
-        self.Slot = _Slot(self)
-        self.Pos = _Pos(self)
-        
         self.players = [
-            self.Slot.player_factory()
+            slot.player_factory()
             for _ in range(self.player_num)
         ]  # player list (slots)
 
@@ -103,15 +99,15 @@ class Game():
         target = "자신"
         err = None
         
-        slot = self.Slot.get_player_by_user_id(sender)
-        if not slot:
+        slot_num = slot.get_player_by_user_id(self, sender)
+        if not slot_num:
             err = "플레이어 슬롯을 찾을 수 없습니다."
 
         action_type = command[0]
 
         if len(command) > 1:
             target = command[1].strip()
-        action_data = self._build_action_data(slot, action_type, target=target)
+        action_data = self._build_action_data(slot_num, action_type, target=target)
         self._upsert_action_queue(action_data)
 
         # action_data is expected to be a dictionary containing the declared action's details,
@@ -123,7 +119,7 @@ class Game():
         #   "target": <target_id_or_name>,
         #   ... (other fields as needed)
         # }
-        result = '행동 선언 완료: ' + command
+        result = '행동 선언 완료: ' + command.join(' ')
         return result, action_data, err
     
     def declare_skill(self, sender, command):
@@ -174,7 +170,7 @@ class Game():
         players = []
         for idx in range(player_num):
             slot_num = idx + 1
-            base_player = game.Slot.player_factory(slot_num)
+            base_player = slot.player_factory(slot_num)
             if idx < len(players_data) and players_data[idx]:
                 stored = players_data[idx]
                 base_player["info"] = stored.get("info")
@@ -241,341 +237,3 @@ class Game():
             return True, 1
         else:
             return False, None
-
-
-class _Slot():
-    """
-    Player Slot Management:
-    -----------------------
-    ✓ player_factory() - Create new player slot dict
-    ✓ add_player() - Add human player to slot
-    ✓ add_bot() - Add bot player to slot
-    ✓ remove_player() - Remove player from slot
-    ✓ set_player_connection_lost() - Mark player as connection-lost
-    ✓ clear_expired_connection_lost_slots() - Cleanup expired connection-lost slots
-    ✓ get_player_by_user_id() - Find player slot by user ID
-    ✓ set_player_ready() - Set player ready state
-    ✓ are_all_players_ready() - Check if all players are ready
-    """
-    def __init__(self, game):
-        self.game = game
-    
-    def player_factory(self, slot: int = 0):
-        """Factory function to create a new player slot dict. Each call returns a fresh dict."""
-        return {
-            'info': None,
-            'character': None,
-            'slot': slot,
-            'ready': False,
-            'team': 0,  # 0=white, 1=blue
-            'occupy': 0,  # 0=empty, 1=occupied, 2=connection-lost
-            'pos': None  # position on the game board
-        }
-
-    def add_player(self, slot: int, slot_idx: int, user_info: dict):
-        """Add a player to a specific slot"""
-        existing_player_info = self.game.players[slot_idx]['info']
-        occupy = self.game.players[slot_idx]['occupy']
-        
-        # Check if it's the same user trying to rejoin
-        is_same_user = existing_player_info and existing_player_info.get('id') == user_info.get('id')
-        
-        # Check if slot is occupied (status 1)
-        if occupy == 1:
-            if is_same_user:
-                # Same user rejoining - already occupied by them, no change needed
-                return {"success": True, "message": f"Player already in slot {slot}."}
-            return {"success": False, "message": f"Slot {slot} is already occupied."}
-        
-        # Check if slot is connection-lost (status 2)
-        if occupy == 2:
-            if is_same_user:
-                # Same user rejoining - update status to occupied
-                self.game.players[slot_idx]['occupy'] = 1
-                self.game.connection_lost_timers.pop(slot, None)
-                return {"success": True, "message": f"Player rejoined slot {slot}."}
-            return {"success": False, "message": f"Slot {slot} is connection-lost. Please wait."}
-        
-        # Slot is empty (status 0) - add player
-        # Create player object with user_info and slot number
-        # Team logic: first half = blue (1), second half = white (0)
-        team = 1 if slot_idx < (self.game.player_num / 2) else 0  # 0=white, 1=blue
-        player_obj = {
-            'info': user_info,
-            'character': default_character,
-            "slot": slot,
-            'ready': False,  # Players must check ready checkbox
-            'team': team,
-            'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
-        }
-        self.game.players[slot_idx] = player_obj
-        self.game.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
-        return {"success": True, "message": f"Player added to slot {slot}."}
-    
-    def add_bot(self, slot: int, slot_idx: int):
-        """Add a bot to a specific slot"""
-        occupy = self.game.players[slot_idx]['occupy']
-        
-        # Check if slot is occupied (status 1) or connection-lost (status 2)
-        if occupy != 0:
-            return {"success": False, "message": f"Slot {slot} is not empty."}
-        
-        # Slot is empty (status 0) - add bot
-        # Get a bot from the bots array (use first available bot, or cycle if needed)
-        bot_index = slot_idx % len(bots) if bots else 0
-        bot_character = bots[bot_index] if bots else default_character
-        
-        # Create bot info similar to user_info structure
-        bot_info = {
-            'id': f'bot_{slot}',  # Unique bot ID based on slot
-            'name': bot_character.get('name', f'Bot_{slot}'),
-            'is_bot': True
-        }
-        
-        # Create player object with bot info and bot character
-        # Team logic: first half = blue (1), second half = white (0)
-        team = 1 if slot_idx < (self.game.player_num / 2) else 0  # 0=white, 1=blue
-        player_obj = {
-            'info': bot_info,
-            'character': bot_character,
-            'slot': slot,
-            'ready': True, #bots are always ready
-            'team': team,
-            'occupy': 1  # 0=empty, 1=occupied, 2=connection-lost
-        }
-        self.game.players[slot_idx] = player_obj
-        self.game.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
-        return {"success": True, "message": f"Bot added to slot {slot}."}
-    
-    def remove_player(self, slot: int, slot_idx: int):
-        """Remove a player from a specific slot - sets status to empty"""
-        if self.game.players[slot_idx]['occupy'] == 0:
-            return {"success": False, "message": f"Slot {slot} is already empty."}
-        
-        self.game.players[slot_idx] = self.player_factory(slot)
-        self.game.connection_lost_timers.pop(slot, None)  # Clear any connection-lost timer
-        return {"success": True, "message": f"Player removed from slot {slot}."}
-    
-    def set_player_connection_lost(self, slot: int):
-        """Set a player slot to connection-lost status (2) and set ready to False"""
-        slot_idx = slot - 1
-        if self.game.players[slot_idx]['occupy'] == 0:
-            return {"success": False, "message": f"Slot {slot} is already empty."}
-        
-        self.game.players[slot_idx]['occupy'] = 2  # Set status to connection-lost
-        self.game.players[slot_idx]['ready'] = False  # Set ready to False when connection is lost
-        self.game.connection_lost_timers[slot] = time.time()  # Record timestamp
-        return {"success": True, "message": f"Player slot {slot} set to connection-lost."}
-    
-    def clear_expired_connection_lost_slots(self, duration = 5.0):
-        # Combat not started - clear expired slots after timeout
-        current_time = time.time()
-        slots_to_clear = []
-        
-        for slot, timestamp in self.game.connection_lost_timers.items():
-            if current_time - timestamp >= duration:  # default 5 seconds timeout
-                slot_idx = slot - 1
-                if self.game.players[slot_idx]['occupy'] == 2:  # Still connection-lost
-                    self.game.players[slot_idx] = self.player_factory(slot)
-                    slots_to_clear.append(slot)
-        
-        # Remove cleared slots from timers
-        for slot in slots_to_clear:
-            self.game.connection_lost_timers.pop(slot, None)
-        
-        return len(slots_to_clear) > 0  # Return True if any slots were cleared
-    
-    def get_player_by_user_id(self, user_id: str):
-        """Get the slot number for a user_id, or None if not found"""
-        for i, player in enumerate(self.game.players):
-            if player.get('info') and player['info'].get('id') == user_id:
-                return i + 1  # Return slot number (1-based)
-        return None
-    
-    def set_player_ready(self, slot: int, slot_idx: int, user_info: dict, ready: bool):
-        """Set ready state for a player. Only the player themselves can toggle their ready state."""
-        # Verify the slot belongs to the user
-        player = self.game.players[slot_idx]
-        if not player.get('info') or player['info'].get('id') != user_info.get('id'):
-            return {"success": False, "message": "You don't own this slot."}
-        
-        # Check if slot is occupied or connection-lost (can set ready in both states)
-        if player['occupy'] not in [1, 2]:
-            return {"success": False, "message": f"Slot {slot} is not occupied."}
-        
-        # Check if it's a bot (bots are always ready, can't be changed)
-        if player['info'].get('is_bot') == True or (player['info'].get('id') and player['info'].get('id').startswith('bot_')):
-            return {"success": False, "message": "Bots are always ready."}
-        
-        # Set ready state
-        self.game.players[slot_idx]['ready'] = ready
-        return {"success": True, "message": f"Ready state set to {ready}."}
-    
-    def are_all_players_ready(self):
-        """
-        Check if all slots are filled AND all players are ready.
-        - All slots must have characters (occupy == 1 and character is not None)
-        - All players must be ready (ready == True)
-        - Bots are always considered ready
-        """
-        for player in self.game.players:
-            # Check if slot is filled with a character
-            if player['occupy'] != 1 or player['character'] is None:
-                return False
-            
-            # Check if player is ready (bots are always ready by design, so we only check non-bots)
-            is_bot = player.get('info') and (player['info'].get('is_bot') == True or 
-                                            (player['info'].get('id') and player['info'].get('id').startswith('bot_')))
-            
-            if not is_bot and not player.get('ready', False):
-                return False
-        
-        return True
-
-
-class _Pos():
-    """
-    Coordinate & Position Helpers:
-    -------------------------------
-    [TODO] pos_to_rc() - Convert position string ("Y1") to (row_idx, col_idx)
-    [TODO] rc_to_pos() - Convert (row_idx, col_idx) to position string ("Y1")
-    [TODO] is_front_row() - Check if position is front row (X or A)
-    [TODO] is_back_row() - Check if position is back row (Y or B)
-    [TODO] check_move_validity() - Validate move destination (distance, team, occupancy)
-    """
-    def __init__(self, game):
-        self.game = game
-
-        self.ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
-        self.REV_ROW_MAP = {v: k for k, v in self.ROW_MAP.items()}
-
-    def declare_position(self, sender, command):
-        result = None
-        err = None
-        idx = self.game.Slot.get_player_by_user_id(sender)-1
-        position = command[1].strip().upper()
-        player = self.game.players[idx]
-
-
-        if command[1][0] not in self.ROW_MAP:
-            err = "유효하지 않은 열 번호입니다."
-        
-        if int(command[1][1]) not in (1, 2, 3, 4):
-            err = "유효하지 않은 행 번호입니다."
-
-        # Validate position using parse_position_declaration_from_chat logic
-        player_team = player.get('team', 0)
-        r, c = self.pos_to_rc(position)
-        
-        if r < 0 or c < 0 or c > 3:
-            err = "유효하지 않은 위치입니다."
-        
-        # Check if position is in player's team area
-        # Row 0-1 (Y, X) = team 1 (blue), Row 2-3 (A, B) = team 0 (white)
-        position_team = 1 if r <= 1 else 0
-        if position_team != player_team:
-            err = "자신의 진영만 선택할 수 있습니다."
-        
-        result = f"위치 {position} 선언 완료"
-
-        return result, err
-
-    def move_player(self, name, command):
-        """
-        Legacy move command handler (chat command).
-        TODO: Replace with proper combat movement system.
-        """
-        # Row 0: Y1, Y2, Y3, Y4
-        # Row 1: X1, X2, X3, X4
-        # Row 2: A1, A2, A3, A4
-        # Row 3: B1, B2, B3, B4
-        # Find the character object in self.characters that matches the sender's name
-        character_obj = next((c for c in self.players if c['name'] == name), None)
-        current_pos = character_obj['pos'] if character_obj and 'pos' in character_obj else None
-
-        match = re.search(r'\b([YXAB][1-4])\b', command)
-        target_pos = match.group(1) if match else None
-        if target_pos:
-            character_obj["pos"] = target_pos
-            return f"{name} moved from {current_pos} to {target_pos}"
-        else:
-            return f"{name} move failed."
-
-
-    def pos_to_rc(self, pos: str) -> tuple[int, int]:
-        r = self.ROW_MAP.get(pos[0], -1)
-        c = int(pos[1]) - 1
-        return r, c
-
-    def rc_to_pos(self, r: int, c: int) -> str:
-        return f"{self.REV_ROW_MAP.get(r, '?')}{c + 1}"
-
-    def is_front_row(self, pos: str) -> bool:
-        r, _ = self.pos_to_rc(pos)
-        return r == 1 or r == 2
-
-    def is_back_row(self, pos: str) -> bool:
-        r, _ = self.pos_to_rc(pos)
-        return r == 0 or r == 3
-
-    def check_move_validity(self, from_pos: str, to_pos: str, player_team: int) -> tuple[bool, str]:
-        fr, fc = self.pos_to_rc(from_pos)
-        tr, tc = self.pos_to_rc(to_pos)
-        
-        row_dist = abs(fr - tr)
-        col_dist = abs(fc - tc)
-        
-        if row_dist > 1 or col_dist > 1:
-            return False, "이동 거리 초과"
-        if row_dist == 0 and col_dist == 0:
-            return False, "같은 위치"
-        
-        to_team = 1 if tr <= 1 else 0
-        if to_team != player_team:
-            return False, "다른 팀 셀"
-        
-        if self.game.combat_board.get(to_pos) is not None:
-            return False, "이미 차지됨"
-        
-        return True, None
-
-# In the final project, character data has to be pulled from a database. 
-# For now, I will create a hard-coded global variable for each character.
-
-default_character = {
-    "name": "Pikita",
-    "profile_image": "/images/pikita_profile.png",
-    "token_image": "/images/pikita_token.png",
-    "stats": {
-        "vtl":4,
-        "sen":1,
-        "per":1,
-        "tal":2,
-        "mst":2
-    },
-    "class": "physical",
-    "type": "none",
-    "skills": ["Medikit","Acceleration","Contortion"],
-    "current_hp": 100,
-    "pos": "A1"
-}
-
-bots = [
-    {
-    "name": "Bot_A",
-    "profile_image": "/images/bettel_profile.png",
-    "token_image": "/images/bot_white_token.png",
-    "stats": {
-        "vtl":3,
-        "sen":2,
-        "per":1,
-        "tal":1,
-        "mst":3
-    },
-    "class": "psychic",
-    "type": "none",
-    "skills": ["Telekinesis","Will-o-Wisp","Inference"],
-    "current_hp": 100,
-    "pos": "B2"
-}
-]
