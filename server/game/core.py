@@ -1,4 +1,3 @@
-from . import game_bot
 import re
 import time
 import json
@@ -8,11 +7,11 @@ class Game():
         self.id = id
         self.player_num = player_num #default 4, max 8
         
-        self.SlotM = SlotManager(self)
-        self.posM = PosManager(self)
+        self.Slot = _Slot(self)
+        self.Pos = _Pos(self)
         
         self.players = [
-            self.SlotM.player_factory()
+            self.Slot.player_factory()
             for _ in range(self.player_num)
         ]  # player list (slots)
 
@@ -104,7 +103,7 @@ class Game():
         target = "자신"
         err = None
         
-        slot = self.SlotM.get_player_by_user_id(sender)
+        slot = self.Slot.get_player_by_user_id(sender)
         if not slot:
             err = "플레이어 슬롯을 찾을 수 없습니다."
 
@@ -175,7 +174,7 @@ class Game():
         players = []
         for idx in range(player_num):
             slot_num = idx + 1
-            base_player = game.SlotM.player_factory(slot_num)
+            base_player = game.Slot.player_factory(slot_num)
             if idx < len(players_data) and players_data[idx]:
                 stored = players_data[idx]
                 base_player["info"] = stored.get("info")
@@ -244,7 +243,7 @@ class Game():
             return False, None
 
 
-class SlotManager():
+class _Slot():
     """
     Player Slot Management:
     -----------------------
@@ -303,7 +302,7 @@ class SlotManager():
         team = 1 if slot_idx < (self.game.player_num / 2) else 0  # 0=white, 1=blue
         player_obj = {
             'info': user_info,
-            'character': game_bot.default_character,
+            'character': default_character,
             "slot": slot,
             'ready': False,  # Players must check ready checkbox
             'team': team,
@@ -323,8 +322,8 @@ class SlotManager():
         
         # Slot is empty (status 0) - add bot
         # Get a bot from the bots array (use first available bot, or cycle if needed)
-        bot_index = slot_idx % len(game_bot.bots) if game_bot.bots else 0
-        bot_character = game_bot.bots[bot_index] if game_bot.bots else game_bot.default_character
+        bot_index = slot_idx % len(bots) if bots else 0
+        bot_character = bots[bot_index] if bots else default_character
         
         # Create bot info similar to user_info structure
         bot_info = {
@@ -434,7 +433,7 @@ class SlotManager():
         return True
 
 
-class PosManager():
+class _Pos():
     """
     Coordinate & Position Helpers:
     -------------------------------
@@ -453,7 +452,7 @@ class PosManager():
     def declare_position(self, sender, command):
         result = None
         err = None
-        idx = self.game.SlotM.get_player_by_user_id(sender)-1
+        idx = self.game.Slot.get_player_by_user_id(sender)-1
         position = command[1].strip().upper()
         player = self.game.players[idx]
 
@@ -539,3 +538,44 @@ class PosManager():
             return False, "이미 차지됨"
         
         return True, None
+
+# In the final project, character data has to be pulled from a database. 
+# For now, I will create a hard-coded global variable for each character.
+
+default_character = {
+    "name": "Pikita",
+    "profile_image": "/images/pikita_profile.png",
+    "token_image": "/images/pikita_token.png",
+    "stats": {
+        "vtl":4,
+        "sen":1,
+        "per":1,
+        "tal":2,
+        "mst":2
+    },
+    "class": "physical",
+    "type": "none",
+    "skills": ["Medikit","Acceleration","Contortion"],
+    "current_hp": 100,
+    "pos": "A1"
+}
+
+bots = [
+    {
+    "name": "Bot_A",
+    "profile_image": "/images/bettel_profile.png",
+    "token_image": "/images/bot_white_token.png",
+    "stats": {
+        "vtl":3,
+        "sen":2,
+        "per":1,
+        "tal":1,
+        "mst":3
+    },
+    "class": "psychic",
+    "type": "none",
+    "skills": ["Telekinesis","Will-o-Wisp","Inference"],
+    "current_hp": 100,
+    "pos": "B2"
+}
+]

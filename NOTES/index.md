@@ -3,6 +3,10 @@
 ## Overview
 This document maps all Python files in the `server/` directory, their dependencies, and their relationships.
 
+**Note:** 
+- Game-related modules are organized in the `server/game/` subdirectory
+- WebSocket handlers use the `handle_` prefix to distinguish them from data and core modules
+
 ---
 
 ## File Index
@@ -19,13 +23,13 @@ This document maps all Python files in the `server/` directory, their dependenci
 - `dotenv` (load_dotenv)
 
 **Internal Dependencies:**
-- `lobby_room`
-- `game_slot`
+- `handle_lobby` (aliased as `lobby`)
 - `auth_google`
 - `auth_user`
-- `game_core`
-- `game_chat`
-- `game_flow`
+- `game.core` (Game class imported directly)
+- `game.handle_chat` (aliased as `chat`)
+- `game.handle_flow` (aliased as `flow`)
+- `game.handle_slot` (aliased as `slot`)
 - `util` (conM, dbM)
 
 **Key Exports:**
@@ -38,7 +42,7 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ---
 
-#### `game_core.py`
+#### `game/core.py`
 **Purpose:** Core Game class and game state management  
 **External Dependencies:**
 - `re`
@@ -46,12 +50,16 @@ This document maps all Python files in the `server/` directory, their dependenci
 - `json`
 
 **Internal Dependencies:**
-- `game_bot`
+- None (character data merged from bot.py)
 
 **Key Classes:**
 - `Game` - Main game state class
-- `SlotManager` - Player slot management
-- `PosManager` - Position/coordinate management
+- `_Slot` - Player slot management (private class)
+- `_Pos` - Position/coordinate management (private class)
+
+**Key Data:**
+- `default_character` - Default character template
+- `bots` - List of bot character definitions
 
 **Key Methods:**
 - `declare_attack()` - Handle attack declarations
@@ -75,7 +83,7 @@ This document maps all Python files in the `server/` directory, their dependenci
 - `time`
 
 **Internal Dependencies:**
-- None (local import of `Game` from `game_core` only in `load_game_session` method)
+- None (local import of `Game` from `game.core` only in `load_game_session` method)
 
 **Key Classes:**
 - `ConnectionManager` (conM) - WebSocket connection management
@@ -133,7 +141,7 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ### Game Handler Files
 
-#### `game_slot.py`
+#### `game/handle_slot.py`
 **Purpose:** Game WebSocket handlers for player slot management  
 **External Dependencies:**
 - `fastapi` (WebSocket)
@@ -151,7 +159,7 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ---
 
-#### `game_flow.py`
+#### `game/handle_flow.py`
 **Purpose:** Game phase flow management  
 **External Dependencies:**
 - `asyncio`
@@ -173,7 +181,7 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ---
 
-#### `game_chat.py`
+#### `game/handle_chat.py`
 **Purpose:** Chat message and command handling  
 **External Dependencies:**
 - `fastapi` (WebSocket)
@@ -190,14 +198,14 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ### Lobby Files
 
-#### `lobby_room.py`
+#### `handle_lobby.py`
 **Purpose:** Lobby WebSocket handlers and endpoints  
 **External Dependencies:**
 - `fastapi` (WebSocket)
 
 **Internal Dependencies:**
 - `util` (conM, dbM)
-- `game_core` (Game)
+- `game.core` (Game)
 
 **Key Functions:**
 - `handle_list_rooms()` - Return list of active game sessions
@@ -206,20 +214,6 @@ This document maps all Python files in the `server/` directory, their dependenci
 - `handle_load_room()` - Load room data for client
 
 ---
-
-### Data Files
-
-#### `game_bot.py`
-**Purpose:** Character data definitions (hard-coded for prototype)  
-**External Dependencies:**
-- None
-
-**Internal Dependencies:**
-- None
-
-**Key Exports:**
-- `default_character` - Default character template
-- `bots` - List of bot character definitions
 
 ---
 
@@ -237,21 +231,20 @@ This document maps all Python files in the `server/` directory, their dependenci
 
 ```
 main.py
-├── lobby_room.py
+├── handle_lobby.py
 │   ├── util.py (conM, dbM)
-│   └── game_core.py (Game)
-├── game_slot.py
-│   └── util.py (conM)
+│   └── game/core.py (Game)
 ├── auth_google.py
 │   └── util.py (conM)
 ├── auth_user.py
 │   └── util.py (conM)
-├── game_core.py
-│   └── game_bot.py
-├── game_chat.py
+├── game/core.py
+├── game/handle_chat.py
 │   └── util.py (conM, dbM, timeM)
-├── game_flow.py
+├── game/handle_flow.py
 │   └── util.py (conM, dbM, timeM)
+├── game/handle_slot.py
+│   └── util.py (conM)
 └── util.py (no module-level dependencies)
 ```
 
@@ -266,27 +259,32 @@ main.py
 ### Internal Module Dependencies
 
 **Most Dependent Modules:**
-1. `util.py` - Used by almost all modules (7 files)
-2. `game_core.py` - Used by 3 files (main, lobby_room, util)
-3. `game_bot.py` - Used by 2 files (game_core, util)
+1. `util.py` - Used by almost all modules
+2. `game/core.py` - Used by 3 files (main, handle_lobby, util)
 
 **Most Independent Modules:**
-1. `game_bot.py` - No dependencies
+1. `game/core.py` - No internal dependencies (character data merged into core)
 2. `auth_user.py` - Only depends on util
-3. `game_slot.py` - Only depends on util
+3. `game/handle_slot.py` - Only depends on util
 
 ## Key Design Patterns
 
 1. **Singleton Managers:** `conM`, `dbM`, `timeM` are singleton instances in `util.py`
-2. **Manager Classes:** `SlotManager`, `PosManager` are defined in `game_core.py` and instantiated per-game in `Game` class
+2. **Manager Classes:** `_Slot`, `_Pos` (private classes) are defined in `game/core.py` and instantiated per-game in `Game` class as `game.Slot` and `game.Pos`
 3. **WebSocket Handlers:** All handler functions follow pattern `handle_<action>()`
 4. **Game State:** Centralized in `Game` class, managed through `rooms` dict in `main.py`
 
 ## Notes
 
 - `util.py` contains singleton manager classes (ConnectionManager, DatabaseManager, TimeManager) and is the most central dependency
-- `game_core.py` defines the core `Game` class, `SlotManager`, and `PosManager` that all game logic revolves around
+- `game/core.py` defines the core `Game` class, `_Slot`, and `_Pos` managers, plus character data (`default_character`, `bots`) that was merged from `bot.py`
 - Authentication is split into `auth_google.py` (OAuth) and `auth_user.py` (guest)
-- Game flow is separated into `game_flow.py` (phases) and `game_chat.py` (commands)
-- Lobby operations are in `lobby_room.py`
-- Player slot management is in `game_slot.py`
+- Game-related modules are organized in the `game/` subdirectory:
+  - **Core:** `game/core.py` - Core game logic (Game class, `_Slot`, `_Pos` managers, character data)
+  - **Handlers:** WebSocket connection handlers with `handle_` prefix:
+    - `game/handle_flow.py` - Game phase flow management
+    - `game/handle_chat.py` - Chat message and command handling
+    - `game/handle_slot.py` - Player slot management handlers
+- WebSocket handlers use the `handle_` prefix to distinguish them from data and core modules:
+  - `handle_lobby.py` - Lobby operations (room listing, creation, joining)
+  - `game/handle_*.py` - Game-specific handlers (chat, slot, flow)

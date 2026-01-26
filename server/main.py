@@ -6,7 +6,9 @@ import uuid
 import traceback
 import asyncio
 from dotenv import load_dotenv
-from . import lobby_room, game_slot, auth_google, auth_user, game_core, game_chat, game_flow
+from . import handle_lobby as lobby, auth_google, auth_user
+from .game import handle_slot as slot, handle_chat as chat, handle_flow as flow
+from .game.core import Game
 from .util import conM, dbM
 
 # Load environment variables from .env file
@@ -26,7 +28,7 @@ app.include_router(auth_google.router)
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on server startup"""
-    asyncio.create_task(game_slot.run_connection_lost_timeout_checks(rooms))
+    asyncio.create_task(slot.run_connection_lost_timeout_checks(rooms))
     # Prototype: load all saved rooms from snapshot
     for game_id in dbM.get_room_ids():
         game = dbM.load_game_session(game_id)
@@ -70,13 +72,13 @@ async def websocket_endpoint(websocket: WebSocket):
             # Route lobby actions
             if action == "list_rooms":
                 chat_tables = dbM.get_chat_tables()
-                await lobby_room.handle_list_rooms(websocket, chat_tables)
+                await lobby.handle_list_rooms(websocket, chat_tables)
                 continue
 
             if action == "create_room":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
                 player_num = message.get("player_num", 4)  # Get player_num from message, default to 4
-                rooms[game_id] = await lobby_room.handle_create_room(websocket, game_id, player_num)  # create a new game session
+                rooms[game_id] = await lobby.handle_create_room(websocket, game_id, player_num)  # create a new game session
                 continue
 
             # Get the game_id from message only (required for all game actions)
@@ -90,28 +92,28 @@ async def websocket_endpoint(websocket: WebSocket):
                 game = rooms[game_id]
             except KeyError:
                 print(f"Game {game_id} not found")
-                rooms[game_id] = game_core.Game(game_id)
+                rooms[game_id] = Game(game_id)
                 game = rooms[game_id]
 
             # Route game actions
             if action == "join_room":
                 print(f"Joining room {game_id}")
-                await lobby_room.handle_join_room(websocket, game_id, game)
+                await lobby.handle_join_room(websocket, game_id, game)
             elif action == "load_room":
                 print(f"Loading room {game_id}")
-                await lobby_room.handle_load_room(websocket, game)
+                await lobby.handle_load_room(websocket, game)
             elif action == "chat":
-                await game_chat.handle_chat(websocket, message, game)
+                await chat.handle_chat(websocket, message, game)
             elif action == "join_player_slot":
-                await game_slot.handle_join_player_slot(websocket, message, game)
+                await slot.handle_join_player_slot(websocket, message, game)
             elif action == "add_bot_to_slot":
-                await game_slot.handle_add_bot_to_slot(websocket, message, game)
-                await game_flow.handle_phase(game)
+                await slot.handle_add_bot_to_slot(websocket, message, game)
+                await flow.handle_phase(game)
             elif action == "leave_player_slot":
-                await game_slot.handle_leave_player_slot(websocket, message, game)
+                await slot.handle_leave_player_slot(websocket, message, game)
             elif action == "set_ready":
-                await game_slot.handle_set_ready(websocket, message, game)
-                await game_flow.handle_phase(game)
+                await slot.handle_set_ready(websocket, message, game)
+                await flow.handle_phase(game)
             
             vomit_data = game.vomit()
             await websocket.send_json(vomit_data)

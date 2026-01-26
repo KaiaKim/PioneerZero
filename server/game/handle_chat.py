@@ -1,6 +1,6 @@
 from fastapi import WebSocket
 import asyncio
-from .util import conM, dbM, timeM
+from ..util import conM, dbM, timeM
 import time
 
 attack_list = ["근거리공격", "원거리공격", "대기"]

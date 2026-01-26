@@ -3,7 +3,7 @@ Game WebSocket handlers
 """
 from fastapi import WebSocket
 import asyncio
-from .util import conM
+from ..util import conM
 
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     """Handle join_player_slot action - adds a player to a waiting room slot"""    

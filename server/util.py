@@ -212,14 +212,11 @@ class DatabaseManager:
         if not row:
             return None
         state_json, player_num, phase_sec, max_round = row
-        from .game_core import Game
+        from .game.core import Game
         game = Game.json_to_dict(state_json)
-        if player_num:
-            game.player_num = player_num
-        if phase_sec:
-            game.phase_sec = phase_sec
-        if max_round:
-            game.max_rounds = max_round
+        game.player_num = player_num
+        game.phase_sec = phase_sec
+        game.max_rounds = max_round
         return game
 
     def get_room_ids(self):
