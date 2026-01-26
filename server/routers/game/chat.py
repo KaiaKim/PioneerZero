@@ -1,7 +1,5 @@
 from fastapi import WebSocket
-import asyncio
-from ..util import conM, dbM, timeM
-import time
+from ...util import conM, dbM
 
 attack_list = ["근거리공격", "원거리공격", "대기"]
 skill_list = ["스킬1", "스킬2", "스킬3", "스킬4"]
@@ -34,7 +32,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             if user_id in player_ids:
                 if game.phase == "position_declaration":
                     if command[0] == "위치" or command[0] == "pos":
-                        result, err = game.posM.declare_position(user_id, command)
+                        result, err = game.Pos.declare_position(user_id, command)
                 elif game.phase == "action_declaration":
                     if command[0] in attack_list:
                         result, action_data, err = game.declare_attack(user_id, command)

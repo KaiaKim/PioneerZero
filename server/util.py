@@ -108,8 +108,9 @@ class ConnectionManager:
 
 
 class DatabaseManager:
-    def __init__(self):
-        self.DATABASE_PATH = 'main.db'
+    def __init__(self, database_path: str = None):
+        from .config import settings
+        self.DATABASE_PATH = database_path or settings.DATABASE_PATH
         self.conn = sqlite3.connect(self.DATABASE_PATH)
         self.cursor = self.conn.cursor()
         self.create_game_sessions_table()
@@ -212,7 +213,7 @@ class DatabaseManager:
         if not row:
             return None
         state_json, player_num, phase_sec, max_round = row
-        from .game.core import Game
+        from .services.game.core import Game
         game = Game.json_to_dict(state_json)
         game.player_num = player_num
         game.phase_sec = phase_sec

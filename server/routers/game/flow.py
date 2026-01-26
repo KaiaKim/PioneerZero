@@ -1,5 +1,5 @@
 import asyncio
-from ..util import conM, dbM, timeM
+from ...util import conM, dbM, timeM
 
 ### phase flow functions
 async def handle_phase(game):
@@ -51,7 +51,7 @@ async def _phase_flow(game):
             game.phase_task = None
 
 async def kickoff(game):
-    if not game.SlotM.are_all_players_ready():
+    if not game.Slot.are_all_players_ready():
         return False
 
     # Save initial combat snapshot (one-time backup)
@@ -74,8 +74,9 @@ async def position_declaration(game):
 
 async def position_resolution(game):
     for player in game.players:
-        if player['character']['pos'] is None:
-            game.posM.assign_random_pos(player)
+        if player['character'] and player['character'].get('pos') is None:
+            # TODO: Implement assign_random_pos or handle position assignment
+            pass
 
     # while players are in same cell:
     # assign random pos to one of the players

@@ -1,34 +1,17 @@
 """
-Google OAuth authentication handlers
+Authentication handlers (Google OAuth + guest sessions)
 """
 from fastapi import APIRouter, Request, Response, WebSocket
 from fastapi.responses import RedirectResponse, HTMLResponse
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
-import os
 import secrets
 from typing import Dict, Optional
-from dotenv import load_dotenv
-from .util import conM
+from ..config import settings
+from ..util import conM
 
-# allowed member (later move to DB)
-member_list = ["kaiakim0727@gmail.com"]
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Google OAuth credentials from environment variables
-CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
-CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
-SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"]
-
-# Validate required environment variables
-if not CLIENT_ID or not CLIENT_SECRET:
-    raise ValueError(
-        "Missing required environment variables: GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET. "
-        "Please create a .env file with these variables. See .env.example for reference."
-    )
+# Allowed members (from config)
+member_list = settings.ALLOWED_MEMBERS
 
 # Temporary storage for OAuth state and tokens (in production, use Redis or DB)
 _oauth_states: Dict[str, str] = {}  # {state: session_id}
@@ -42,15 +25,15 @@ def get_flow():
     return Flow.from_client_config(
         {
             "web": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+                "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [REDIRECT_URI]
+                "redirect_uris": [settings.GOOGLE_OAUTH_REDIRECT_URI]
             }
         },
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI
+        scopes=settings.GOOGLE_OAUTH_SCOPES,
+        redirect_uri=settings.GOOGLE_OAUTH_REDIRECT_URI
     )
 
 
@@ -319,3 +302,48 @@ async def handle_google_login(websocket: WebSocket, auth_message: dict):
     # In production, you might want to store this in a database with expiration
     
     # Continue to message loop after successful auth
+
+
+async def handle_user_auth(websocket: WebSocket, auth_message: dict):
+    """
+    Handle guest authentication - accepts either guest_id or user_info.
+    For guests without user_info, uses guest_id. For authenticated users, uses user_info.
+    """
+    user_info = auth_message.get('user_info')
+    guest_id = auth_message.get('guest_id')
+    
+    # If user_info is provided (from quickAuth), use it directly
+    if user_info:
+        if isinstance(user_info, str):
+            import json
+            user_info = json.loads(user_info)
+        
+        print(f"User authenticated: {user_info.get('name') or user_info.get('email')} (id: {user_info.get('id')})")
+        # Store user_info with the connection
+        conM.set_user_info(websocket, user_info)
+        await websocket.send_json({
+            'type': 'auth_success',
+            'user_info': user_info
+        })
+        return
+    
+    # Otherwise, use guest_id (fallback for guests)
+    if not guest_id:
+        await websocket.close()
+        print("Error: no guest_id or user_info provided")
+        return
+    
+    print(f"Guest connected (guest_id: {guest_id})")
+    guest_user_info = {
+        'id': guest_id,
+        'name': 'Guest',
+        'isGoogle': False,
+        'isGuest': True
+    }
+    # Store user_info with the connection
+    conM.set_user_info(websocket, guest_user_info)
+    await websocket.send_json({
+        'type': 'auth_success',
+        'guest_id': guest_id,
+        'user_info': guest_user_info
+    })

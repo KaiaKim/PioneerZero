@@ -24,6 +24,7 @@ server/
 ├── util.py              # Shared utilities
 ├── routers/             # All route handlers
 │   ├── __init__.py
+│   ├── websocket.py     # WebSocket routing
 │   ├── auth.py          # auth_google + auth_user merged
 │   ├── lobby.py         # handle_lobby
 │   └── game/            # Game-specific handlers

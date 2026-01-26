@@ -1,9 +1,6 @@
-"""
-Game WebSocket handlers
-"""
 from fastapi import WebSocket
 import asyncio
-from ..util import conM
+from ...util import conM
 
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     """Handle join_player_slot action - adds a player to a waiting room slot"""    
@@ -20,7 +17,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     slot_idx = slot - 1
     
     # Check if user is already in a different slot
-    existing_slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
+    existing_slot = game.Slot.get_player_by_user_id(user_info.get('id'))
     if existing_slot and existing_slot != slot:
         await websocket.send_json({
             "type": "join_slot_failed",
@@ -28,7 +25,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         })
         return
     
-    result = game.SlotM.add_player(slot, slot_idx, user_info)
+    result = game.Slot.add_player(slot, slot_idx, user_info)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -56,7 +53,7 @@ async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
     
     slot_idx = slot - 1
     
-    result = game.SlotM.add_bot(slot, slot_idx)
+    result = game.Slot.add_bot(slot, slot_idx)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -79,7 +76,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     
     # If slot_num not provided, find the user's slot
     if not slot:
-        slot = game.SlotM.get_player_by_user_id(user_info.get('id'))
+        slot = game.Slot.get_player_by_user_id(user_info.get('id'))
         if not slot:
             await websocket.send_json({
                 "type": "leave_slot_failed",
@@ -108,7 +105,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
             })
             return
     
-    result = game.SlotM.remove_player(slot, slot_idx)
+    result = game.Slot.remove_player(slot, slot_idx)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -144,7 +141,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
         return
     
     slot_idx = slot - 1
-    result = game.SlotM.set_player_ready(slot, slot_idx, user_info, ready)
+    result = game.Slot.set_player_ready(slot, slot_idx, user_info, ready)
     
     if result["success"]:
         # Broadcast updated players list to all clients
@@ -167,7 +164,7 @@ async def run_connection_lost_timeout_checks(rooms):
     while True:
         try:
             for game_id, game in rooms.items():
-                if game.SlotM.clear_expired_connection_lost_slots():
+                if game.Slot.clear_expired_connection_lost_slots():
                     # Broadcast updated players list if any slots were cleared
                     await conM.broadcast_to_game(game_id, {
                         'type': 'players_list',
@@ -177,4 +174,3 @@ async def run_connection_lost_timeout_checks(rooms):
         except Exception as e:
             print(f"Error in connection-lost timeout check: {e}")
             await asyncio.sleep(1)
-
