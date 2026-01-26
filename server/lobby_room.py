@@ -68,3 +68,50 @@ async def handle_join_room(websocket: WebSocket, game_id: str, game):
         'game_id': game_id
     })
 
+
+async def handle_load_room(websocket: WebSocket, game):
+    # Send users list to the requesting client
+    await websocket.send_json({
+        "type": "users_list",
+        "users": game.users
+    })
+    
+    # Send players list to the requesting client
+    await websocket.send_json({
+        "type": "players_list",
+        "players": game.players
+    })
+    
+    # Send combat state to the requesting client
+    await websocket.send_json({
+        "type": "combat_state",
+        "combat_state": {
+            'in_combat': game.in_combat,
+            'current_round': game.current_round,
+            'phase': game.phase,
+            'submitted': game.get_action_submission_status(),
+            'resolved_actions': game.resolved_actions
+        }
+    })
+    
+    # Load and send chat history to the requesting client
+    user_info = conM.get_user_info(websocket)
+    viewer_id = user_info.get('id') if user_info else None
+    chat_history_rows = dbM.get_chat_history(game.id, viewer_id=viewer_id)
+    chat_messages = []
+    for row in chat_history_rows:
+        # row format: (chat_id, sender, time, content, sort, user_id)
+        chat_messages.append({
+            "type": "chat",
+            "sender": row[1],
+            "time": row[2],
+            "content": row[3],
+            "sort": row[4],
+            "user_id": row[5]
+        })
+    
+    # Send chat history only to the requesting client
+    await websocket.send_json({
+        "type": "chat_history",
+        "messages": chat_messages
+    })

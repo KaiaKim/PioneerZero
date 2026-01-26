@@ -6,7 +6,7 @@ import uuid
 import traceback
 import asyncio
 from dotenv import load_dotenv
-from . import lobby_ws, game_ws, google_login, auth_user, game_core
+from . import lobby_room, game_slot, auth_google, auth_user, game_core, game_chat, game_flow
 from .util import conM, dbM
 
 # Load environment variables from .env file
@@ -20,29 +20,13 @@ rooms = {}
 app = FastAPI()
 
 # Include OAuth router
-app.include_router(google_login.router)
+app.include_router(auth_google.router)
 
-# Background task to periodically check for connection-lost timeouts
-async def run_connection_lost_timeout_checks():
-    """Periodically runs connection-lost timeout checks for all games"""
-    while True:
-        try:
-            for game_id, game in rooms.items():
-                if game.SlotM.clear_expired_connection_lost_slots():
-                    # Broadcast updated players list if any slots were cleared
-                    await conM.broadcast_to_game(game_id, {
-                        'type': 'players_list',
-                        'players': game.players
-                    })
-            await asyncio.sleep(1)  # Check every second
-        except Exception as e:
-            print(f"Error in connection-lost timeout check: {e}")
-            await asyncio.sleep(1)
-
+# Setup startup event handler
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks on server startup"""
-    asyncio.create_task(run_connection_lost_timeout_checks())
+    asyncio.create_task(game_slot.run_connection_lost_timeout_checks(rooms))
     # Prototype: load all saved rooms from snapshot
     for game_id in dbM.get_room_ids():
         game = dbM.load_game_session(game_id)
@@ -62,7 +46,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Handle Google OAuth authentication
         if auth_action == 'google_login':
-            await google_login.handle_google_login(websocket, auth_message)
+            await auth_google.handle_google_login(websocket, auth_message)
         # Handle guest authentication (existing flow)
         elif auth_action == 'authenticate_user':
             await auth_user.handle_user_auth(websocket, auth_message)
@@ -70,7 +54,6 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close()
             print("Error: invalid authentication action")
             return
-
 
 
         # Now continue with normal message loop
@@ -87,13 +70,13 @@ async def websocket_endpoint(websocket: WebSocket):
             # Route lobby actions
             if action == "list_rooms":
                 chat_tables = dbM.get_chat_tables()
-                await lobby_ws.handle_list_rooms(websocket, chat_tables)
+                await lobby_room.handle_list_rooms(websocket, chat_tables)
                 continue
 
             if action == "create_room":
                 game_id = uuid.uuid4().hex[:10].upper()  # generate a random session id
                 player_num = message.get("player_num", 4)  # Get player_num from message, default to 4
-                rooms[game_id] = await lobby_ws.handle_create_room(websocket, game_id, player_num)  # create a new game session
+                rooms[game_id] = await lobby_room.handle_create_room(websocket, game_id, player_num)  # create a new game session
                 continue
 
             # Get the game_id from message only (required for all game actions)
@@ -113,22 +96,22 @@ async def websocket_endpoint(websocket: WebSocket):
             # Route game actions
             if action == "join_room":
                 print(f"Joining room {game_id}")
-                await lobby_ws.handle_join_room(websocket, game_id, game)
+                await lobby_room.handle_join_room(websocket, game_id, game)
             elif action == "load_room":
                 print(f"Loading room {game_id}")
-                await game_ws.handle_load_room(websocket, game)
+                await lobby_room.handle_load_room(websocket, game)
             elif action == "chat":
-                await game_ws.handle_chat(websocket, message, game)
+                await game_chat.handle_chat(websocket, message, game)
             elif action == "join_player_slot":
-                await game_ws.handle_join_player_slot(websocket, message, game)
+                await game_slot.handle_join_player_slot(websocket, message, game)
             elif action == "add_bot_to_slot":
-                await game_ws.handle_add_bot_to_slot(websocket, message, game)
-                await game_ws.phase_wrapper(game)
+                await game_slot.handle_add_bot_to_slot(websocket, message, game)
+                await game_flow.handle_phase(game)
             elif action == "leave_player_slot":
-                await game_ws.handle_leave_player_slot(websocket, message, game)
+                await game_slot.handle_leave_player_slot(websocket, message, game)
             elif action == "set_ready":
-                await game_ws.handle_set_ready(websocket, message, game)
-                await game_ws.phase_wrapper(game)
+                await game_slot.handle_set_ready(websocket, message, game)
+                await game_flow.handle_phase(game)
             
             vomit_data = game.vomit()
             await websocket.send_json(vomit_data)
