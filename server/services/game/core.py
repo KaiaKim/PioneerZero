@@ -93,20 +93,24 @@ class Game():
     # TODO: calculate_all_priorities() - Calculate all action priorities
     # TODO: end_round() - End round and check win conditions
 
-    def declare_attack(self, sender, command):
-        result = None
-        action_type = None
-        target = "자신"
+    def declare_attack(self, sender, action_type, target="자신"):
+        """
+        Declare an attack action for a player.
+        
+        Args:
+            sender: User ID of the player declaring the attack
+            action_type: Type of attack ("근거리공격", "원거리공격", "대기")
+            target: Target of the attack (default: "자신")
+        
+        Returns:
+            tuple: (action_data, err) where action_data is the action dictionary and err is an error message if any
+        """
         err = None
         
         slot_num = slot.get_player_by_user_id(self, sender)
         if not slot_num:
-            err = "플레이어 슬롯을 찾을 수 없습니다."
+            return None, "플레이어 슬롯을 찾을 수 없습니다."
 
-        action_type = command[0]
-
-        if len(command) > 1:
-            target = command[1].strip()
         action_data = self._build_action_data(slot_num, action_type, target=target)
         self._upsert_action_queue(action_data)
 
@@ -119,8 +123,7 @@ class Game():
         #   "target": <target_id_or_name>,
         #   ... (other fields as needed)
         # }
-        result = '행동 선언 완료: ' + command.join(' ')
-        return result, action_data, err
+        return action_data, err
     
     def declare_skill(self, sender, command):
         result = None
