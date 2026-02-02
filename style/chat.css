@@ -4,44 +4,46 @@
  * ============================================================================
  * 
  * 1. CHAT AREA
- *    - .chat-area (Line 28)
- *    - .chat-area label (Line 41)
- *    - .chat-area > div:not(#chat-log) (Line 47)
- *    - .chat-area button (Line 53)
+ *    - .chat-area (Line 53)
+ *    - .chat-profile-row (Line 66)
+ *    - .chat-profile-row label (Line 73)
+ *    - .chat-profile-row button (Line 79)
  * 
  * 2. CHAT LOG
  *    - #chat-log (Line 60)
+ *    - .chat-log-panel (Line 99)
+ *    - .chat-tabs, .chat-tab (Line 108)
  * 
  * 3. CHAT MESSAGE
- *    - .chat-message (Line 77)
- *    - .chat-message-header (Line 88)
- *    - .chat-message-name (Line 95)
- *    - .chat-message-time (Line 101)
- *    - .chat-message-content (Line 107)
+ *    - .chat-message (Line 138)
+ *    - .chat-message-header (Line 149)
+ *    - .chat-message-name (Line 156)
+ *    - .chat-message-time (Line 162)
+ *    - .chat-message-content (Line 168)
  * 
  * 4. CHAT MESSAGE VARIANTS
- *    - .chat-message.system (Line 114)
- *    - .chat-message.system .chat-message-name (Line 119)
- *    - .chat-message.own-message (Line 123)
- *    - .chat-message.own-message .chat-message-header (Line 130)
- *    - .chat-message.secret (Line 134)
- *    - .chat-message.secret .chat-message-name (Line 140)
- *    - .chat-message.secret .chat-message-content (Line 144)
- *    - .chat-message.error (Line 149)
- *    - .chat-message.error .chat-message-name (Line 154)
- *    - .chat-message.error .chat-message-content (Line 158)
+ *    - .chat-message.system (Line 175)
+ *    - .chat-message.system .chat-message-name (Line 180)
+ *    - .chat-message.own-message (Line 184)
+ *    - .chat-message.own-message .chat-message-header (Line 191)
+ *    - .chat-message.secret (Line 195)
+ *    - .chat-message.secret .chat-message-name (Line 201)
+ *    - .chat-message.secret .chat-message-content (Line 205)
+ *    - .chat-message.error (Line 210)
+ *    - .chat-message.error .chat-message-name (Line 215)
+ *    - .chat-message.error .chat-message-content (Line 219)
  * 
  * 5. CHAT INPUT
- *    - #chat-input (Line 163)
+ *    - #chat-input (Line 224)
  * 
  * 6. PROFILE
- *    - .profile-image (Line 172)
- *    - #chat-char (Line 178)
+ *    - .profile-image (Line 233)
+ *    - #chat-char (Line 239)
  * 
  * 7. TIMER
- *    - .timer (Line 183)
- *    - #offset-countdown (Line 193)
- *    - #phase-countdown (Line 197)
+ *    - .timer (Line 244)
+ *    - #offset-countdown (Line 254)
+ *    - #phase-countdown (Line 258)
  * 
  * ============================================================================
  */
@@ -61,19 +63,19 @@
     overflow: hidden;
 }
 
-.chat-area label {
-    color: #000000;
-    font-weight: bold;
-    font-size: 15px;
-}
-
-.chat-area > div:not(#chat-log) {
+.chat-profile-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.chat-area button {
+.chat-profile-row label {
+    color: #000000;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.chat-profile-row button {
     margin-left: auto;
     width: 80px;
     height: 40px;
@@ -95,6 +97,38 @@
     align-items: flex-start;
     justify-content: flex-start;
     background-color: rgb(0, 0, 0);
+}
+
+.chat-log-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.chat-tabs {
+    display: flex;
+    flex-direction: row;
+    gap: 0px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-shrink: 0;
+}
+
+.chat-tab {
+    padding: 6px 12px;
+    font-size: 18px;
+    color: #2158a0;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.chat-tab.active {
+    background-color: rgba(100, 129, 180, 0.377);
+    border-bottom: 4px solid #2158a0;
 }
 
 .chat-message {
@@ -220,6 +254,112 @@
 #phase-countdown {
     color: #be0000;
 }
+
+/* Chat Settings modal */
+.chat-settings-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.chat-settings-modal {
+    position: relative;
+    width: 520px;
+    max-width: 90vw;
+    min-height: 200px;
+    padding: 24px;
+    background-color: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-settings-close-btn {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: red;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 10;
+}
+
+.chat-settings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+.chat-settings-table th,
+.chat-settings-table td {
+    border: 1px solid #555;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.chat-settings-table th {
+    background-color: #1a1a1a;
+    font-weight: bold;
+}
+
+.chat-settings-table td:first-child {
+    width: 30px;
+}
+
+.chat-settings-table td:nth-child(2) {
+    width: 80px;
+}
+
+.chat-settings-table input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.chat-settings-tab-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #3a3a3a;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 4px;
+}
+
+.chat-settings-row-remove,
+.chat-settings-row-add {
+    min-width: 28px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.chat-settings-modal p {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+}
+
 
 /*chat overlay*/
 

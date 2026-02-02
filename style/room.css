@@ -35,9 +35,13 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
+    gap: 10px;
     z-index: 1000;
     font-weight: bold;
-    
+}
+
+.chat-settings-btn {
+    margin-left: auto;
 }
 
 .right-panel {

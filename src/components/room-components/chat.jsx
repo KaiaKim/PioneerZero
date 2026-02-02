@@ -1,9 +1,23 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../hooks/useGame';
 import { setDialogueElements } from '../../util';
 
+const TABS = [
+  { id: 'main', label: 'Main' },
+  { id: 'team', label: 'Team' },
+  { id: 'chit', label: 'Chit' },
+];
+
+function getMessagesForTab(tabId, chatMessages) {
+  if (tabId === 'main') return chatMessages;
+  if (tabId === 'team') return chatMessages.filter((m) => m.isSecret);
+  if (tabId === 'chit') return chatMessages.filter((m) => !m.isSystem);
+  return chatMessages;
+}
+
 function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions }) {
   const { chatLogRef } = useGame();
+  const [activeTab, setActiveTab] = useState('main');
 
   // Handle chat input keydown
   const handleChatKeyDown = useCallback((e) => {
@@ -15,37 +29,48 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
     }
   }, [chatInput, actions, setChatInput]);
 
+  const renderMessage = (msg, index) => {
+    const isCurrentUser = user && msg.user_id && user.id === msg.user_id;
+    return (
+      <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${msg.isSecret ? 'secret' : ''} ${msg.isError ? 'error' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
+        <div className="chat-message-header">
+          <span className="chat-message-name">{msg.sender}</span>
+          <span className="chat-message-time">{msg.time}</span>
+        </div>
+        <div className="chat-message-content">{msg.content}</div>
+      </div>
+    );
+  };
+
   return (
     <div className="chat-area">
       <div ref={chatLogRef} id="chat-log" className="chat-log-container">
-          {chatMessages.map((msg, index) => {
-            const isCurrentUser = user && msg.user_id && user.id === msg.user_id;
-            return (
-              <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${msg.isSecret ? 'secret' : ''} ${msg.isError ? 'error' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
-                <div className="chat-message-header">
-                  <span className="chat-message-name">{msg.sender}</span>
-                  <span className="chat-message-time">{msg.time}</span>
-                </div>
-                <div className="chat-message-content">{msg.content}</div>
-              </div>
-            );
-          })}
-        </div>
-        <div>
-          <label>
-            <input type="checkbox" id="all-checkbox" /> All
-          </label>
-          <label>
-            <input type="checkbox" id="system-checkbox" /> System
-          </label>
-          <label>
-            <input type="checkbox" id="chat-checkbox" /> Chat
-          </label>
-          <label>
-            <input type="checkbox" id="story-checkbox" /> Story
-          </label>
-        </div>
-        <div>
+        {TABS.map((tab) => {
+          const messages = getMessagesForTab(tab.id, chatMessages);
+          return (
+            <div
+              key={tab.id}
+              className={`chat-log-panel ${activeTab === tab.id ? 'active' : ''}`}
+              style={{ display: activeTab === tab.id ? 'flex' : 'none' }}
+            >
+              {messages.map((msg, index) => renderMessage(msg, index))}
+            </div>
+          );
+        })}
+      </div>
+      <div className="chat-tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`chat-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="chat-profile-row">
           <img
             src="/images/pikita_token.png"
             alt="character image"
@@ -119,5 +144,99 @@ function ChatOverlay(){
   )
 }
 
-export { ChatBox, ChatOverlay };
+const TAB_SETTINGS_HEADERS = ['()', '탭이름', '시스템', 'RP', '커맨드', '우리 팀', '상대 팀', '잡담'];
+const TAB_SETTINGS_KEYS = ['system', 'rp', 'command', 'ourTeam', 'theirTeam', 'chitchat'];
+
+const initialTabSettingsRows = [
+  { id: 1, tabName: '메인', system: true, rp: true, command: true, ourTeam: false, theirTeam: false, chitchat: false },
+  { id: 2, tabName: '팀', system: false, rp: false, command: false, ourTeam: true, theirTeam: true, chitchat: false },
+  { id: 3, tabName: '잡담', system: false, rp: false, command: false, ourTeam: false, theirTeam: false, chitchat: true },
+];
+
+function ChatSettings({ open, onClose }) {
+  const [tabSettingsRows, setTabSettingsRows] = useState(initialTabSettingsRows);
+
+  const removeRow = (id) => {
+    setTabSettingsRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const addRow = () => {
+    setTabSettingsRows((prev) => [
+      ...prev,
+      {
+        id: Math.max(0, ...prev.map((r) => r.id)) + 1,
+        tabName: '',
+        system: false,
+        rp: false,
+        command: false,
+        ourTeam: false,
+        theirTeam: false,
+        chitchat: false,
+      },
+    ]);
+  };
+
+  const setRowField = (id, field, value) => {
+    setTabSettingsRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  if (!open) return null;
+  return (
+    <div className="chat-settings-backdrop" onClick={onClose} role="presentation">
+      <div className="chat-settings-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="chat-settings-tabs">
+          <h3>채팅 탭</h3>
+          <table className="chat-settings-table">
+            <thead>
+              <tr>
+                {TAB_SETTINGS_HEADERS.map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tabSettingsRows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    <button type="button" className="chat-settings-row-remove" onClick={() => removeRow(row.id)} aria-label="Remove row">−</button>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={row.tabName}
+                      onChange={(e) => setRowField(row.id, 'tabName', e.target.value)}
+                      className="chat-settings-tab-name-input"
+                    />
+                  </td>
+                  {TAB_SETTINGS_KEYS.map((key) => (
+                    <td key={key}>
+                      <input
+                        type="checkbox"
+                        checked={row[key]}
+                        onChange={(e) => setRowField(row.id, key, e.target.checked)}
+                        aria-label={key}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              <tr>
+                <td>
+                  <button type="button" className="chat-settings-row-add" onClick={addRow} aria-label="Add row">+</button>
+                </td>
+                <td colSpan={7} />
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button type="button" className="chat-settings-close-btn" onClick={onClose}>X</button>
+      </div>
+    </div>
+  );
+}
+
+export { ChatBox, ChatOverlay, ChatSettings };
 
