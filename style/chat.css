@@ -354,6 +354,23 @@
     line-height: 1;
 }
 
+.chat-settings-row-remove:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chat-settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.chat-settings-apply-btn {
+    padding: 8px 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
 .chat-settings-modal p {
     margin: 0;
     font-size: 14px;

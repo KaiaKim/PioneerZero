@@ -2,22 +2,59 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../hooks/useGame';
 import { setDialogueElements } from '../../util';
 
-const TABS = [
-  { id: 'main', label: 'Main' },
-  { id: 'team', label: 'Team' },
-  { id: 'chit', label: 'Chit' },
+const CHAT_TAB_SETTINGS_KEY = 'chatTabSettings';
+
+const DEFAULT_TAB_CONFIG = [
+  { id: 1, tabName: '메인', system: true, rp: true, command: true, ourTeam: false, theirTeam: false, chitchat: false },
+  { id: 2, tabName: '팀', system: false, rp: false, command: false, ourTeam: true, theirTeam: true, chitchat: false },
+  { id: 3, tabName: '잡담', system: false, rp: false, command: false, ourTeam: false, theirTeam: false, chitchat: true },
 ];
 
-function getMessagesForTab(tabId, chatMessages) {
-  if (tabId === 'main') return chatMessages;
-  if (tabId === 'team') return chatMessages.filter((m) => m.isSecret);
-  if (tabId === 'chit') return chatMessages.filter((m) => !m.isSystem);
-  return chatMessages;
+function loadTabSettingsFromStorage() {
+  try {
+    const raw = localStorage.getItem(CHAT_TAB_SETTINGS_KEY);
+    if (raw == null) return [...DEFAULT_TAB_CONFIG];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_TAB_CONFIG];
+    const hasMain = parsed.some((r) => r.tabName === '메인');
+    if (!hasMain) return [...DEFAULT_TAB_CONFIG];
+    return parsed;
+  } catch {
+    return [...DEFAULT_TAB_CONFIG];
+  }
 }
 
-function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions }) {
+function saveTabSettingsToStorage(rows) {
+  try {
+    const hasMain = rows.some((r) => r.tabName === '메인');
+    const toSave = hasMain ? rows : [...DEFAULT_TAB_CONFIG];
+    localStorage.setItem(CHAT_TAB_SETTINGS_KEY, JSON.stringify(toSave));
+  } catch {
+    // ignore
+  }
+}
+
+function getMessagesForTabRow(row, chatMessages) {
+  return chatMessages.filter(
+    (msg) =>
+      (row.system && msg.isSystem) ||
+      (row.rp && !msg.isSystem) ||
+      (row.command && (msg.isSecret || msg.isError))
+  );
+}
+
+function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions, tabConfig }) {
   const { chatLogRef } = useGame();
-  const [activeTab, setActiveTab] = useState('main');
+  const tabs = tabConfig && tabConfig.length > 0 ? tabConfig : [...DEFAULT_TAB_CONFIG];
+  const mainTabId = tabs[0]?.id;
+  const [activeTab, setActiveTab] = useState(mainTabId);
+
+  useEffect(() => {
+    const currentIds = new Set(tabs.map((t) => t.id));
+    if (!currentIds.has(activeTab)) {
+      setActiveTab(mainTabId);
+    }
+  }, [tabs, activeTab, mainTabId]);
 
   // Handle chat input keydown
   const handleChatKeyDown = useCallback((e) => {
@@ -45,8 +82,8 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
   return (
     <div className="chat-area">
       <div ref={chatLogRef} id="chat-log" className="chat-log-container">
-        {TABS.map((tab) => {
-          const messages = getMessagesForTab(tab.id, chatMessages);
+        {tabs.map((tab) => {
+          const messages = getMessagesForTabRow(tab, chatMessages);
           return (
             <div
               key={tab.id}
@@ -59,14 +96,14 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
         })}
       </div>
       <div className="chat-tabs">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             className={`chat-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}
+            {tab.tabName}
           </button>
         ))}
       </div>
@@ -147,14 +184,16 @@ function ChatOverlay(){
 const TAB_SETTINGS_HEADERS = ['()', '탭이름', '시스템', 'RP', '커맨드', '우리 팀', '상대 팀', '잡담'];
 const TAB_SETTINGS_KEYS = ['system', 'rp', 'command', 'ourTeam', 'theirTeam', 'chitchat'];
 
-const initialTabSettingsRows = [
-  { id: 1, tabName: '메인', system: true, rp: true, command: true, ourTeam: false, theirTeam: false, chitchat: false },
-  { id: 2, tabName: '팀', system: false, rp: false, command: false, ourTeam: true, theirTeam: true, chitchat: false },
-  { id: 3, tabName: '잡담', system: false, rp: false, command: false, ourTeam: false, theirTeam: false, chitchat: true },
-];
+function ChatSettings({ open, onClose, tabConfig, onApply }) {
+  const [tabSettingsRows, setTabSettingsRows] = useState([...DEFAULT_TAB_CONFIG]);
 
-function ChatSettings({ open, onClose }) {
-  const [tabSettingsRows, setTabSettingsRows] = useState(initialTabSettingsRows);
+  useEffect(() => {
+    if (open && tabConfig && tabConfig.length > 0) {
+      setTabSettingsRows(tabConfig.map((r) => ({ ...r })));
+    } else if (open) {
+      setTabSettingsRows([...DEFAULT_TAB_CONFIG]);
+    }
+  }, [open, tabConfig]);
 
   const removeRow = (id) => {
     setTabSettingsRows((prev) => prev.filter((r) => r.id !== id));
@@ -197,10 +236,18 @@ function ChatSettings({ open, onClose }) {
               </tr>
             </thead>
             <tbody>
-              {tabSettingsRows.map((row) => (
+              {tabSettingsRows.map((row, index) => (
                 <tr key={row.id}>
                   <td>
-                    <button type="button" className="chat-settings-row-remove" onClick={() => removeRow(row.id)} aria-label="Remove row">−</button>
+                    <button
+                      type="button"
+                      className="chat-settings-row-remove"
+                      onClick={() => removeRow(row.id)}
+                      disabled={index === 0}
+                      aria-label="Remove row"
+                    >
+                      −
+                    </button>
                   </td>
                   <td>
                     <input
@@ -232,11 +279,17 @@ function ChatSettings({ open, onClose }) {
           </table>
         </div>
 
+        <div className="chat-settings-footer">
+          <button type="button" className="chat-settings-apply-btn" onClick={() => { if (onApply) onApply(tabSettingsRows); onClose(); }}>
+            Apply
+          </button>
+        </div>
+
         <button type="button" className="chat-settings-close-btn" onClick={onClose}>X</button>
       </div>
     </div>
   );
 }
 
-export { ChatBox, ChatOverlay, ChatSettings };
+export { ChatBox, ChatOverlay, ChatSettings, DEFAULT_TAB_CONFIG, loadTabSettingsFromStorage, saveTabSettingsToStorage };
 

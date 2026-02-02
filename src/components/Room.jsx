@@ -4,7 +4,7 @@ import { useGame } from '../hooks/useGame';
 import Auth from './auth';
 import Slots from './room-components/slots';
 import Floor from './room-components/floor';
-import { ChatBox, ChatOverlay, ChatSettings } from './room-components/chat';
+import { ChatBox, ChatOverlay, ChatSettings, DEFAULT_TAB_CONFIG, loadTabSettingsFromStorage, saveTabSettingsToStorage } from './room-components/chat';
 import MP3 from './room-components/mp3';
 import UserList from './room-components/userList';
 import Loading from './room-components/loading';
@@ -21,6 +21,14 @@ function Room() {
   const [chatInput, setChatInput] = useState('');
   const chatInputRef = useRef(null);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
+  const [tabConfig, setTabConfig] = useState(() => loadTabSettingsFromStorage());
+
+  const handleApplyTabSettings = (rows) => {
+    const hasMain = rows.some((r) => r.tabName === '메인');
+    const toApply = hasMain ? rows : [...DEFAULT_TAB_CONFIG];
+    saveTabSettingsToStorage(toApply);
+    setTabConfig(toApply);
+  };
   
   // Show/hide areas based on combat state
   const showLoading = combatStarted === null;
@@ -47,8 +55,8 @@ function Room() {
         <button className="chat-settings-btn" onClick={() => setChatSettingsOpen(true)}>Chat Settings</button>
         </div>
       <div className="right-panel">
-        <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} />
-        <ChatSettings open={chatSettingsOpen} onClose={() => setChatSettingsOpen(false)} />
+        <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} tabConfig={tabConfig} />
+        <ChatSettings open={chatSettingsOpen} onClose={() => setChatSettingsOpen(false)} tabConfig={tabConfig} onApply={handleApplyTabSettings} />
       </div>
       <ActionQueue players={players} actionSubmissionStatus={actionSubmissionStatus} declaredAttack={declaredAttack} />
 
