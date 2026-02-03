@@ -119,6 +119,7 @@
 }
 
 .chat-tab {
+    position: relative;
     padding: 6px 12px;
     font-size: 18px;
     color: #2158a0;
@@ -130,6 +131,16 @@
 .chat-tab.active {
     background-color: rgba(100, 129, 180, 0.377);
     border-bottom: 4px solid #2158a0;
+}
+
+.chat-tab-unread-dot {
+    position: absolute;
+    top: 6px;
+    right: 2px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #2158a0;
+    line-height: 1;
 }
 
 .chat-message {

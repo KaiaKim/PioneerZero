@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useGame } from '../../hooks/useGame';
 import { setDialogueElements } from '../../util';
 
 const CHAT_TAB_SETTINGS_KEY = 'chatTabSettings';
+const CHAT_TYPE_STORAGE_KEY_PREFIX = 'chatType_';
+const CHAT_UNREAD_STORAGE_KEY_PREFIX = 'chatUnreadByTabId_';
 
 const DEFAULT_TAB_CONFIG = [
   { id: 1, tabName: '메인', system: true, dialogue: true, command: true, communication: false, spy: false, chitchat: false },
@@ -34,25 +37,53 @@ function saveTabSettingsToStorage(rows) {
   }
 }
 
+function messageBelongsToTab(msg, row) {
+  const sort = msg.sort ?? 'dialogue';
+  return (
+    (row.system && sort === 'system') ||
+    (row.dialogue && sort === 'dialogue') ||
+    (row.command && (sort === 'secret' || sort === 'error')) ||
+    (row.communication && sort === 'communication') ||
+    (row.chitchat && sort === 'chitchat')
+  );
+}
+
 function getMessagesForTabRow(row, chatMessages) {
-  return chatMessages.filter((msg) => {
-    const sort = msg.sort ?? 'dialogue';
-    return (
-      (row.system && sort === 'system') ||
-      (row.dialogue && sort === 'dialogue') ||
-      (row.command && (sort === 'secret' || sort === 'error')) ||
-      (row.communication && sort === 'communication') ||
-      (row.chitchat && sort === 'chitchat')
-    );
-  });
+  return chatMessages.filter((msg) => messageBelongsToTab(msg, row));
+}
+
+function loadChatTypeFromStorage(gameId) {
+  const key = CHAT_TYPE_STORAGE_KEY_PREFIX + (gameId || 'default');
+  try {
+    const v = localStorage.getItem(key);
+    return (v === 'dialogue' || v === 'communication' || v === 'chitchat') ? v : 'dialogue';
+  } catch {
+    return 'dialogue';
+  }
+}
+
+function loadUnreadByTabIdFromStorage(gameId) {
+  const key = CHAT_UNREAD_STORAGE_KEY_PREFIX + (gameId || 'default');
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions, tabConfig }) {
+  const { gameId } = useParams();
   const { chatLogRef } = useGame();
   const tabs = tabConfig && tabConfig.length > 0 ? tabConfig : [...DEFAULT_TAB_CONFIG];
   const mainTabId = tabs[0]?.id;
   const [activeTab, setActiveTab] = useState(mainTabId);
-  const [chatType, setChatType] = useState('dialogue');
+  const [chatType, setChatType] = useState(() => loadChatTypeFromStorage(gameId));
+  const [unreadByTabId, setUnreadByTabId] = useState(() => loadUnreadByTabIdFromStorage(gameId));
+  const prevChatMessagesLengthRef = useRef(0);
+  const prevGameIdForUnreadRef = useRef(gameId);
 
   useEffect(() => {
     const currentIds = new Set(tabs.map((t) => t.id));
@@ -60,6 +91,49 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
       setActiveTab(mainTabId);
     }
   }, [tabs, activeTab, mainTabId]);
+
+  useEffect(() => {
+    if (gameId == null) return;
+    setChatType(loadChatTypeFromStorage(gameId));
+    setUnreadByTabId(loadUnreadByTabIdFromStorage(gameId));
+  }, [gameId]);
+
+  useEffect(() => {
+    const key = CHAT_UNREAD_STORAGE_KEY_PREFIX + (gameId || 'default');
+    if (prevGameIdForUnreadRef.current !== gameId) {
+      prevGameIdForUnreadRef.current = gameId;
+      return;
+    }
+    try {
+      localStorage.setItem(key, JSON.stringify(unreadByTabId));
+    } catch {
+      // ignore
+    }
+  }, [unreadByTabId, gameId]);
+
+  useEffect(() => {
+    const prevLen = prevChatMessagesLengthRef.current;
+    prevChatMessagesLengthRef.current = chatMessages.length;
+    if (prevLen > 0 && chatMessages.length > prevLen) {
+      const newMessages = chatMessages.slice(prevLen);
+      setUnreadByTabId((prev) => {
+        const next = { ...prev };
+        newMessages.forEach((msg) => {
+          tabs.forEach((tab) => {
+            if (tab.id !== activeTab && messageBelongsToTab(msg, tab)) {
+              next[tab.id] = true;
+            }
+          });
+        });
+        return next;
+      });
+    }
+  }, [chatMessages, tabs, activeTab]);
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+    setUnreadByTabId((prev) => ({ ...prev, [tabId]: false }));
+  };
 
   // Handle chat input keydown
   const handleChatKeyDown = useCallback((e) => {
@@ -106,9 +180,11 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
             key={tab.id}
             type="button"
             className={`chat-tab ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
+            aria-label={unreadByTabId[tab.id] ? `${tab.tabName} (unread)` : tab.tabName}
           >
-            {tab.tabName}
+            <span>{tab.tabName}</span>
+            {unreadByTabId[tab.id] && <span className="chat-tab-unread-dot" aria-hidden>*</span>}
           </button>
         ))}
       </div>
@@ -119,7 +195,21 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <select className="chat-type-select" value={chatType} onChange={(e) => setChatType(e.target.value)} aria-label="Chat type">
+          <select
+            className="chat-type-select"
+            value={chatType}
+            onChange={(e) => {
+              const value = e.target.value;
+              setChatType(value);
+              const key = CHAT_TYPE_STORAGE_KEY_PREFIX + (gameId || 'default');
+              try {
+                localStorage.setItem(key, value);
+              } catch {
+                // ignore
+              }
+            }}
+            aria-label="Chat type"
+          >
             <option value="dialogue">말하기</option>
             <option value="communication">통신</option>
             <option value="chitchat">사담</option>
