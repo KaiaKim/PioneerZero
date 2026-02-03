@@ -55,6 +55,14 @@
  *    - .floor-section.team-white .cell (Line 301)
  *    - .token (Line 306)
  * 
+ * 6. ACTION QUEUE
+ *    - .action-queue (Line 358)
+ *    - .action-queue-status (Line 464)
+ *    - .action-queue-quick-progress (Line 484)
+ *    - .action-queue .timer (Line 510)
+ *    - #offset-countdown (Line 518)
+ *    - #phase-countdown (Line 522)
+ * 
  * ============================================================================
  */
 
@@ -461,21 +469,18 @@
     color: #6bb6ff;
 }
 
-.action-queue-status {
+.action-queue-footer {
     padding: 10px;
     background-color: rgba(74, 158, 255, 0.2);
     border: 1px solid #4a9eff;
     border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     font-weight: 600;
     color: #6bb6ff;
     margin-top: 12px;
     box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
 }
 
-.action-queue-status-text {
+.action-queue-status {
     margin: 0;
     color: #6bb6ff;
     font-weight: 600;
@@ -487,15 +492,34 @@
     gap: 8px;
 }
 
-.action-queue-quick-progress > label {
-    margin: 0;
-    color: #6bb6ff;
-    font-weight: 600;
-    cursor: pointer;
-}
-
 .action-queue-quick-progress-checkbox {
     margin: 0;
+}
+
+.action-queue .timer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+
+.action-queue #offset-countdown {
+    color: #6bb6ff;
+}
+
+.action-queue #offset-countdown.offset-countdown-spinner .hourglass-icon {
+    display: inline-block;
+    animation: hourglass-spin 3s steps(8) infinite;
+}
+
+@keyframes hourglass-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.action-queue #phase-countdown {
+    color: #ff8a80;
 }
 
 /* Action Queue Glow Animation */

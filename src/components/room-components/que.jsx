@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-const ActionQueue = ({ players = [], actionSubmissionStatus = [], declaredAttack = null }) => {
+const ActionQueue = ({
+  players = [],
+  actionSubmissionStatus = [],
+  declaredAttack = null,
+  offsetCountdown = null,
+  phaseCountdown = null,
+}) => {
   const containerRef = useRef(null);
   const attackTypeSelectRef = useRef(null);
   const attackTargetInputRef = useRef(null);
@@ -179,15 +185,25 @@ const ActionQueue = ({ players = [], actionSubmissionStatus = [], declaredAttack
         <label className="action-queue-attack-power"> 공격력:0</label>
         <label className="action-queue-effect">효과:</label>
       </div>
-      {playerCount > 0 && (
-        <div className="action-queue-status">
-          <div className="action-queue-status-text">제출현황: {submittedCount}/{playerCount}</div>
-          <div className="action-queue-quick-progress">
-            <label>빠른진행:</label>
-            <input className="action-queue-quick-progress-checkbox" type="checkbox" />
-          </div>
+      <div className="action-queue-footer">
+        <div className="action-queue-status">제출현황: {submittedCount}/{playerCount}</div>
+
+        <div className="timer"> 제한시간:
+          {offsetCountdown && (
+            <div id="offset-countdown" className="offset-countdown-spinner" aria-label="Waiting">
+              {/* Dev: numeric countdown — {offsetCountdown} */}
+              <span className="hourglass-icon" aria-hidden="true">⌛</span>
+            </div>
+          )}
+          {phaseCountdown && (
+          <div id="phase-countdown">{String(phaseCountdown).padStart(2, '0')}</div>
+          )}
         </div>
-      )}
+
+        <div className="action-queue-quick-progress"> 빠른진행:
+          <input className="action-queue-quick-progress-checkbox" type="checkbox" />
+        </div>
+      </div>
 
     </div>
   );

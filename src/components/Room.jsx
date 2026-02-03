@@ -58,7 +58,13 @@ function Room() {
         <ChatBox chatMessages={chatMessages} user={user} offsetCountdown={offsetCountdown} phaseCountdown={phaseCountdown} chatInputRef={chatInputRef} chatInput={chatInput} setChatInput={setChatInput} actions={actions} tabConfig={tabConfig} />
         <ChatSettings open={chatSettingsOpen} onClose={() => setChatSettingsOpen(false)} tabConfig={tabConfig} onApply={handleApplyTabSettings} />
       </div>
-      <ActionQueue players={players} actionSubmissionStatus={actionSubmissionStatus} declaredAttack={declaredAttack} />
+      <ActionQueue
+        players={players}
+        actionSubmissionStatus={actionSubmissionStatus}
+        declaredAttack={declaredAttack}
+        offsetCountdown={offsetCountdown}
+        phaseCountdown={phaseCountdown}
+      />
 
     </div>
   );

@@ -40,11 +40,6 @@
  *    - .profile-image (Line 233)
  *    - #chat-char (Line 239)
  * 
- * 7. TIMER
- *    - .timer (Line 244)
- *    - #offset-countdown (Line 254)
- *    - #phase-countdown (Line 258)
- * 
  * ============================================================================
  */
 
@@ -236,25 +231,6 @@
     font-size: 24px;
 }
 
-/*timer*/
-.timer {
-    right: 100px;
-    position: absolute;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 10px;
-    font-size: 25px;
-}
-
-#offset-countdown {
-    color: #000000;
-}
-
-#phase-countdown {
-    color: #be0000;
-}
-
 /* Chat Settings modal */
 .chat-settings-backdrop {
     position: fixed;
@@ -279,6 +255,16 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.chat-settings-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-settings-header h3 {
+    margin: 0;
 }
 
 .chat-settings-close-btn {

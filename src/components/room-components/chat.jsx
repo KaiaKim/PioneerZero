@@ -5,9 +5,9 @@ import { setDialogueElements } from '../../util';
 const CHAT_TAB_SETTINGS_KEY = 'chatTabSettings';
 
 const DEFAULT_TAB_CONFIG = [
-  { id: 1, tabName: '메인', system: true, rp: true, command: true, ourTeam: false, theirTeam: false, chitchat: false },
-  { id: 2, tabName: '팀', system: false, rp: false, command: false, ourTeam: true, theirTeam: true, chitchat: false },
-  { id: 3, tabName: '잡담', system: false, rp: false, command: false, ourTeam: false, theirTeam: false, chitchat: true },
+  { id: 1, tabName: '메인', system: true, dialogue: true, command: true, communication: false, spy: false, chitchat: false },
+  { id: 2, tabName: '팀', system: false, dialogue: false, command: false, communication: true, spy: true, chitchat: false },
+  { id: 3, tabName: '사담', system: false, dialogue: false, command: false, communication: false, spy: false, chitchat: true },
 ];
 
 function loadTabSettingsFromStorage() {
@@ -114,10 +114,6 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <div className="timer">
-            <div id="offset-countdown">{offsetCountdown ?? ''}</div>
-            <div id="phase-countdown">{phaseCountdown ?? ''}</div>
-          </div>
           <button onClick={() => actions.sendChat(chatInput)}>
             Send
           </button>
@@ -181,8 +177,8 @@ function ChatOverlay(){
   )
 }
 
-const TAB_SETTINGS_HEADERS = ['()', '탭이름', '시스템', 'RP', '커맨드', '우리 팀', '상대 팀', '잡담'];
-const TAB_SETTINGS_KEYS = ['system', 'rp', 'command', 'ourTeam', 'theirTeam', 'chitchat'];
+const TAB_SETTINGS_HEADERS = ['', '탭이름', '시스템', '대화', '명령어', '통신', '도청', '사담'];
+const TAB_SETTINGS_KEYS = ['system', 'dialogue', 'command', 'communication', 'spy', 'chitchat'];
 
 function ChatSettings({ open, onClose, tabConfig, onApply }) {
   const [tabSettingsRows, setTabSettingsRows] = useState([...DEFAULT_TAB_CONFIG]);
@@ -206,10 +202,10 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
         id: Math.max(0, ...prev.map((r) => r.id)) + 1,
         tabName: '',
         system: false,
-        rp: false,
+        dialogue: false,
         command: false,
-        ourTeam: false,
-        theirTeam: false,
+        communication: false,
+        spy: false,
         chitchat: false,
       },
     ]);
@@ -226,7 +222,12 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
     <div className="chat-settings-backdrop" onClick={onClose} role="presentation">
       <div className="chat-settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="chat-settings-tabs">
-          <h3>채팅 탭</h3>
+        <div className="chat-settings-header">
+            <h3>채팅 탭</h3>
+            <button type="button" className="chat-settings-default-btn" onClick={() => { setTabSettingsRows([...DEFAULT_TAB_CONFIG]); if (onApply) onApply([...DEFAULT_TAB_CONFIG]); }}>
+              Default
+            </button>
+        </div>
           <table className="chat-settings-table">
             <thead>
               <tr>
