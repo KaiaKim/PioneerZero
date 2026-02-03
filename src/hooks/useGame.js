@@ -223,12 +223,13 @@ export function useGame() {
     });
   };
 
-  const sendChat = (content) => {
+  const sendChat = (content, chatType) => {
     if (!content.trim()) return;
     messageGameWS({
       action: 'chat',
       sender: userName,
-      content: content.trim()
+      content: content.trim(),
+      chat_type: chatType
     });
     return true; // TODO: if fail, return false > don't clear the input
   };

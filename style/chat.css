@@ -76,6 +76,12 @@
     height: 40px;
 }
 
+.chat-type-select {
+    font-size: 14px;
+    padding: 4px 8px;
+    min-width: 80px;
+}
+
 /* Chat Log */
 #chat-log {
     width: 100%;

@@ -11,6 +11,9 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
     """Handle chat messages and commands."""
     content = message.get("content", "")
     sender = message.get("sender")
+    chat_type = message.get("chat_type", "dialogue")
+    if chat_type not in ("dialogue", "communication", "chitchat"):
+        chat_type = "dialogue"
     user_info = conM.get_user_info(websocket)
     user_id = user_info.get('id')
     
@@ -26,8 +29,8 @@ async def handle_chat(websocket: WebSocket, message: dict, game):
             msg = dbM.save_chat(game.id, err, sort="error", user_id=user_id)
             await conM.broadcast_to_game(game.id, msg)
     else:
-        # Regular chat message
-        msg = _save_regular_chat(game, content, sender, user_id)
+        # Regular chat message: sort is dialogue, communication, or chitchat from chat-type-select
+        msg = _save_regular_chat(game, content, sender, user_id, chat_type)
         await conM.broadcast_to_game(game.id, msg)
 
 
@@ -49,9 +52,9 @@ def _is_valid_combat_participant(game, user_id: str) -> bool:
 
 
 # Message Management Functions
-def _save_regular_chat(game, content: str, sender: str, user_id: str) -> dict:
+def _save_regular_chat(game, content: str, sender: str, user_id: str, chat_type: str) -> dict:
     """Save regular chat messages."""
-    return dbM.save_chat(game.id, content, sender=sender, sort="user", user_id=user_id)
+    return dbM.save_chat(game.id, content, sender=sender, sort=chat_type, user_id=user_id)
 
 
 async def _save_and_broadcast_message(game, result: str, err: str, sender: str, user_id: str):

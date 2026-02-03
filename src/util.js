@@ -60,18 +60,15 @@ function formatTime(timeString) {
 }
 
 export function genChatMessage(chatMsg) {
-    const isSecret = chatMsg.sort === "secret";
-    const isError = chatMsg.sort === "error";
+    const sort = chatMsg.sort || "dialogue";
     let sender = chatMsg.sender;
-    if (isSecret) sender += " 👁";
-    if (isError) sender += " ❌";
+    if (sort === "secret") sender += " 👁";
+    if (sort === "error") sender += " ❌";
     return {
-        sender: sender,
+        sender,
         time: formatTime(chatMsg.time),
         content: chatMsg.content,
-        isSystem: chatMsg.sort === "system",
-        isSecret: isSecret,
-        isError: isError,
+        sort,
         user_id: chatMsg.user_id || null
     };
 }

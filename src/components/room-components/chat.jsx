@@ -35,12 +35,16 @@ function saveTabSettingsToStorage(rows) {
 }
 
 function getMessagesForTabRow(row, chatMessages) {
-  return chatMessages.filter(
-    (msg) =>
-      (row.system && msg.isSystem) ||
-      (row.rp && !msg.isSystem) ||
-      (row.command && (msg.isSecret || msg.isError))
-  );
+  return chatMessages.filter((msg) => {
+    const sort = msg.sort ?? 'dialogue';
+    return (
+      (row.system && sort === 'system') ||
+      (row.dialogue && sort === 'dialogue') ||
+      (row.command && (sort === 'secret' || sort === 'error')) ||
+      (row.communication && sort === 'communication') ||
+      (row.chitchat && sort === 'chitchat')
+    );
+  });
 }
 
 function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions, tabConfig }) {
@@ -48,6 +52,7 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
   const tabs = tabConfig && tabConfig.length > 0 ? tabConfig : [...DEFAULT_TAB_CONFIG];
   const mainTabId = tabs[0]?.id;
   const [activeTab, setActiveTab] = useState(mainTabId);
+  const [chatType, setChatType] = useState('dialogue');
 
   useEffect(() => {
     const currentIds = new Set(tabs.map((t) => t.id));
@@ -60,16 +65,16 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
   const handleChatKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (actions.sendChat(chatInput)) {
+      if (actions.sendChat(chatInput, chatType)) {
         setChatInput('');
       }
     }
-  }, [chatInput, actions, setChatInput]);
+  }, [chatInput, chatType, actions, setChatInput]);
 
   const renderMessage = (msg, index) => {
     const isCurrentUser = user && msg.user_id && user.id === msg.user_id;
     return (
-      <div key={index} className={`chat-message ${msg.isSystem ? 'system' : ''} ${msg.isSecret ? 'secret' : ''} ${msg.isError ? 'error' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
+      <div key={index} className={`chat-message ${msg.sort === 'system' ? 'system' : ''} ${msg.sort === 'secret' ? 'secret' : ''} ${msg.sort === 'error' ? 'error' : ''} ${isCurrentUser ? 'own-message' : ''}`}>
         <div className="chat-message-header">
           <span className="chat-message-name">{msg.sender}</span>
           <span className="chat-message-time">{msg.time}</span>
@@ -114,7 +119,12 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
             className="profile-image"
           />
           <label id="chat-char">{user ? user.name : 'noname'}</label>
-          <button onClick={() => actions.sendChat(chatInput)}>
+          <select className="chat-type-select" value={chatType} onChange={(e) => setChatType(e.target.value)} aria-label="Chat type">
+            <option value="dialogue">말하기</option>
+            <option value="communication">통신</option>
+            <option value="chitchat">사담</option>
+          </select>
+          <button onClick={() => actions.sendChat(chatInput, chatType)}>
             Send
           </button>
         </div>
