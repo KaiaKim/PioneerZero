@@ -220,16 +220,6 @@ function ChatOverlay(){
 
 const TAB_SETTINGS_HEADERS = ['', '탭이름', '시스템', '대화', '명령어', '통신', '도청', '사담'];
 const TAB_SETTINGS_KEYS = ['system', 'dialogue', 'command', 'communication', 'spy', 'chitchat'];
-const TAB_SETTINGS_COLORS = [
-  "#b58900", // solarized yellow
-  "#cb4b16", // solarized orange
-  //"#dc322f", // solarized red
-  "#d33682", // solarized magenta
-  //"#6c71c4", // solarized violet
-  "#268bd2", // solarized blue
-  "#2aa198", // solarized cyan
-  "#859900"  // solarized green
-]
 
 function ChatSettings({ open, onClose, tabConfig, onApply }) {
   const [tabSettingsRows, setTabSettingsRows] = useState([...DEFAULT_TAB_CONFIG]);
@@ -283,7 +273,7 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
             <thead>
               <tr>
                 {TAB_SETTINGS_HEADERS.map((h, index) => (
-                  <th key={h} style={index >= 2 ? { color: TAB_SETTINGS_COLORS[(index - 2) % TAB_SETTINGS_COLORS.length] } : undefined}>{h}
+                  <th key={h} className={index >= 2 ? `chat-settings-th-${TAB_SETTINGS_KEYS[index - 2]}` : undefined}>{h}
                   </th>
                 ))}
               </tr>

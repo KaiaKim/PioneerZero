@@ -8,6 +8,42 @@
     --team-blue-text: white;
     --team-white-bg: #eeeeee;
     --team-white-text: black;
+    /* Vomit box */
+    --rc-vomit-bg: rgba(0, 0, 0, 0.1);
+    --rc-vomit-text: white;
+    /* Waiting room */
+    --rc-cell-border: #333;
+    --rc-cell-bg: #2a2a2a;
+    --rc-thumb-border: #555;
+    --rc-thumb-bg: #4a4a4a;
+    --rc-connection-lost-bg: rgba(168, 87, 20, 0.9);
+    --rc-close-bg: red;
+    --rc-close-border: white;
+    --rc-close-text: white;
+    --rc-text-light: #fff;
+    --rc-start-label-bg: #000000;
+    --rc-start-label-text: white;
+    /* User list */
+    --rc-user-item-bg: rgba(42, 42, 42, 0.8);
+    /* Action queue */
+    --rc-queue-bg: #1a1a2e;
+    --rc-queue-border: #0f3460;
+    --rc-queue-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    --rc-queue-text: #e0e0e0;
+    --rc-queue-accent: #4a9eff;
+    --rc-queue-panel-bg: rgba(15, 52, 96, 0.3);
+    --rc-queue-label: #b0c4de;
+    --rc-queue-input-bg: #0d1b2a;
+    --rc-queue-focus-border: #6bb6ff;
+    --rc-queue-focus-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+    --rc-queue-highlight-bg: rgba(74, 158, 255, 0.15);
+    --rc-queue-highlight-text: #6bb6ff;
+    --rc-queue-footer-bg: rgba(74, 158, 255, 0.2);
+    --rc-queue-footer-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+    --rc-queue-countdown-warn: #ff8a80;
+    /* Animations (keyframes keep raw values) */
+    --rc-glow-start: rgba(255, 255, 0, 0);
+    --rc-glow-mid: rgba(248, 255, 183, 0.8);
 }
 
 /*
@@ -77,8 +113,8 @@
     left: 0;
     z-index: -1;
     border: none;
-    background-color: rgba(0, 0, 0, 0.1);
-    color: white;
+    background-color: var(--rc-vomit-bg);
+    color: var(--rc-vomit-text);
     overflow-y: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -125,9 +161,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    border: 2px solid #333;
+    border: 2px solid var(--rc-cell-border);
     border-radius: 8px;
-    background-color: #2a2a2a;
+    background-color: var(--rc-cell-bg);
     min-height: 250px;
     gap: 10px;
 }
@@ -155,9 +191,9 @@
 .waiting-thumbnail {
     width: 130px;
     height: 160px;
-    border: 2px solid #555;
+    border: 2px solid var(--rc-thumb-border);
     border-radius: 4px;
-    background-color: #4a4a4a;
+    background-color: var(--rc-thumb-bg);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -173,7 +209,7 @@
 }
 
 .waiting-thumbnail.connection-lost {
-    background-color: rgba(168, 87, 20, 0.9); /* Dark orange */
+    background-color: var(--rc-connection-lost-bg);
     position: relative;
 }
 
@@ -209,9 +245,9 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background-color: red;
-    border: 1px solid white;
-    color: white;
+    background-color: var(--rc-close-bg);
+    border: 1px solid var(--rc-close-border);
+    color: var(--rc-close-text);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -226,7 +262,7 @@
 .waiting-name {
     font-size: 18px;
     font-weight: bold;
-    color: #fff;
+    color: var(--rc-text-light);
     text-align: center;
 }
 
@@ -234,7 +270,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #fff;
+    color: var(--rc-text-light);
     font-size: 14px;
     cursor: pointer;
 }
@@ -250,8 +286,8 @@
     width: 800px;
     margin: 0 auto;
     margin-top: 20px;
-    background-color: #000000;
-    color: white;
+    background-color: var(--rc-start-label-bg);
+    color: var(--rc-start-label-text);
     text-align: center;
     font-weight: bold;
     font-size: 22px;
@@ -276,7 +312,7 @@
 .user-label {
     font-size: 18px;
     font-weight: bold;
-    color: #fff;
+    color: var(--rc-text-light);
     margin-bottom: 10px;
 }
 
@@ -292,9 +328,9 @@
 }
 
 .user-items li {
-    color: #fff;
+    color: var(--rc-text-light);
     padding: 5px 10px;
-    background-color: rgba(42, 42, 42, 0.8);
+    background-color: var(--rc-user-item-bg);
     border-radius: 4px;
 }
 
@@ -368,21 +404,21 @@
     top: 10px;
     right: 10px;
     width: 310px;
-    background-color: #1a1a2e;
-    border: 2px solid #0f3460;
+    background-color: var(--rc-queue-bg);
+    border: 2px solid var(--rc-queue-border);
     border-radius: 12px;
     z-index: 100;
     padding: 6px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-    color: #e0e0e0;
+    box-shadow: var(--rc-queue-shadow);
+    color: var(--rc-queue-text);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .action-queue h3 {
     margin: 0 0 10px 0;
     padding-bottom: 6px;
-    border-bottom: 2px solid #0f3460;
-    color: #4a9eff;
+    border-bottom: 2px solid var(--rc-queue-border);
+    color: var(--rc-queue-accent);
     font-size: 18px;
     font-weight: 600;
     text-align: center;
@@ -392,7 +428,7 @@
 .action-queue > div {
     margin-bottom: 10px;
     padding: 7px;
-    background-color: rgba(15, 52, 96, 0.3);
+    background-color: var(--rc-queue-panel-bg);
     border-radius: 6px;
 }
 
@@ -400,7 +436,7 @@
     display: inline-block;
     margin-right: 8px;
     margin-bottom: 4px;
-    color: #b0c4de;
+    color: var(--rc-queue-label);
     font-size: 13px;
     font-weight: 500;
 }
@@ -408,27 +444,27 @@
 .action-queue input[type="text"] {
     width: 100px;
     padding: 6px 10px;
-    background-color: #0d1b2a;
-    border: 1px solid #4a9eff;
+    background-color: var(--rc-queue-input-bg);
+    border: 1px solid var(--rc-queue-accent);
     border-radius: 4px;
-    color: #e0e0e0;
+    color: var(--rc-queue-text);
     font-size: 13px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .action-queue input[type="text"]:focus {
     outline: none;
-    border-color: #6bb6ff;
-    box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+    border-color: var(--rc-queue-focus-border);
+    box-shadow: var(--rc-queue-focus-shadow);
 }
 
 .action-queue select {
     width: 100px;
     padding: 6px 5px;
-    background-color: #0d1b2a;
-    border: 1px solid #4a9eff;
+    background-color: var(--rc-queue-input-bg);
+    border: 1px solid var(--rc-queue-accent);
     border-radius: 4px;
-    color: #e0e0e0;
+    color: var(--rc-queue-text);
     font-size: 13px;
     cursor: pointer;
     margin-right: 8px;
@@ -437,15 +473,15 @@
 
 .action-queue select:focus {
     outline: none;
-    border-color: #6bb6ff;
-    box-shadow: 0 0 8px rgba(74, 158, 255, 0.4);
+    border-color: var(--rc-queue-focus-border);
+    box-shadow: var(--rc-queue-focus-shadow);
 }
 
 .action-queue input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #4a9eff;
+    accent-color: var(--rc-queue-accent);
     margin-left: 8px;
 }
 
@@ -462,27 +498,27 @@
 .action-queue-priority, .action-queue-attack-power, .action-queue-effect {
     display: inline-block;
     padding: 6px 10px;
-    background-color: rgba(74, 158, 255, 0.15);
+    background-color: var(--rc-queue-highlight-bg);
     border-radius: 4px;
     margin-right: 8px;
     font-weight: 600;
-    color: #6bb6ff;
+    color: var(--rc-queue-highlight-text);
 }
 
 .action-queue-footer {
     padding: 10px;
-    background-color: rgba(74, 158, 255, 0.2);
-    border: 1px solid #4a9eff;
+    background-color: var(--rc-queue-footer-bg);
+    border: 1px solid var(--rc-queue-accent);
     border-radius: 6px;
     font-weight: 600;
-    color: #6bb6ff;
+    color: var(--rc-queue-highlight-text);
     margin-top: 12px;
-    box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+    box-shadow: var(--rc-queue-footer-shadow);
 }
 
 .action-queue-status {
     margin: 0;
-    color: #6bb6ff;
+    color: var(--rc-queue-highlight-text);
     font-weight: 600;
 }
 
@@ -505,7 +541,7 @@
 
 
 .action-queue #offset-countdown {
-    color: #6bb6ff;
+    color: var(--rc-queue-highlight-text);
 }
 
 .action-queue #offset-countdown.offset-countdown-spinner .hourglass-icon {
@@ -519,19 +555,19 @@
 }
 
 .action-queue #phase-countdown {
-    color: #ff8a80;
+    color: var(--rc-queue-countdown-warn);
 }
 
 /* Action Queue Glow Animation */
 @keyframes action-queue-glow {
     0% {
-        box-shadow: inset 0 0 0 0 rgba(255, 255, 0, 0);
+        box-shadow: inset 0 0 0 0 var(--rc-glow-start);
     }
     50% {
-        box-shadow: inset 0 0 20px 10px rgba(248, 255, 183, 0.8), inset 0 0 40px 20px rgba(248, 255, 183, 0.8);
+        box-shadow: inset 0 0 20px 10px var(--rc-glow-mid), inset 0 0 40px 20px var(--rc-glow-mid);
     }
     100% {
-        box-shadow: inset 0 0 0 0 rgba(255, 255, 0, 0);
+        box-shadow: inset 0 0 0 0 var(--rc-glow-start);
     }
 }
 

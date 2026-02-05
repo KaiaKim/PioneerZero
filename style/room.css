@@ -1,3 +1,13 @@
+/*
+ * ============================================================================
+ * CSS VARIABLES
+ * ============================================================================
+ */
+:root {
+    --room-left-menu-bg: rgba(0, 0, 0, 0.5);
+    --room-right-menu-bg: rgb(122, 169, 214);
+}
+
 .room {
     position: fixed;
     top: 0;
@@ -19,7 +29,7 @@
     grid-column: 1 / -1;
     width: 100%;
     padding: 10px 20px;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--room-left-menu-bg);
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -31,7 +41,7 @@
     grid-column: 2;
     width: 100%;
     padding: 10px 20px;
-    background-color: rgb(122, 169, 214);
+    background-color: var(--room-right-menu-bg);
     display: flex;
     justify-content: flex-start;
     align-items: center;

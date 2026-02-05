@@ -1,3 +1,17 @@
+/*
+ * ============================================================================
+ * CSS VARIABLES
+ * ============================================================================
+ */
+:root {
+    --global-body-text: #e5e5e5;
+    --global-heading: #ffffff;
+    --global-button-bg: #000000;
+    --global-button-text: white;
+    --global-button-border: white;
+    --global-login-border: #9d9d9d;
+}
+
 /* Reset and Base Styles */
 * {
     margin: 0;
@@ -8,7 +22,7 @@
 body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
-    color: #e5e5e5;
+    color: var(--global-body-text);
     padding: 20px;
     background-image: url('../images/sky2.jpg');
     background-size: cover;
@@ -18,7 +32,7 @@ body {
 
 /* Typography */
 h1 {
-    color: #ffffff;
+    color: var(--global-heading);
     margin-bottom: 20px;
 }
 
@@ -28,11 +42,11 @@ p {
 
 /* Buttons */
 button {
-    background-color: #000000;
-    color: white;
+    background-color: var(--global-button-bg);
+    color: var(--global-button-text);
     font-weight: bold;
     font-size: 15px;
-    border: 1px solid white;
+    border: 1px solid var(--global-button-border);
     border-radius: 5%;
     padding: 4px 10px;
 }
@@ -42,9 +56,9 @@ button {
     justify-content: space-between;
     align-items: center;
     gap: 1em;
-    background-color: #000000;
-    color: #ffffff;
-    border: 0.5px solid #9d9d9d;
+    background-color: var(--global-button-bg);
+    color: var(--global-heading);
+    border: 0.5px solid var(--global-login-border);
 }
 
 #btn-login img {
