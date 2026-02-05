@@ -4,7 +4,8 @@ import { useGame } from '../hooks/useGame';
 import Auth from './auth';
 import Slots from './room-components/slots';
 import Floor from './room-components/floor';
-import { ChatBox, ChatOverlay, ChatSettings, DEFAULT_TAB_CONFIG, loadTabSettingsFromStorage, saveTabSettingsToStorage } from './room-components/chat';
+import { ChatBox, ChatOverlay, ChatSettings } from './room-components/chat';
+import { DEFAULT_TAB_CONFIG, getChatTabSettings, setChatTabSettings } from '../storage';
 import MP3 from './room-components/mp3';
 import UserList from './room-components/userList';
 import Loading from './room-components/loading';
@@ -21,12 +22,12 @@ function Room() {
   const [chatInput, setChatInput] = useState('');
   const chatInputRef = useRef(null);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
-  const [tabConfig, setTabConfig] = useState(() => loadTabSettingsFromStorage());
+  const [tabConfig, setTabConfig] = useState(() => getChatTabSettings());
 
   const handleApplyTabSettings = (rows) => {
     const hasMain = rows.some((r) => r.tabName === '메인');
     const toApply = hasMain ? rows : [...DEFAULT_TAB_CONFIG];
-    saveTabSettingsToStorage(toApply);
+    setChatTabSettings(toApply);
     setTabConfig(toApply);
   };
   

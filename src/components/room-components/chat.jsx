@@ -4,21 +4,11 @@ import { useGame } from '../../hooks/useGame';
 import { setDialogueElements } from '../../util';
 import {
   DEFAULT_TAB_CONFIG,
-  getChatTabSettings,
-  setChatTabSettings,
   getChatType,
   setChatType,
   getChatUnreadByTabId,
   setChatUnreadByTabId,
 } from '../../storage';
-
-function loadTabSettingsFromStorage() {
-  return getChatTabSettings();
-}
-
-function saveTabSettingsToStorage(rows) {
-  setChatTabSettings(rows);
-}
 
 function messageBelongsToTab(msg, row) {
   const sort = msg.sort ?? 'dialogue';
@@ -230,6 +220,16 @@ function ChatOverlay(){
 
 const TAB_SETTINGS_HEADERS = ['', '탭이름', '시스템', '대화', '명령어', '통신', '도청', '사담'];
 const TAB_SETTINGS_KEYS = ['system', 'dialogue', 'command', 'communication', 'spy', 'chitchat'];
+const TAB_SETTINGS_COLORS = [
+  "#b58900", // solarized yellow
+  "#cb4b16", // solarized orange
+  //"#dc322f", // solarized red
+  "#d33682", // solarized magenta
+  //"#6c71c4", // solarized violet
+  "#268bd2", // solarized blue
+  "#2aa198", // solarized cyan
+  "#859900"  // solarized green
+]
 
 function ChatSettings({ open, onClose, tabConfig, onApply }) {
   const [tabSettingsRows, setTabSettingsRows] = useState([...DEFAULT_TAB_CONFIG]);
@@ -282,8 +282,9 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
           <table className="chat-settings-table">
             <thead>
               <tr>
-                {TAB_SETTINGS_HEADERS.map((h) => (
-                  <th key={h}>{h}</th>
+                {TAB_SETTINGS_HEADERS.map((h, index) => (
+                  <th key={h} style={index >= 2 ? { color: TAB_SETTINGS_COLORS[(index - 2) % TAB_SETTINGS_COLORS.length] } : undefined}>{h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -332,7 +333,7 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
         </div>
 
         <div className="chat-settings-footer">
-          <button type="button" className="chat-settings-apply-btn" onClick={() => { if (onApply) onApply(tabSettingsRows); onClose(); }}>
+          <button type="button" className="chat-settings-apply-btn" onClick={() => { if (onApply) onApply(tabSettingsRows); }}>
             Apply
           </button>
         </div>
@@ -343,5 +344,5 @@ function ChatSettings({ open, onClose, tabConfig, onApply }) {
   );
 }
 
-export { ChatBox, ChatOverlay, ChatSettings, DEFAULT_TAB_CONFIG, loadTabSettingsFromStorage, saveTabSettingsToStorage };
+export { ChatBox, ChatOverlay, ChatSettings };
 
