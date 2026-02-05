@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { genGuestId, quickAuth, getWebSocketUrl, getApiBaseUrl } from '../util';
+import { getUserInfo, setUserInfo, removeUserInfo } from '../storage';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -11,16 +12,9 @@ export function useAuth() {
     const ws = new WebSocket(wsUrl);
     let guest_id = null;
 
-    // Load user info from localStorage on mount
-    const storedUser = localStorage.getItem('user_info');
+    const storedUser = getUserInfo();
     if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-      } catch (e) {
-        console.error('Error parsing stored user:', e);
-        localStorage.removeItem('user_info');
-      }
+      setUser(storedUser);
     } else {
       guest_id = genGuestId();
     }
@@ -37,12 +31,12 @@ export function useAuth() {
         const msg = JSON.parse(event.data);
 
         if (msg.type === 'auth_success') {
-          localStorage.setItem('user_info', JSON.stringify(msg.user_info));
+          setUserInfo(msg.user_info);
           setUser(msg.user_info);
         } else if (msg.type === 'auth_error') {
           console.error('Authentication error:', msg.message);
           alert('Authentication failed: ' + msg.message);
-          localStorage.removeItem('user_info');
+          removeUserInfo();
           setUser(null);
         }
       } catch (e) {
@@ -173,7 +167,7 @@ export function useAuth() {
   };
 
   const googleLogout = () => {
-    localStorage.removeItem('user_info');
+    removeUserInfo();
     setUser(null);
   };
 

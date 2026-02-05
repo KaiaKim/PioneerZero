@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { quickAuth, getWebSocketUrl, genChatMessage, renderDialogue } from '../util';
-
+import { getUserInfo, setUserInfo, getPlayerSlot, setPlayerSlot, removePlayerSlot } from '../storage';
 
 export function useGame() {
   const { gameId } = useParams();
-  let userInfo = JSON.parse(localStorage.getItem('user_info'));
+  let userInfo = getUserInfo();
   if (!userInfo) {
     userInfo = {
       name: 'temp',
@@ -45,9 +45,8 @@ export function useGame() {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      let storedSlotKey = `player_slot_${gameId}`;
-      let storedSlotNum = localStorage.getItem(storedSlotKey);
-      let slotNum = storedSlotNum ? parseInt(storedSlotNum) : null;
+      const storedSlotNum = getPlayerSlot(gameId);
+      const slotNum = storedSlotNum ? parseInt(storedSlotNum, 10) : null;
 
       if (msg.type === "auth_success") {
         handleAuthSuccess(msg, slotNum);
@@ -65,7 +64,7 @@ export function useGame() {
       } else if (msg.type === "join_slot_failed") {
         console.error('Failed to join slot:', msg.message);
         alert('Failed to join slot: ' + msg.message);
-        localStorage.removeItem(storedSlotKey); // Clear stored slot number if join failed
+        removePlayerSlot(gameId);
       } else if (msg.type === "leave_slot_failed") {
         console.error('Failed to leave slot:', msg.message);
         alert('Failed to leave slot: ' + msg.message);
@@ -152,7 +151,7 @@ export function useGame() {
 
   const handleAuthSuccess = (msg, slotNum) => {
     setUserName(msg.user_info.name);
-    localStorage.setItem('user_info', JSON.stringify(msg.user_info));
+    setUserInfo(msg.user_info);
     // If players_list was already received, try auto-join now that we have user info
     if (plListReceivedRef.current && !autoJoinAttemptedRef.current && slotNum) {
       autoJoinAttemptedRef.current = true;
@@ -210,9 +209,7 @@ export function useGame() {
       action: 'leave_player_slot',
       slot: slotNum
     });
-    // Remove slot number from localStorage when leaving
-    const storedSlotKey = `player_slot_${gameId}`;
-    localStorage.removeItem(storedSlotKey);
+    removePlayerSlot(gameId);
   };
 
   const setReady = (slotNum, ready) => {
@@ -245,28 +242,23 @@ export function useGame() {
     const currentUserId = userInfo.id;
     const players = playersList || [];
     
-    // Compute stored slot key and number
-    const storedSlotKey = `player_slot_${gameId}`;
-    const storedSlotNum = localStorage.getItem(storedSlotKey);
-    const slotNum = storedSlotNum ? parseInt(storedSlotNum) : null;
-    
-    // Update localStorage if user is in a slot (to keep it in sync)
+    const storedSlotNum = getPlayerSlot(gameId);
+    const slotNum = storedSlotNum ? parseInt(storedSlotNum, 10) : null;
+
     let userSlotNum = null;
     for (let i = 0; i < players.length; i++) {
       const player = players[i];
       if (player.info && player.info.id === currentUserId) {
-        userSlotNum = i + 1; // Slot numbers are 1-based
+        userSlotNum = i + 1;
         break;
       }
     }
-    
+
     if (userSlotNum) {
-      // User is in a slot, update localStorage
-      localStorage.setItem(storedSlotKey, userSlotNum.toString());
+      setPlayerSlot(gameId, userSlotNum.toString());
     } else {
-      // User is not in any slot, but only clear if we haven't attempted auto-join yet
       if (autoJoinAttemptedRef.current) {
-        localStorage.removeItem(storedSlotKey);
+        removePlayerSlot(gameId);
       }
     }
     

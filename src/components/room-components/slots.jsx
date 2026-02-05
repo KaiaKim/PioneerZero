@@ -1,19 +1,8 @@
 import React from 'react';
+import { getUserInfo as getStoredUserInfo } from '../../storage';
 
 function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser, countdown }) {
-  // Get user info from currentUser or localStorage as fallback
-  const getUserInfo = () => {
-    if (currentUser) return currentUser;
-    const storedUser = localStorage.getItem('user_info');
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
-  };
+  const getUserInfo = () => currentUser || getStoredUserInfo();
 
   const handleJoinClick = (slotNum) => {
     joinPlayerSlot(slotNum);

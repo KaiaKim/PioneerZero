@@ -1,3 +1,5 @@
+import { setGuestId, getUserInfo, getGuestId } from './storage';
+
 // Configuration
 const API_BASE_URL = 'http://localhost:8000';
 const WS_BASE_URL = 'ws://localhost:8000';
@@ -18,27 +20,26 @@ export function getGameId() {
 
 export function genGuestId() {
     const guestId = crypto.randomUUID();
-    localStorage.setItem('guest_id', guestId);
+    setGuestId(guestId);
     return guestId;
 }
 
 export function quickAuth(ws) {
-    const user_info = localStorage.getItem('user_info');
+    const user_info = getUserInfo();
     if (user_info) {
         const message = {
             action: 'authenticate_user',
-            user_info: user_info
+            user_info
         };
         ws.send(JSON.stringify(message));
         return;
     }
 
-    // If no user_info, try guest_id
-    const guest_id = localStorage.getItem('guest_id');
+    const guest_id = getGuestId();
     if (guest_id) {
         const message = {
             action: 'authenticate_user',
-            guest_id: guest_id
+            guest_id
         };
         ws.send(JSON.stringify(message));
         return;

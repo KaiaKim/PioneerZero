@@ -2,39 +2,22 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGame } from '../../hooks/useGame';
 import { setDialogueElements } from '../../util';
-
-const CHAT_TAB_SETTINGS_KEY = 'chatTabSettings';
-const CHAT_TYPE_STORAGE_KEY_PREFIX = 'chatType_';
-const CHAT_UNREAD_STORAGE_KEY_PREFIX = 'chatUnreadByTabId_';
-
-const DEFAULT_TAB_CONFIG = [
-  { id: 1, tabName: '메인', system: true, dialogue: true, command: true, communication: false, spy: false, chitchat: false },
-  { id: 2, tabName: '팀', system: false, dialogue: false, command: false, communication: true, spy: true, chitchat: false },
-  { id: 3, tabName: '사담', system: false, dialogue: false, command: false, communication: false, spy: false, chitchat: true },
-];
+import {
+  DEFAULT_TAB_CONFIG,
+  getChatTabSettings,
+  setChatTabSettings,
+  getChatType,
+  setChatType,
+  getChatUnreadByTabId,
+  setChatUnreadByTabId,
+} from '../../storage';
 
 function loadTabSettingsFromStorage() {
-  try {
-    const raw = localStorage.getItem(CHAT_TAB_SETTINGS_KEY);
-    if (raw == null) return [...DEFAULT_TAB_CONFIG];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_TAB_CONFIG];
-    const hasMain = parsed.some((r) => r.tabName === '메인');
-    if (!hasMain) return [...DEFAULT_TAB_CONFIG];
-    return parsed;
-  } catch {
-    return [...DEFAULT_TAB_CONFIG];
-  }
+  return getChatTabSettings();
 }
 
 function saveTabSettingsToStorage(rows) {
-  try {
-    const hasMain = rows.some((r) => r.tabName === '메인');
-    const toSave = hasMain ? rows : [...DEFAULT_TAB_CONFIG];
-    localStorage.setItem(CHAT_TAB_SETTINGS_KEY, JSON.stringify(toSave));
-  } catch {
-    // ignore
-  }
+  setChatTabSettings(rows);
 }
 
 function messageBelongsToTab(msg, row) {
@@ -52,36 +35,14 @@ function getMessagesForTabRow(row, chatMessages) {
   return chatMessages.filter((msg) => messageBelongsToTab(msg, row));
 }
 
-function loadChatTypeFromStorage(gameId) {
-  const key = CHAT_TYPE_STORAGE_KEY_PREFIX + (gameId || 'default');
-  try {
-    const v = localStorage.getItem(key);
-    return (v === 'dialogue' || v === 'communication' || v === 'chitchat') ? v : 'dialogue';
-  } catch {
-    return 'dialogue';
-  }
-}
-
-function loadUnreadByTabIdFromStorage(gameId) {
-  const key = CHAT_UNREAD_STORAGE_KEY_PREFIX + (gameId || 'default');
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw == null) return {};
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
 function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInputRef, chatInput, setChatInput, actions, tabConfig }) {
   const { gameId } = useParams();
   const { chatLogRef } = useGame();
   const tabs = tabConfig && tabConfig.length > 0 ? tabConfig : [...DEFAULT_TAB_CONFIG];
   const mainTabId = tabs[0]?.id;
   const [activeTab, setActiveTab] = useState(mainTabId);
-  const [chatType, setChatType] = useState(() => loadChatTypeFromStorage(gameId));
-  const [unreadByTabId, setUnreadByTabId] = useState(() => loadUnreadByTabIdFromStorage(gameId));
+  const [chatType, setChatTypeState] = useState(() => getChatType(gameId));
+  const [unreadByTabId, setUnreadByTabId] = useState(() => getChatUnreadByTabId(gameId));
   const prevChatMessagesLengthRef = useRef(0);
   const prevGameIdForUnreadRef = useRef(gameId);
 
@@ -94,21 +55,16 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
 
   useEffect(() => {
     if (gameId == null) return;
-    setChatType(loadChatTypeFromStorage(gameId));
-    setUnreadByTabId(loadUnreadByTabIdFromStorage(gameId));
+    setChatTypeState(getChatType(gameId));
+    setUnreadByTabId(getChatUnreadByTabId(gameId));
   }, [gameId]);
 
   useEffect(() => {
-    const key = CHAT_UNREAD_STORAGE_KEY_PREFIX + (gameId || 'default');
     if (prevGameIdForUnreadRef.current !== gameId) {
       prevGameIdForUnreadRef.current = gameId;
       return;
     }
-    try {
-      localStorage.setItem(key, JSON.stringify(unreadByTabId));
-    } catch {
-      // ignore
-    }
+    setChatUnreadByTabId(gameId, unreadByTabId);
   }, [unreadByTabId, gameId]);
 
   useEffect(() => {
@@ -200,13 +156,8 @@ function ChatBox({ chatMessages, user, offsetCountdown, phaseCountdown, chatInpu
             value={chatType}
             onChange={(e) => {
               const value = e.target.value;
-              setChatType(value);
-              const key = CHAT_TYPE_STORAGE_KEY_PREFIX + (gameId || 'default');
-              try {
-                localStorage.setItem(key, value);
-              } catch {
-                // ignore
-              }
+              setChatTypeState(value);
+              setChatType(gameId, value);
             }}
             aria-label="Chat type"
           >

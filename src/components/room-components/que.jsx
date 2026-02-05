@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getActionQueuePosition, setActionQueuePosition } from "../../storage";
 
 const ActionQueue = ({
   players = [],
@@ -14,33 +15,13 @@ const ActionQueue = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showGlow, setShowGlow] = useState(false);
   const [position, setPosition] = useState(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    try {
-      const raw = window.localStorage.getItem("actionQueuePosition");
-      if (!raw) {
-        return null;
-      }
-      const parsed = JSON.parse(raw);
-      if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
-        return { x: parsed.x, y: parsed.y };
-      }
-    } catch (error) {
-      return null;
-    }
-    return null;
+    if (typeof window === "undefined") return null;
+    return getActionQueuePosition();
   });
 
   useEffect(() => {
-    if (!position || typeof window === "undefined") {
-      return;
-    }
-    try {
-      window.localStorage.setItem("actionQueuePosition", JSON.stringify(position));
-    } catch (error) {
-      return;
-    }
+    if (!position || typeof window === "undefined") return;
+    setActionQueuePosition(position);
   }, [position]);
 
   useEffect(() => {
