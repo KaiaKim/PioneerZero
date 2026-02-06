@@ -5,10 +5,11 @@ from fastapi import WebSocket
 import uuid
 import traceback
 from ..util import conM, dbM
-from ..services.game.core import Game
-from ..services.game import slot as slot_funcs
+from ..services.game_core.session import Game
+from ..services.game_core import join
 from . import auth, lobby
-from .game import chat, flow, slot
+from .game_router import flow, slot
+from .chat_router import chat
 
 # Global game sessions dictionary: {game_id: Game object}
 # Games are loaded lazily from the database when accessed
@@ -106,9 +107,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
             # Set player slot to connection-lost instead of removing
-            user_slot = slot_funcs.get_player_by_user_id(game, user_info.get('id'))
+            user_slot = join.get_player_by_user_id(game, user_info.get('id'))
             if user_slot:
-                slot_funcs.set_player_connection_lost(game, user_slot)
+                join.set_player_connection_lost(game, user_slot)
             # Broadcast updated users list and players list to remaining clients
             await conM.broadcast_to_game(game_id, {
                 'type': 'users_list',

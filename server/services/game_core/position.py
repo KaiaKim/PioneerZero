@@ -11,11 +11,11 @@ REV_ROW_MAP = {v: k for k, v in ROW_MAP.items()}
 
 def declare_position(game, sender, command):
     """Declare position for a player"""
-    from . import slot
+    from . import join
     
     result = None
     err = None
-    idx = slot.get_player_by_user_id(game, sender) - 1
+    idx = join.get_player_by_user_id(game, sender) - 1
     position = command[1].strip().upper()
     player = game.players[idx]
 

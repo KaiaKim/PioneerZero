@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import asyncio
 from .config import settings
 from .routers import auth, websocket
-from .routers.game import slot
+from .routers.game_router import slot
 from .util import dbM
 
 # FastAPI app instance

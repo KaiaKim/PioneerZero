@@ -1,5 +1,5 @@
 import json
-from . import slot, position
+from . import join, position
 
 class Game():
     def __init__(self, id, player_num = 4):
@@ -7,7 +7,7 @@ class Game():
         self.player_num = player_num #default 4, max 8
         
         self.players = [
-            slot.player_factory()
+            join.player_factory()
             for _ in range(self.player_num)
         ]  # player list (slots)
 
@@ -107,7 +107,7 @@ class Game():
         """
         err = None
         
-        slot_num = slot.get_player_by_user_id(self, sender)
+        slot_num = join.get_player_by_user_id(self, sender)
         if not slot_num:
             return None, "플레이어 슬롯을 찾을 수 없습니다."
 
@@ -173,7 +173,7 @@ class Game():
         players = []
         for idx in range(player_num):
             slot_num = idx + 1
-            base_player = slot.player_factory(slot_num)
+            base_player = join.player_factory(slot_num)
             if idx < len(players_data) and players_data[idx]:
                 stored = players_data[idx]
                 base_player["info"] = stored.get("info")

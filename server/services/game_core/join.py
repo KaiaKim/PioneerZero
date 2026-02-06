@@ -1,5 +1,5 @@
 """
-Slot management functions
+Join/player management functions
 Player slot management operations
 """
 import time
@@ -69,7 +69,7 @@ def add_bot(game, slot: int, slot_idx: int):
         return {"success": False, "message": f"Slot {slot} is not empty."}
     
     # Slot is empty (status 0) - add bot
-    # Get a bot from the bots array (use first available bot, or cycle if needed)
+    # Get a bot from the bots array (use first available bot, or cycle as needed)
     bot_index = slot_idx % len(bots) if bots else 0
     bot_character = bots[bot_index] if bots else default_character
     

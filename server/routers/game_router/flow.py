@@ -1,6 +1,6 @@
 import asyncio
 from ...util import conM, dbM, timeM
-from ...services.game import slot
+from ...services.game_core import join
 
 ### phase flow functions
 async def handle_phase(game):
@@ -52,7 +52,7 @@ async def _phase_flow(game):
             game.phase_task = None
 
 async def kickoff(game):
-    if not slot.are_all_players_ready(game):
+    if not join.are_all_players_ready(game):
         return False
 
     # Save initial combat snapshot (one-time backup)

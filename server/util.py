@@ -213,7 +213,7 @@ class DatabaseManager:
         if not row:
             return None
         state_json, player_num, phase_sec, max_round = row
-        from .services.game.core import Game
+        from .services.game_core.session import Game
         game = Game.json_to_dict(state_json)
         game.player_num = player_num
         game.phase_sec = phase_sec

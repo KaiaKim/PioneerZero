@@ -3,7 +3,7 @@ Lobby WebSocket handlers and endpoints
 """
 from fastapi import WebSocket
 from ..util import conM, dbM
-from ..services.game.core import Game
+from ..services.game_core.session import Game
 
 # HTTP endpoint for listing active sessions
 async def handle_list_rooms(websocket: WebSocket, chat_tables: list[str]):
