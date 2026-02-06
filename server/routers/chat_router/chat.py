@@ -70,7 +70,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
 def _save_regular_chat(game, content: str, sender: str, user_id: str, chat_type: str) -> dict:
     return dbM.save_chat(game.id, content, sender=sender, sort=chat_type, user_id=user_id)
 
-
+## v dumb logic. I should fix this.
 async def _save_and_broadcast_message(game, result: str | None, err: str | None, sender: str, user_id: str) -> None:
     secret_msg = None
     msg = None

@@ -1,6 +1,7 @@
 import asyncio
-from ...util import conM, dbM, timeM
+from ...util import conM, dbM
 from ...services.game_core import join
+from . import timer
 
 ### phase flow functions
 async def handle_phase(game):
@@ -11,25 +12,25 @@ async def handle_phase(game):
 
 async def _phase_flow(game):
     try:
-        await timeM.offset_timer(game)
+        await timer.offset_timer(game)
         if not await kickoff(game):
             return
 
         game.in_combat = True
-        await timeM.offset_timer(game)
+        await timer.offset_timer(game)
         await position_declaration(game)
-        await timeM.phase_timer(game)
+        await timer.phase_timer(game)
         await position_resolution(game)
         
         defeated_team = None
         for _ in range(game.max_rounds):
-            await timeM.offset_timer(game)
+            await timer.offset_timer(game)
             await start_round(game)
-            await timeM.offset_timer(game)
+            await timer.offset_timer(game)
             await action_declaration(game)
-            await timeM.phase_timer(game)
+            await timer.phase_timer(game)
 
-            await timeM.offset_timer(game)
+            await timer.offset_timer(game)
             await action_resolution(game)
 
             defeated_team = await end_round(game)
@@ -39,7 +40,7 @@ async def _phase_flow(game):
         if defeated_team is None:
             defeated_team = game.check_all_players_defeated()[1]
 
-        await timeM.offset_timer(game)
+        await timer.offset_timer(game)
         await wrap_up(game, defeated_team)
         game.in_combat = False
 
