@@ -1,22 +1,21 @@
 """
-Dict-based command router: dispatch by command name to registered handlers.
+Dict-based command router: dispatch by command name to registered handler classes.
 """
-from typing import Awaitable, Callable, Dict
+from typing import Dict, Type
 
 from .context import CommandContext
-
-# Handler returns (result, err, action_data) for message/broadcast
-CommandHandler = Callable[[CommandContext], Awaitable[tuple[str | None, str | None, dict | None]]]
+from .commands.base import BaseCommand
 
 
 class CommandRouter:
     def __init__(self) -> None:
-        self._handlers: Dict[str, CommandHandler] = {}
+        self._handlers: Dict[str, Type[BaseCommand]] = {}
 
-    def register(self, name: str, handler: CommandHandler) -> None:
-        self._handlers[name] = handler
+    def register(self, name: str, handler_class: Type[BaseCommand]) -> None:
+        self._handlers[name] = handler_class
 
     async def dispatch(self, command: str, ctx: CommandContext) -> tuple[str | None, str | None, dict | None]:
         if command not in self._handlers:
             raise ValueError(f"Unknown command: {command}")
-        return await self._handlers[command](ctx)
+        cmd = await self._handlers[command]()
+        return (cmd.result, cmd.error, cmd.action_data)

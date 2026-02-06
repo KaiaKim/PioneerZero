@@ -14,13 +14,13 @@ from . import commands
 _router = CommandRouter()
 
 for _name in commands.attack.ATTACK_COMMANDS:
-    _router.register(_name, commands.attack.attack_command)
+    _router.register(_name, commands.attack.AttackCommand)
 for _name in commands.skill.SKILL_COMMANDS:
-    _router.register(_name, commands.skill.skill_command)
+    _router.register(_name, commands.skill.SkillCommand)
 for _name in commands.position.POSITION_COMMANDS:
-    _router.register(_name, commands.position.position_command)
+    _router.register(_name, commands.position.PositionCommand)
 for _name in ("참여", "join", "관전", "leave"):
-    _router.register(_name, commands.preparation.preparation_command)
+    _router.register(_name, commands.preparation.PreparationCommand)
 
 
 async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
