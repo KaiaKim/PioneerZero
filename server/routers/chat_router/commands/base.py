@@ -9,22 +9,19 @@ from ..context import CommandContext
 
 class BaseCommand(ABC):
     """One instance per command invocation. Set result/error/action_data in run()."""
-
     result: str | None = None
     error: str | None = None
     action_data: dict[str, Any] | None = None
 
-    def __init__(self, ctx: CommandContext):
-        self.validate(ctx)
-        self.run(ctx)
-        
+    @staticmethod
+    def _is_combat_participant(game: Any, user_id: str) -> bool:
+        player_ids = [p.get("info", {}).get("id") for p in game.players if p.get("info")]
+        return user_id in player_ids
+
     @abstractmethod
     async def validate(self, ctx: CommandContext) -> None:
         """Validate the command; set self.error."""
         ...
-
-
-
 
     @abstractmethod
     async def run(self, ctx: CommandContext) -> None:

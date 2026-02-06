@@ -6,6 +6,9 @@ from .base import BaseCommand
 
 
 class PreparationCommand(BaseCommand):
+    async def validate(self, ctx: CommandContext) -> None:
+        pass
+
     async def run(self, ctx: CommandContext) -> None:
         if ctx.game.in_combat:
             self.error = "현재 단계에서 사용할 수 없는 명령어입니다."

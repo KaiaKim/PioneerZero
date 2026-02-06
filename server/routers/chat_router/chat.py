@@ -7,11 +7,11 @@ from fastapi import WebSocket
 from ...util import conM, dbM
 from .context import CommandContext
 from .input import parse_input
-from .router import CommandRouter
+from .router import CommandManager
 from . import commands
 
 # --- Router setup: one handler per command name ---
-_router = CommandRouter()
+_router = CommandManager()
 
 for _name in commands.attack.ATTACK_COMMANDS:
     _router.register(_name, commands.attack.AttackCommand)
