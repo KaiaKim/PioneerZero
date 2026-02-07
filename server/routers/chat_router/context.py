@@ -4,7 +4,6 @@ Command context passed to slash-command handlers.
 from dataclasses import dataclass
 from typing import Any, List
 
-
 @dataclass
 class CommandContext:
     """Context for a single slash command execution."""
