@@ -15,9 +15,10 @@ class CommandManager:
         self._handlers[name] = handler_class
 
     async def dispatch(self, command: str, ctx: CommandContext) -> tuple[str | None, str | None, dict | None]:
-        if command not in self._handlers:
-            raise ValueError(f"Unknown command: {command}")
-        cmd = self._handlers[command]()
-        await cmd.validate(ctx)
-        await cmd.run(ctx)
-        return (cmd.result, cmd.error, cmd.action_data)
+        #dispatch is now being handled in handle_chat. Might separate it later.
+        pass
+
+    def get_cmd(self, command: str) -> BaseCommand:
+        return self._handlers[command]
+
+cmdM = CommandManager()

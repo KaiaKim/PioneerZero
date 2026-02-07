@@ -2,66 +2,10 @@
 Position management functions
 Coordinate & position helpers
 """
-import re
 
 # Row mapping constants
 ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
 REV_ROW_MAP = {v: k for k, v in ROW_MAP.items()}
-
-
-def declare_position(game, sender, command):
-    """Declare position for a player"""
-    from . import join
-    
-    result = None
-    err = None
-    idx = join.get_player_by_user_id(game, sender) - 1
-    position = command[1].strip().upper()
-    player = game.players[idx]
-
-    if command[1][0] not in ROW_MAP:
-        err = "유효하지 않은 열 번호입니다."
-    
-    if int(command[1][1]) not in (1, 2, 3, 4):
-        err = "유효하지 않은 행 번호입니다."
-
-    # Validate position using parse_position_declaration_from_chat logic
-    r, c = pos_to_rc(position)
-    
-    if r < 0 or c < 0 or c > 3:
-        err = "유효하지 않은 위치입니다."
-    
-    # Check if position is in player's team area
-    # Row 0-1 (Y, X) = team 1 (blue), Row 2-3 (A, B) = team 0 (white)
-    position_team = 1 if r <= 1 else 0
-    if position_team != player.team:
-        err = "자신의 진영만 선택할 수 있습니다."
-    
-    result = f"위치 {position} 선언 완료"
-
-    return result, err
-
-
-def move_player(game, name, command):
-    """
-    Legacy move command handler (chat command).
-    TODO: Replace with proper combat movement system.
-    """
-    # Row 0: Y1, Y2, Y3, Y4
-    # Row 1: X1, X2, X3, X4
-    # Row 2: A1, A2, A3, A4
-    # Row 3: B1, B2, B3, B4
-    # Find the player slot whose character matches the sender's name
-    player_slot = next((p for p in game.players if p.character and (p.character.get('name') if isinstance(p.character, dict) else None) == name), None)
-    current_pos = player_slot.pos if player_slot else None
-
-    match = re.search(r'\b([YXAB][1-4])\b', command)
-    target_pos = match.group(1) if match else None
-    if target_pos and player_slot:
-        player_slot.pos = target_pos
-        return f"{name} moved from {current_pos} to {target_pos}"
-    else:
-        return f"{name} move failed."
 
 
 def pos_to_rc(pos: str) -> tuple[int, int]:

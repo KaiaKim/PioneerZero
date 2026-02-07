@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from ...util.context import ActionContext, Player
+from ...util.context import ActionContext, Player, CommandContext
 from . import join, position
 
 class Game():
@@ -72,40 +72,22 @@ class Game():
     # SECTION 6: Action Resolution
     # ============================================
     # TODO: resolve_action() - Resolve and execute action
-    # TODO: start_action_declaration_phase() - Start action declaration
     # TODO: declare_action() - Handle action declaration
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
-    # TODO: end_round() - End round and check win conditions
+    def declare_position(self, ctx: CommandContext) -> ActionContext:
+        pos_data = ActionContext(slot=ctx.slot, pos=position)
+        self._upsert_action_queue(pos_data)
+        return pos_data
 
-    def declare_attack(self, sender, action_type, target="자신"):
-        """
-        Declare an attack action for a player.
-        
-        Args:
-            sender: User ID of the player declaring the attack
-            action_type: Type of attack ("근거리공격", "원거리공격", "대기")
-            target: Target of the attack (default: "자신")
-        
-        Returns:
-            tuple: (action_data, err) where action_data is ActionContext and err is an error message if any
-        """
-        err = None
-
-        slot_num = join.get_player_by_user_id(self, sender)
-        if not slot_num:
-            return None, "플레이어 슬롯을 찾을 수 없습니다."
-
-        action_data = ActionContext(slot=slot_num, action_type=action_type, target=target)
+    def declare_attack(self, ctx: CommandContext) -> ActionContext:
+        action_data = ActionContext(slot=ctx.slot, action_type=ctx.action_type, target=ctx.target)
         self._upsert_action_queue(action_data)
-        return action_data, err
+        return action_data
     
-    def declare_skill(self, sender, command):
-        result = None
-        err = None
+    def declare_skill(self):
+        pass
 
-        result = "행동 선언 완료"
-        return result, err
     # ============================================
     # SECTION 7: Utility & Data Export
     # ============================================

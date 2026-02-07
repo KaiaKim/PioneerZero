@@ -20,8 +20,7 @@ class Player:
 
 @dataclass
 class CommandContext:
-    """Context for a single slash command execution."""
-
+    """관전자도 플레이어도 보낼 수 있는 범용 커맨드 컨텍스트"""
     user_id: str
     channel_id: str  # game_id
     raw: str
@@ -34,9 +33,10 @@ class CommandContext:
     sender: str = ""
 
 
+
 @dataclass
 class ActionContext:
-    """Declared action payload for the game action queue."""
+    """우선도, 공격력, 특수효과 등이 계산되어 액션 큐에 등록되는 데이터."""
 
     slot: int
     action_type: str
@@ -46,3 +46,4 @@ class ActionContext:
     priority: Optional[int] = None
     attack_power: Optional[int] = None
     resolved: bool = False
+    pos: Any = None

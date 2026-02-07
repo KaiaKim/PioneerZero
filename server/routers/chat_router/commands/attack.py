@@ -6,6 +6,7 @@ from dataclasses import asdict
 from ....util import conM
 from ....util.context import CommandContext
 from .base import BaseCommand
+from ....services.game_core.session import join
 
 ATTACK_COMMANDS = ["근거리공격", "원거리공격", "대기"]
 
@@ -22,8 +23,9 @@ class AttackCommand(BaseCommand):
             return
 
     async def run(self, ctx: CommandContext) -> None:
+        slot_num = join.get_player_by_user_id(ctx.game, ctx.user_id)
         target = ctx.args[0].strip() if ctx.args else "자신"
-        action_data, err = ctx.game.declare_attack(ctx.user_id, ctx.command, target)
+        action_data, err = ctx.game.declare_attack()
 
         if not action_data or err:
             self.error = err
