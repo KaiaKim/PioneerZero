@@ -1,4 +1,6 @@
 import json
+from dataclasses import asdict
+from ...util.context import ActionContext, Player
 from . import join, position
 
 class Game():
@@ -7,8 +9,8 @@ class Game():
         self.player_num = player_num #default 4, max 8
         
         self.players = [
-            join.player_factory()
-            for _ in range(self.player_num)
+            join.player_factory(i + 1)
+            for i in range(self.player_num)
         ]  # player list (slots)
 
         self.connection_lost_timers = {}  # {slot: timestamp} for tracking connection-lost duration
@@ -33,29 +35,12 @@ class Game():
         self.resolved_actions = []
 
         
-    def _build_action_data(self, slot, action_type, skill_chain=None, target="자신"):
-        return {
-            "slot": slot,
-            "action_type": action_type,
-            "skill_chain": skill_chain,
-            "target": target,
-            "target_slot": None,
-            "priority": None,
-            "attack_power": None,
-            "resolved": False
-        }
-
-    def _upsert_action_queue(self, action_data):
-        slot = action_data.get("slot")
-        if slot is None:
-            return
-        self.action_queue = [
-            action for action in self.action_queue if action.get("slot") != slot
-        ]
-        self.action_queue.append(action_data)
+    def _upsert_action_queue(self, action: ActionContext) -> None:
+        self.action_queue = [a for a in self.action_queue if a.slot != action.slot]
+        self.action_queue.append(action)
 
     def get_action_submission_status(self):
-        submitted_slots = {action.get("slot") for action in self.action_queue}
+        submitted_slots = {action.slot for action in self.action_queue}
         status_list = []
         for idx in range(self.player_num):
             slot = idx + 1
@@ -103,26 +88,16 @@ class Game():
             target: Target of the attack (default: "자신")
         
         Returns:
-            tuple: (action_data, err) where action_data is the action dictionary and err is an error message if any
+            tuple: (action_data, err) where action_data is ActionContext and err is an error message if any
         """
         err = None
-        
+
         slot_num = join.get_player_by_user_id(self, sender)
         if not slot_num:
             return None, "플레이어 슬롯을 찾을 수 없습니다."
 
-        action_data = self._build_action_data(slot_num, action_type, target=target)
+        action_data = ActionContext(slot=slot_num, action_type=action_type, target=target)
         self._upsert_action_queue(action_data)
-
-        # action_data is expected to be a dictionary containing the declared action's details,
-        # such as the player's slot, action type, target, and other action-specific data.
-        # For example:
-        # {
-        #   "slot": <player_slot_number>,
-        #   "type": "근거리공격" | "원거리공격" | "대기",
-        #   "target": <target_id_or_name>,
-        #   ... (other fields as needed)
-        # }
         return action_data, err
     
     def declare_skill(self, sender, command):
@@ -137,24 +112,10 @@ class Game():
 
     def dict_to_json(self):
         """Serialize the initial combat snapshot to JSON."""
-        def serialize_player(player, slot_num):
-            if not player:
-                return None
-            return {
-                "info": player.get("info"),
-                "character": player.get("character"),
-                "slot": player.get("slot", slot_num),
-                "team": player.get("team", slot_num % 2),
-                "occupy": player.get("occupy", 0),
-                "pos": player.get("pos")
-            }
-
         payload = {
             "id": self.id,
             "player_num": self.player_num,
-            "players": [
-                serialize_player(player, idx + 1) for idx, player in enumerate(self.players)
-            ],
+            "players": [asdict(p) for p in self.players],
             "game_board": self.game_board,
             "current_round": self.current_round,
             "connection_lost_timers": self.connection_lost_timers
@@ -173,23 +134,23 @@ class Game():
         players = []
         for idx in range(player_num):
             slot_num = idx + 1
-            base_player = join.player_factory(slot_num)
             if idx < len(players_data) and players_data[idx]:
                 stored = players_data[idx]
-                base_player["info"] = stored.get("info")
-                base_player["character"] = stored.get("character")
-                base_player["slot"] = stored.get("slot", slot_num)
-                base_player["team"] = stored.get("team", slot_num % 2)
-                base_player["occupy"] = stored.get("occupy", 0)
-                base_player["pos"] = stored.get("pos")
-
-                info = base_player.get("info") or {}
+                info = stored.get("info") or {}
                 is_bot = info.get("is_bot") or (
                     info.get("id") and str(info.get("id")).startswith("bot_")
                 )
-                base_player["ready"] = True if is_bot else False
-            players.append(base_player)
-
+                players.append(Player(
+                    info=stored.get("info"),
+                    character=stored.get("character"),
+                    slot=stored.get("slot", slot_num),
+                    team=stored.get("team", slot_num % 2),
+                    occupy=stored.get("occupy", 0),
+                    pos=stored.get("pos"),
+                    ready=True if is_bot else stored.get("ready", False),
+                ))
+            else:
+                players.append(join.player_factory(slot_num))
         game.players = players
         game.game_board = data.get("game_board", game.game_board)
         game.current_round = data.get("current_round", 0)
@@ -199,8 +160,8 @@ class Game():
     def vomit(self):
         data = {
             "type": "vomit_data",
-            "id": self.id, # game id
-            "players": self.players,  # player list (slots)
+            "id": self.id,
+            "players": [asdict(p) for p in self.players],
             "game_board": self.game_board
         }
         return data
@@ -219,13 +180,12 @@ class Game():
         blue_team_defeated = True
         
         for player in self.players:
-            if player.get('occupy') != 1:
+            if player.occupy != 1:
                 continue
-            if not player.get('character'):
+            if not player.character:
                 continue
-            
-            team = player.get('team')
-            current_hp = player['character'].get('current_hp', 0)
+            team = player.team
+            current_hp = (player.character or {}).get('current_hp', 0)
             
             if team == 0:
                 if current_hp > 0:

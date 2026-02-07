@@ -3,7 +3,7 @@ Dict-based command router: dispatch by command name to registered handler classe
 """
 from typing import Dict, Type
 
-from .context import CommandContext
+from ...util.context import CommandContext
 from .commands.base import BaseCommand
 
 

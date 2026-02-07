@@ -1,9 +1,10 @@
 """
 Preparation-phase commands: /참여, /관전, /join, /leave
 """
-from ..context import CommandContext
+from ....util.context import CommandContext
 from .base import BaseCommand
 
+PREPARATION_COMMANDS = ["참여", "join", "관전", "leave"]
 
 class PreparationCommand(BaseCommand):
     async def validate(self, ctx: CommandContext) -> None:

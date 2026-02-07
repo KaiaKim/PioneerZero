@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from fastapi import WebSocket
 import asyncio
 from ...util import conM
@@ -29,10 +30,9 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
     result = join_funcs.add_player(game, slot, slot_idx, user_info)
     
     if result["success"]:
-        # Broadcast updated players list to all clients
         await conM.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": [asdict(p) for p in game.players]
         })
     else:
         await websocket.send_json({
@@ -57,10 +57,9 @@ async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
     result = join_funcs.add_bot(game, slot, slot_idx)
     
     if result["success"]:
-        # Broadcast updated players list to all clients
         await conM.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": [asdict(p) for p in game.players]
         })
     else:
         await websocket.send_json({
@@ -94,12 +93,10 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     slot_idx = slot - 1
     
     # Check if slot has a bot - anyone can remove bots
-    player = game.players[slot_idx]['info']
-    is_bot = player and (player.get('is_bot') == True or (player.get('id') and player.get('id').startswith('bot_')))
-    
-    # If not a bot, verify the user owns this slot
+    info = game.players[slot_idx].info
+    is_bot = info and (info.get('is_bot') is True or (info.get('id') and str(info.get('id')).startswith('bot_')))
     if not is_bot:
-        if not player or player['id'] != user_info.get('id'):
+        if not info or info.get('id') != user_info.get('id'):
             await websocket.send_json({
                 "type": "leave_slot_failed",
                 "message": "You don't own this slot"
@@ -109,10 +106,9 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     result = join_funcs.remove_player(game, slot, slot_idx)
     
     if result["success"]:
-        # Broadcast updated players list to all clients
         await conM.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": [asdict(p) for p in game.players]
         })
     else:
         await websocket.send_json({
@@ -145,10 +141,9 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
     result = join_funcs.set_player_ready(game, slot, slot_idx, user_info, ready)
     
     if result["success"]:
-        # Broadcast updated players list to all clients
         await conM.broadcast_to_game(game.id, {
             "type": "players_list",
-            "players": game.players
+            "players": [asdict(p) for p in game.players]
         })
     else:
         await websocket.send_json({
@@ -166,10 +161,9 @@ async def run_connection_lost_timeout_checks(rooms):
         try:
             for game_id, game in rooms.items():
                 if join_funcs.clear_expired_connection_lost_slots(game):
-                    # Broadcast updated players list if any slots were cleared
                     await conM.broadcast_to_game(game_id, {
                         'type': 'players_list',
-                        'players': game.players
+                        'players': [asdict(p) for p in game.players]
                     })
             await asyncio.sleep(1)  # Check every second
         except Exception as e:

@@ -4,7 +4,7 @@ Base command: all slash-command handlers inherit and implement run(ctx).
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..context import CommandContext
+from ....util.context import CommandContext
 
 
 class BaseCommand(ABC):
@@ -15,7 +15,7 @@ class BaseCommand(ABC):
 
     @staticmethod
     def _is_combat_participant(game: Any, user_id: str) -> bool:
-        player_ids = [p.get("info", {}).get("id") for p in game.players if p.get("info")]
+        player_ids = [p.info.get("id") for p in game.players if p.info and p.info.get("id")]
         return user_id in player_ids
 
     @abstractmethod

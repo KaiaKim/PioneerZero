@@ -26,7 +26,6 @@ def declare_position(game, sender, command):
         err = "유효하지 않은 행 번호입니다."
 
     # Validate position using parse_position_declaration_from_chat logic
-    player_team = player.get('team', 0)
     r, c = pos_to_rc(position)
     
     if r < 0 or c < 0 or c > 3:
@@ -35,7 +34,7 @@ def declare_position(game, sender, command):
     # Check if position is in player's team area
     # Row 0-1 (Y, X) = team 1 (blue), Row 2-3 (A, B) = team 0 (white)
     position_team = 1 if r <= 1 else 0
-    if position_team != player_team:
+    if position_team != player.team:
         err = "자신의 진영만 선택할 수 있습니다."
     
     result = f"위치 {position} 선언 완료"
@@ -52,14 +51,14 @@ def move_player(game, name, command):
     # Row 1: X1, X2, X3, X4
     # Row 2: A1, A2, A3, A4
     # Row 3: B1, B2, B3, B4
-    # Find the character object in game.players that matches the sender's name
-    character_obj = next((c for c in game.players if c.get('name') == name), None)
-    current_pos = character_obj.get('pos') if character_obj and 'pos' in character_obj else None
+    # Find the player slot whose character matches the sender's name
+    player_slot = next((p for p in game.players if p.character and (p.character.get('name') if isinstance(p.character, dict) else None) == name), None)
+    current_pos = player_slot.pos if player_slot else None
 
     match = re.search(r'\b([YXAB][1-4])\b', command)
     target_pos = match.group(1) if match else None
-    if target_pos:
-        character_obj["pos"] = target_pos
+    if target_pos and player_slot:
+        player_slot.pos = target_pos
         return f"{name} moved from {current_pos} to {target_pos}"
     else:
         return f"{name} move failed."

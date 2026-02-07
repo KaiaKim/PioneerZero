@@ -2,7 +2,7 @@
 Position declaration: /위치 <cell>, /pos <cell> (e.g. A2)
 """
 from ....services.game_core import position
-from ..context import CommandContext
+from ....util.context import CommandContext
 from .base import BaseCommand
 
 POSITION_COMMANDS = ["위치", "pos"]

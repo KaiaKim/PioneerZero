@@ -2,8 +2,9 @@
 Attack commands: /근거리공격 <대상>, /원거리공격 <대상>, /대기
 Target defaults to "자신" per USER_GUIDE.
 """
+from dataclasses import asdict
 from ....util import conM
-from ..context import CommandContext
+from ....util.context import CommandContext
 from .base import BaseCommand
 
 ATTACK_COMMANDS = ["근거리공격", "원거리공격", "대기"]
@@ -34,7 +35,7 @@ class AttackCommand(BaseCommand):
         if ctx.websocket:
             await ctx.websocket.send_json({
                 "type": "declared_attack",
-                "attack_info": action_data,
+                "attack_info": asdict(action_data),
             })
         await conM.broadcast_to_game(ctx.game.id, {
             "type": "action_submission_update",

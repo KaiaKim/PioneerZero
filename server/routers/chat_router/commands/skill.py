@@ -2,7 +2,7 @@
 Skill commands: /스킬1, /스킬2, /스킬3, /스킬4 (and e.g. /순간가속 A2, /컨토션 자신 per USER_GUIDE)
 """
 from ....util import conM
-from ..context import CommandContext
+from ....util.context import CommandContext
 from .base import BaseCommand
 
 SKILL_COMMANDS = ["스킬1", "스킬2", "스킬3", "스킬4"]

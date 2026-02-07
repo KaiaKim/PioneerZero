@@ -5,7 +5,7 @@ Parse → route → handler; normal chat and commands are split at input.
 from fastapi import WebSocket
 
 from ...util import conM, dbM
-from .context import CommandContext
+from ...util.context import CommandContext
 from .input import parse_input
 from .router import CommandManager
 from . import commands
@@ -19,7 +19,7 @@ for _name in commands.skill.SKILL_COMMANDS:
     _router.register(_name, commands.skill.SkillCommand)
 for _name in commands.position.POSITION_COMMANDS:
     _router.register(_name, commands.position.PositionCommand)
-for _name in ("참여", "join", "관전", "leave"):
+for _name in commands.preparation.PREPARATION_COMMANDS:
     _router.register(_name, commands.preparation.PreparationCommand)
 
 
@@ -37,7 +37,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
 
     if command == "chat":
         # Normal chat
-        msg = _save_regular_chat(game, content, sender, user_id, chat_type)
+        msg = dbM.save_chat(game.id, content, sender=sender, sort=chat_type, user_id=user_id)
         await conM.broadcast_to_game(game.id, msg)
         return
 
@@ -57,21 +57,14 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
         websocket=websocket,
         sender=sender,
     )
-
+    
+    ###꼬이지 않게 구현합시다 v
     try:
         result, err, action_data = await _router.dispatch(command, ctx)
     except ValueError as e:
         err = str(e) if str(e) else "알 수 없는 명령어입니다."
         result, action_data = None, None
 
-    await _save_and_broadcast_message(game, result, err, sender, user_id)
-
-
-def _save_regular_chat(game, content: str, sender: str, user_id: str, chat_type: str) -> dict:
-    return dbM.save_chat(game.id, content, sender=sender, sort=chat_type, user_id=user_id)
-
-## v dumb logic. I should fix this.
-async def _save_and_broadcast_message(game, result: str | None, err: str | None, sender: str, user_id: str) -> None:
     secret_msg = None
     msg = None
 
