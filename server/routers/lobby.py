@@ -1,6 +1,7 @@
 """
 Lobby WebSocket handlers and endpoints
 """
+from dataclasses import asdict
 from fastapi import WebSocket
 from ..util import conM, dbM
 from ..services.game_core.session import Game
@@ -54,13 +55,11 @@ async def handle_join_room(websocket: WebSocket, game_id: str, game):
     
     # Get user_info for this connection and add to game users list
     user_info = conM.get_user_info(websocket)
-    # Check if user is already in the list (avoid duplicates)
-    if not any(u.get('id') == user_info.get('id') for u in game.users):
+    if not any(u.id == user_info.id for u in game.users):
         game.users.append(user_info)
-        # Broadcast updated users list to all clients in the game
         await conM.broadcast_to_game(game_id, {
             'type': 'users_list',
-            'users': game.users
+            'users': [asdict(u) for u in game.users]
         })
     
     await websocket.send_json({
@@ -96,7 +95,7 @@ async def handle_load_room(websocket: WebSocket, game):
     
     # Load and send chat history to the requesting client
     user_info = conM.get_user_info(websocket)
-    viewer_id = user_info.get('id') if user_info else None
+    viewer_id = user_info.id if user_info else None
     chat_history_rows = dbM.get_chat_history(game.id, viewer_id=viewer_id)
     chat_messages = []
     for row in chat_history_rows:

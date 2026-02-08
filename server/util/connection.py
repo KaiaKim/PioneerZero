@@ -3,6 +3,8 @@ WebSocket connection and game assignment management.
 """
 from fastapi import WebSocket
 
+from .models import UserInfo
+
 
 class ConnectionManager:
     """Manages WebSocket connections and game assignments"""
@@ -10,23 +12,22 @@ class ConnectionManager:
         self.active_connections: list[WebSocket] = []
         self.game_connections: dict[str, list[WebSocket]] = {}  # {game_id: [websocket1, websocket2, ...]}
         self.connection_to_game: dict[WebSocket, str] = {}  # {websocket: game_id}
-        self.connection_user_info: dict[WebSocket, dict] = {}  # {websocket: user_info}
-    
+        self.connection_user_info: dict[WebSocket, UserInfo] = {}
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-    
+
     async def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        # leave_game is now called separately to get return values
         self.connection_user_info.pop(websocket, None)
-    
-    def set_user_info(self, websocket: WebSocket, user_info: dict):
+
+    def set_user_info(self, websocket: WebSocket, user_info: UserInfo) -> None:
         """Store user_info for a connection"""
         self.connection_user_info[websocket] = user_info
-    
-    def get_user_info(self, websocket: WebSocket) -> dict | None:
+
+    def get_user_info(self, websocket: WebSocket) -> UserInfo | None:
         """Get user_info for a connection"""
         return self.connection_user_info.get(websocket)
     
@@ -74,7 +75,7 @@ class ConnectionManager:
             if target_user_id:
                 for connection in self.game_connections[game_id]:
                     user_info = self.connection_user_info.get(connection)
-                    if user_info and user_info.get('id') == target_user_id:
+                    if user_info and user_info.id == target_user_id:
                         try:
                             await connection.send_json(message)
                         except Exception:

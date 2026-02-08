@@ -31,7 +31,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
     if chat_type not in ("dialogue", "communication", "chitchat"):
         chat_type = "dialogue"
     user_info = conM.get_user_info(websocket)
-    user_id = user_info.get("id")
+    user_id = user_info.id
 
     command, args = parse_input(content)
 

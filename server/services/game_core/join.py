@@ -3,17 +3,17 @@ Join/player management functions
 Player slot management operations
 """
 import time
-from ...util.models import PlayerSlot
+from ...util.models import PlayerSlot, UserInfo
 from .characters import default_character, bots
 
 
-def add_player(game, slot_idx: int, user_info: dict):
+def add_player(game, slot_idx: int, user_info: UserInfo):
     """Add a player to a specific slot"""
     existing_player_info = game.players[slot_idx].info
     occupy = game.players[slot_idx].occupy
     num = slot_idx + 1
 
-    is_same_user = existing_player_info and existing_player_info.get('id') == user_info.get('id')
+    is_same_user = existing_player_info and existing_player_info.id == user_info.id
 
     if occupy == 1:
         if is_same_user:
@@ -48,11 +48,11 @@ def add_bot(game, slot_idx: int):
 
     bot_index = slot_idx % len(bots) if bots else 0
     bot_character = bots[bot_index] if bots else default_character
-    bot_info = {
-        'id': f'bot_{slot_idx}',
-        'name': bot_character.name or f'Bot_{num}',
-        'is_bot': True
-    }
+    bot_info = UserInfo(
+        id=f'bot_{slot_idx}',
+        name=bot_character.name or f'Bot_{num}',
+        is_bot=True,
+    )
     team = 1 if slot_idx < (game.player_num / 2) else 0
     game.players[slot_idx] = PlayerSlot(
         index=slot_idx,
@@ -101,15 +101,15 @@ def clear_expired_connection_lost_slots(game, duration: float = 5.0):
     return len(indices_to_clear) > 0
 
 
-def set_player_ready(game, slot_idx: int, user_info: dict, ready: bool):
+def set_player_ready(game, slot_idx: int, user_info: UserInfo, ready: bool):
     """Set ready state for a player. Only the player themselves can toggle their ready state."""
     num = slot_idx + 1
     player = game.players[slot_idx]
-    if not player.info or player.info.get('id') != user_info.get('id'):
+    if not player.info or player.info.id != user_info.id:
         return {"success": False, "message": f"You don't own slot {num}."}
     if player.occupy not in [1, 2]:
         return {"success": False, "message": f"Slot {num} is not occupied."}
-    if player.info.get('is_bot') is True or (player.info.get('id') and str(player.info.get('id')).startswith('bot_')):
+    if player.info.is_bot or str(player.info.id).startswith('bot_'):
         return {"success": False, "message": "Bots are always ready."}
     game.players[slot_idx].ready = ready
     return {"success": True, "message": f"Ready state set to {ready} for slot {num}."}
@@ -120,10 +120,7 @@ def are_all_players_ready(game):
     for player in game.players:
         if player.occupy != 1 or player.character is None:
             return False
-        is_bot = player.info and (
-            player.info.get('is_bot') is True or
-            (player.info.get('id') and str(player.info.get('id')).startswith('bot_'))
-        )
+        is_bot = player.info and (player.info.is_bot or str(player.info.id).startswith('bot_'))
         if not is_bot and not player.ready:
             return False
     return True

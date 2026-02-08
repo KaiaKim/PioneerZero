@@ -1,6 +1,7 @@
 """
 WebSocket endpoint routing and message handling
 """
+from dataclasses import asdict
 from fastapi import WebSocket
 import uuid
 import traceback
@@ -104,20 +105,17 @@ async def websocket_endpoint(websocket: WebSocket):
         game_id, user_info = await conM.leave_game(websocket)
         if game_id and user_info and game_id in rooms:
             game = rooms[game_id]
-            # Remove user from game users list
-            game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
-            # Set player slot to connection-lost instead of removing
-            slot_idx = game.get_player_by_user_id(user_info.get('id'))
-            if slot_idx:
+            game.users = [u for u in game.users if u.id != user_info.id]
+            slot_idx = game.get_player_by_user_id(user_info.id)
+            if slot_idx is not None:
                 join.set_player_connection_lost(game, slot_idx)
-            # Broadcast updated users list and players list to remaining clients
             await conM.broadcast_to_game(game_id, {
                 'type': 'users_list',
-                'users': game.users
+                'users': [asdict(u) for u in game.users]
             })
             await conM.broadcast_to_game(game_id, {
                 'type': 'players_list',
-                'players': game.players
+                'players': [asdict(p) for p in game.players]
             })
         # Always disconnect when WebSocket closes
         await conM.disconnect(websocket)

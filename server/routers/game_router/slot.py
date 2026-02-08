@@ -20,7 +20,7 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
         })
         return
     
-    existing_slot_idx = join_funcs.get_player_by_user_id(game, user_info.get('id'))
+    existing_slot_idx = game.get_player_by_user_id(user_info.id)
     if existing_slot_idx is not None and existing_slot_idx != slot_idx:
         await websocket.send_json({
             "type": "join_slot_failed",
@@ -82,7 +82,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
     user_info = conM.get_user_info(websocket)
     
     if slot_idx is None:
-        slot_idx = game.get_player_by_user_id(user_info.get('id'))
+        slot_idx = game.get_player_by_user_id(user_info.id)
         if slot_idx is None:
             await websocket.send_json({
                 "type": "leave_slot_failed",
@@ -97,9 +97,9 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
         return
     
     info = game.players[slot_idx].info
-    is_bot = info and (info.get('is_bot') is True or (info.get('id') and str(info.get('id')).startswith('bot_')))
+    is_bot = info and (info.is_bot or str(info.id).startswith('bot_'))
     if not is_bot:
-        if not info or info.get('id') != user_info.get('id'):
+        if not info or info.id != user_info.id:
             await websocket.send_json({
                 "type": "leave_slot_failed",
                 "message": "You don't own this slot"

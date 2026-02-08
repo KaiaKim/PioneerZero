@@ -9,7 +9,7 @@ class Game():
         self.id = id
         self.player_num = player_num #default 4, max 8
         
-        self.players = [
+        self.player_slots = [
             PlayerSlot(index=i)
             for i in range(self.player_num)
         ]  # player list (slots)
@@ -32,22 +32,17 @@ class Game():
         self.in_combat = False
         self.current_round = 0
         self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
-        self.action_queue = []
         self.resolved_actions = []
 
-        
-    def _upsert_action_queue(self, action: ActionContext) -> None:
-        self.action_queue = [a for a in self.action_queue if a.slot_idx != action.slot_idx]
-        self.action_queue.append(action)
 
     def get_action_submission_status(self):
-        submitted = {action.slot_idx for action in self.action_queue}
+        submitted = {action.slot_idx for action in self.action_slots}
         return [{"slot_idx": i, "submitted": i in submitted} for i in range(self.player_num)]
 
     def get_player_by_user_id(self, user_id: str) -> int | None:
         """Return slot_idx (0-based) for the given user_id, or None if not found."""
-        for player in self.players:
-            if player.info and player.info.get('id') == user_id:
+        for player in self.player_slots:
+            if player.info and player.info.id == user_id:
                 return player.index
         return None
 
@@ -76,20 +71,26 @@ class Game():
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
     def declare_position(self, ctx: CommandContext) -> ActionContext:
-        slot_idx = getattr(ctx, 'slot_idx', None) or self.get_player_by_user_id(ctx.user_id)
-        if slot_idx is None:
-            raise ValueError("Could not determine slot_idx for declare_position")
-        pos_data = ActionContext(slot_idx=slot_idx, action_type="position")
-        self._upsert_action_queue(pos_data)
-        return pos_data
+        action = ActionContext(
+            action_type="position",
+            destination=ctx.args[0]
+            )
+
+        self.player_slots[ctx.slot_idx].submission = action
+        
+        return action
 
     def declare_attack(self, ctx: CommandContext) -> ActionContext:
+        pass
+    #finish this after position command is implemented
+    '''
         slot_idx = getattr(ctx, 'slot_idx', None) or self.get_player_by_user_id(ctx.user_id)
         if slot_idx is None:
             raise ValueError("Could not determine slot_idx for declare_attack")
         action_data = ActionContext(slot_idx=slot_idx, action_type=ctx.action_type, target=ctx.target)
         self._upsert_action_queue(action_data)
         return action_data
+        '''
     
     def declare_skill(self):
         pass
@@ -111,7 +112,7 @@ class Game():
         data = {
             "type": "vomit_data",
             "id": self.id,
-            "players": [asdict(p) for p in self.players],
+            "players": [asdict(p) for p in self.player_slots],
             "game_board": self.game_board
         }
         return data
@@ -129,7 +130,7 @@ class Game():
         white_team_defeated = True
         blue_team_defeated = True
         
-        for player in self.players:
+        for player in self.player_slots:
             if player.occupy != 1:
                 continue
             if not player.character:

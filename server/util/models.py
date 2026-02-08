@@ -1,20 +1,32 @@
 """
 Shared context types: command invocation (chat), action declaration (game),
-player slot, and character. See services.game_core.characters for data constants.
+player slot, character, and user identity. See services.game_core.characters for data constants.
 """
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
+
+
+@dataclass
+class UserInfo:
+    """Identity for a connected user (Google, guest, or bot). Set at auth and stored per WebSocket."""
+    id: str
+    name: str = ""
+    email: Optional[str] = None
+    picture: Optional[str] = None
+    is_google: bool = False
+    is_guest: bool = False
+    is_bot: bool = False
 
 @dataclass
 class PlayerSlot:
     """One player slot in the game (empty or occupied)."""
     index: int = 0
-    info: Any = None  # user/bot info dict
-    character: Any = None #Character object
+    info: Optional["UserInfo"] = None  # user or bot identity
+    character: Optional["Character"] = None #Character object
     ready: bool = False
     team: int = 0  # 0=white, 1=blue
     occupy: int = 0  # 0=empty, 1=occupied, 2=connection-lost
-    submission: Optional[Any] = None #ActionContext object
+    action: Optional["ActionContext"] = None #ActionContext object
 
 @dataclass
 class Character:
@@ -35,6 +47,7 @@ class Character:
 class CommandContext:
     """관전자도 플레이어도 보낼 수 있는 범용 커맨드 컨텍스트"""
     user_id: str
+    slot_idx: Optional[int] = None
     channel_id: str  # game_id
     raw: str
     args: List[str]
@@ -48,13 +61,12 @@ class CommandContext:
 @dataclass
 class ActionContext:
     """우선도, 공격력, 특수효과 등이 계산되어 액션 큐에 등록되는 데이터."""
-
-    slot: int
-    action_type: str
-    skill_chain: Optional[Any] = None
-    target: str = "자신"
-    target_slot_idx: Optional[int] = None  # 0-based
+    round: int = 0
+    attack_type: str = ""
+    skill_type: str = ""
+    destination: str = ""  # character wants to go there, not yet arrived
+    target_char: str = "자신"
+    target_cell: str = ""
     priority: Optional[int] = None
-    attack_power: Optional[int] = None
+    power: Optional[int] = None
     resolved: bool = False
-    destination: Any = None  # character wants to go there, not yet arrived

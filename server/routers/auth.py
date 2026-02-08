@@ -6,9 +6,11 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 import secrets
+from dataclasses import asdict
 from typing import Dict, Optional
 from ..config import settings
 from ..util import conM
+from ..util.models import UserInfo
 
 # Allowed members (from config)
 member_list = settings.ALLOWED_MEMBERS
@@ -279,19 +281,18 @@ async def handle_google_login(websocket: WebSocket, auth_message: dict):
         return
     
     # Success - send success message
-    google_user_info = {
-        'id': user_info.get('id'),
-        'email': user_info.get('email'),
-        'name': user_info.get('name'),
-        'picture': user_info.get('picture'),
-        'isGoogle': True,
-        'isGuest': False
-    }
-    # Store user_info with the connection
-    conM.set_user_info(websocket, google_user_info)
+    ui = UserInfo(
+        id=user_info.get('id', ''),
+        name=user_info.get('name', ''),
+        email=user_info.get('email'),
+        picture=user_info.get('picture'),
+        is_google=True,
+        is_guest=False,
+    )
+    conM.set_user_info(websocket, ui)
     await websocket.send_json({
         'type': 'auth_success',
-        'user_info': google_user_info
+        'user_info': asdict(ui)
     })
     print(f"Google authentication successful for user: {user_info.get('email')}")
     
@@ -317,33 +318,33 @@ async def handle_user_auth(websocket: WebSocket, auth_message: dict):
         if isinstance(user_info, str):
             import json
             user_info = json.loads(user_info)
-        
-        print(f"User authenticated: {user_info.get('name') or user_info.get('email')} (id: {user_info.get('id')})")
-        # Store user_info with the connection
-        conM.set_user_info(websocket, user_info)
+        ui = UserInfo(
+            id=user_info.get('id', ''),
+            name=user_info.get('name', ''),
+            email=user_info.get('email'),
+            picture=user_info.get('picture'),
+            is_google=user_info.get('isGoogle', False),
+            is_guest=user_info.get('isGuest', False),
+        )
+        print(f"User authenticated: {ui.name or ui.email} (id: {ui.id})")
+        conM.set_user_info(websocket, ui)
         await websocket.send_json({
             'type': 'auth_success',
-            'user_info': user_info
+            'user_info': asdict(ui)
         })
         return
-    
+
     # Otherwise, use guest_id (fallback for guests)
     if not guest_id:
         await websocket.close()
         print("Error: no guest_id or user_info provided")
         return
-    
+
     print(f"Guest connected (guest_id: {guest_id})")
-    guest_user_info = {
-        'id': guest_id,
-        'name': 'Guest',
-        'isGoogle': False,
-        'isGuest': True
-    }
-    # Store user_info with the connection
-    conM.set_user_info(websocket, guest_user_info)
+    ui = UserInfo(id=guest_id, name='Guest', is_google=False, is_guest=True)
+    conM.set_user_info(websocket, ui)
     await websocket.send_json({
         'type': 'auth_success',
         'guest_id': guest_id,
-        'user_info': guest_user_info
+        'user_info': asdict(ui)
     })
