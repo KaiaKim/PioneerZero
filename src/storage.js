@@ -8,7 +8,7 @@
  * - chatTabSettings    – array of tab config rows; default DEFAULT_TAB_CONFIG
  * - chatType_{gameId}  – string 'dialogue'|'communication'|'chitchat'; default 'dialogue'
  * - chatUnreadByTabId_{gameId} – object { [tabId: number]: boolean }; default {}
- * - player_slot_{gameId} – string (slot number); default null
+ * - player_slot_{gameId} – string (slot index, 0-based); default null
  * - actionQueuePosition – object { x: number, y: number } | null; default null
  */
 

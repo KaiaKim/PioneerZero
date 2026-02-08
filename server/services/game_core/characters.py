@@ -3,7 +3,7 @@ Character data constants
 In the final project, character data has to be pulled from a database.
 For now, hard-coded global variables for each character.
 """
-from ...util.context import Character
+from ...util.models import Character
 
 # stats order: vtl, sen, per, tal, mst
 default_character = Character(

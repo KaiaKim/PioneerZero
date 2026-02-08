@@ -4,94 +4,87 @@ import { getUserInfo as getStoredUserInfo } from '../../storage';
 function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setReady, currentUser, countdown }) {
   const getUserInfo = () => currentUser || getStoredUserInfo();
 
-  const handleJoinClick = (slotNum) => {
-    joinPlayerSlot(slotNum);
+  const handleJoinClick = (slotIndex) => {
+    joinPlayerSlot(slotIndex);
   };
 
-  const handleAddBotClick = (slotNum) => {
-    addBotToSlot(slotNum);
+  const handleAddBotClick = (slotIndex) => {
+    addBotToSlot(slotIndex);
   };
 
-  const handleLeaveClick = (slotNum) => {
-    leavePlayerSlot(slotNum);
+  const handleLeaveClick = (slotIndex) => {
+    leavePlayerSlot(slotIndex);
   };
 
-  const getSlotStatus = (slotNum) => {
-    const slotIndex = slotNum - 1;
+  const getSlotStatus = (slotIndex) => {
     const player = players[slotIndex];
     return player?.occupy || 0; // 0=empty, 1=occupied, 2=connection-lost
   };
 
-  const isSlotEmpty = (slotNum) => {
-    return getSlotStatus(slotNum) === 0;
+  const isSlotEmpty = (slotIndex) => {
+    return getSlotStatus(slotIndex) === 0;
   };
 
-  const isSlotConnectionLost = (slotNum) => {
-    return getSlotStatus(slotNum) === 2;
+  const isSlotConnectionLost = (slotIndex) => {
+    return getSlotStatus(slotIndex) === 2;
   };
 
-  const isCurrentUserInSlot = (slotNum) => {
-    const slotIndex = slotNum - 1;
+  const isCurrentUserInSlot = (slotIndex) => {
     const player = players[slotIndex];
     const userInfo = getUserInfo();
     if (!player || !player.info || !userInfo) return false;
     return player.info.id === userInfo.id;
   };
 
-  const isBotInSlot = (slotNum) => {
-    const slotIndex = slotNum - 1;
+  const isBotInSlot = (slotIndex) => {
     const player = players[slotIndex];
     if (!player || !player.info) return false;
     return player.info.is_bot === true || (player.info.id && player.info.id.startsWith('bot_'));
   };
 
-  const getCharName = (slotNum) => {
-    const slotIndex = slotNum - 1;
+  const getCharName = (slotIndex) => {
     const player = players[slotIndex];
     if (!player) return '-';
     return player.character?.name || 'Guest';
   };
 
-  const getPlayerReady = (slotNum) => {
-    const slotIndex = slotNum - 1;
+  const getPlayerReady = (slotIndex) => {
     const player = players[slotIndex];
     if (!player) return false;
     return player.ready === true;
   };
 
-  const handleReadyChange = (slotNum, event) => {
+  const handleReadyChange = (slotIndex, event) => {
     const checked = event.target.checked;
-    setReady(slotNum, checked);
+    setReady(slotIndex, checked);
   };
 
-  // Generate slot numbers dynamically based on players array length (4-8)
-  const slotNumbers = Array.from({ length: players.length || 4 }, (_, i) => i + 1);
+  // 0-based slot indices
+  const slotIndices = Array.from({ length: players.length || 4 }, (_, i) => i);
   
-  // Calculate grid columns: game.player_num / 2
   const gridColumns = Math.floor((players.length || 4) / 2);
 
   return (
     <div className="waiting-area" style={{ display: 'flex' }}>
       <div className="waiting-grid" style={{ '--grid-columns': gridColumns }}>
-        {slotNumbers.map((num) => {
-          const status = getSlotStatus(num);
-          const isEmpty = isSlotEmpty(num);
-          const isConnectionLost = isSlotConnectionLost(num);
-          const isCurrentUser = isCurrentUserInSlot(num);
-          const isBot = isBotInSlot(num);
+        {slotIndices.map((slotIndex) => {
+          const status = getSlotStatus(slotIndex);
+          const isEmpty = isSlotEmpty(slotIndex);
+          const isConnectionLost = isSlotConnectionLost(slotIndex);
+          const isCurrentUser = isCurrentUserInSlot(slotIndex);
+          const isBot = isBotInSlot(slotIndex);
           
-          const slotIndex = num - 1;
           const player = players[slotIndex];
           const tokenImage = status === 1 && player?.character?.token_image 
             ? player.character.token_image 
             : null;
           
-          // Determine team class: first half = blue, second half = white
           const totalPlayers = players.length || 4;
           const teamClass = slotIndex < (totalPlayers / 2) ? 'teamBlue' : 'teamWhite';
+          const displayNum = slotIndex + 1; // For "P1", "P2" labels
 
           return (
-            <div key={num} className={`waiting-cell ${teamClass}`}>
+            <div key={slotIndex} className={`waiting-cell ${teamClass}`}>
               <div 
                 className={`waiting-thumbnail ${
                   status === 1 ? 'occupied' : 
@@ -104,20 +97,20 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
                   <div>
                     <button 
                       className="player-join-but"
-                      onClick={() => handleJoinClick(num)}
+                      onClick={() => handleJoinClick(slotIndex)}
                     >
                       Join
                     </button>
                     <button
                     className="add-bot-but"
-                    onClick={() => handleAddBotClick(num)}
+                    onClick={() => handleAddBotClick(slotIndex)}
                     >Bot</button>
                   </div>
                 ) : (
                   (isCurrentUser || isBot) && status === 1 && (
                     <button 
                       className="player-leave-but"
-                      onClick={() => handleLeaveClick(num)}
+                      onClick={() => handleLeaveClick(slotIndex)}
                     >
                       X
                     </button>
@@ -129,8 +122,8 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
                   </div>
                 )}
               </div>
-              <label className="waiting-name" id={`player-name-${num}`}>
-                {isEmpty ? `P${num}` : getCharName(num)}
+              <label className="waiting-name" id={`player-name-${displayNum}`}>
+                {isEmpty ? `P${displayNum}` : getCharName(slotIndex)}
               </label>
               <label className="waiting-ready-label">
                 Ready
@@ -138,12 +131,11 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
                   <input 
                     type="checkbox" 
                     className="waiting-ready" 
-                    checked={getPlayerReady(num)}
-                    onChange={(e) => handleReadyChange(num, e)}
+                    checked={getPlayerReady(slotIndex)}
+                    onChange={(e) => handleReadyChange(slotIndex, e)}
                   />
                 ) : !isEmpty ? (
-                  // Show checkmark for bots (always ready) or other players if they're ready
-                  <span>{isBot || getPlayerReady(num) ? '✓' : ''}</span>
+                  <span>{isBot || getPlayerReady(slotIndex) ? '✓' : ''}</span>
                 ) : null}
               </label>
             </div>
@@ -155,4 +147,3 @@ function Slots({ players, joinPlayerSlot, addBotToSlot, leavePlayerSlot, setRead
 }
 
 export default Slots;
-

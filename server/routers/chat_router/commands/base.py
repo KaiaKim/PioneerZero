@@ -4,7 +4,7 @@ Base command: all slash-command handlers inherit and implement run(ctx).
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ....util.context import CommandContext, ActionContext
+from ....util.models import CommandContext, ActionContext
 
 
 class BaseCommand(ABC):

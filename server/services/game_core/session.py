@@ -1,7 +1,7 @@
 import base64
 import pickle
 from dataclasses import asdict
-from ...util.context import ActionContext, CommandContext, Player
+from ...util.models import ActionContext, CommandContext, PlayerSlot
 from . import join, position
 
 class Game():
@@ -10,11 +10,11 @@ class Game():
         self.player_num = player_num #default 4, max 8
         
         self.players = [
-            join.player_factory(i + 1)
+            PlayerSlot(index=i)
             for i in range(self.player_num)
         ]  # player list (slots)
 
-        self.connection_lost_timers = {}  # {slot: timestamp} for tracking connection-lost duration
+        self.connection_lost_timers = {}  # {slot_idx: timestamp} for tracking connection-lost duration
         self.users = [] #접속자 목록
         # Initialize game board as 4x4 grid (4 rows, 4 columns)
         # Row 0: Y1, Y2, Y3, Y4
@@ -37,20 +37,19 @@ class Game():
 
         
     def _upsert_action_queue(self, action: ActionContext) -> None:
-        self.action_queue = [a for a in self.action_queue if a.slot != action.slot]
+        self.action_queue = [a for a in self.action_queue if a.slot_idx != action.slot_idx]
         self.action_queue.append(action)
 
     def get_action_submission_status(self):
-        submitted_slots = {action.slot for action in self.action_queue}
-        status_list = []
-        for idx in range(self.player_num):
-            slot = idx + 1
-            status_list.append({
-                "slot": slot,
-                "submitted": slot in submitted_slots
-            })
-        return status_list
+        submitted = {action.slot_idx for action in self.action_queue}
+        return [{"slot_idx": i, "submitted": i in submitted} for i in range(self.player_num)]
 
+    def get_player_by_user_id(self, user_id: str) -> int | None:
+        """Return slot_idx (0-based) for the given user_id, or None if not found."""
+        for player in self.players:
+            if player.info and player.info.get('id') == user_id:
+                return player.index
+        return None
 
     # ============================================
     # SECTION 3: Combat Calculations
@@ -77,12 +76,18 @@ class Game():
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
     def declare_position(self, ctx: CommandContext) -> ActionContext:
-        pos_data = ActionContext()
+        slot_idx = getattr(ctx, 'slot_idx', None) or self.get_player_by_user_id(ctx.user_id)
+        if slot_idx is None:
+            raise ValueError("Could not determine slot_idx for declare_position")
+        pos_data = ActionContext(slot_idx=slot_idx, action_type="position")
         self._upsert_action_queue(pos_data)
         return pos_data
 
     def declare_attack(self, ctx: CommandContext) -> ActionContext:
-        action_data = ActionContext(slot=ctx.slot, action_type=ctx.action_type, target=ctx.target)
+        slot_idx = getattr(ctx, 'slot_idx', None) or self.get_player_by_user_id(ctx.user_id)
+        if slot_idx is None:
+            raise ValueError("Could not determine slot_idx for declare_attack")
+        action_data = ActionContext(slot_idx=slot_idx, action_type=ctx.action_type, target=ctx.target)
         self._upsert_action_queue(action_data)
         return action_data
     

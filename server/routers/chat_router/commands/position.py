@@ -2,9 +2,8 @@
 Position declaration: /위치 <cell>, /pos <cell> (e.g. A2)
 """
 from ....services.game_core import position
-from ....util.context import CommandContext
+from ....util.models import CommandContext
 from .base import BaseCommand
-from ....services.game_core import join
 
 
 POSITION_COMMANDS = ["위치", "pos"]
@@ -17,10 +16,10 @@ class PositionCommand(BaseCommand):
             return "현재 단계에서 사용할 수 없는 명령어입니다."
         if not self._is_combat_participant(ctx.game, ctx.user_id):
             return "전투 명령어는 전투 참여자만 사용할 수 있습니다."
-        slot_num = join.get_player_by_user_id(ctx.game, ctx.user_id)
-        if not slot_num:
+        slot_idx = ctx.game.get_player_by_user_id(ctx.user_id)
+        if slot_idx is None:
             return "플레이어 슬롯을 찾을 수 없습니다."
-        slot_idx = slot_num - 1
+        ctx.slot_idx = slot_idx
         cell = ctx.args[0].strip().upper()
         ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
         if cell[0] not in ROW_MAP:
@@ -37,7 +36,7 @@ class PositionCommand(BaseCommand):
         return None
 
     async def run(self, ctx: CommandContext) -> str:
-        position.declare_position(ctx)
+        ctx.game.declare_position(ctx)
         
         #I can add custom feedback to clients via websocket here.
         #game commands might not need one, but other commands might need it.

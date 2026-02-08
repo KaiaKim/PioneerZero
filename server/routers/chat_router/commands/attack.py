@@ -4,10 +4,8 @@ Target defaults to "자신" per USER_GUIDE.
 """
 from dataclasses import asdict
 from ....util import conM
-from ....util.context import CommandContext
+from ....util.models import CommandContext
 from .base import BaseCommand
-from ....services.game_core.session import join
-
 ATTACK_COMMANDS = ["근거리공격", "원거리공격", "대기"]
 
 class AttackCommand(BaseCommand):
@@ -23,7 +21,7 @@ class AttackCommand(BaseCommand):
             return
 
     async def run(self, ctx: CommandContext) -> None:
-        slot_num = join.get_player_by_user_id(ctx.game, ctx.user_id)
+        slot_idx = ctx.game.get_player_by_user_id(ctx.user_id)
         target = ctx.args[0].strip() if ctx.args else "자신"
         action_data, err = ctx.game.declare_attack()
 

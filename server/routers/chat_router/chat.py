@@ -5,7 +5,7 @@ Parse → route → handler; normal chat and commands are split at input.
 from fastapi import WebSocket
 
 from ...util import conM, dbM
-from ...util.context import CommandContext
+from ...util.models import CommandContext
 from .input import parse_input
 from .command import cmdM
 from . import commands

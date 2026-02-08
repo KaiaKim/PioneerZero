@@ -6,16 +6,15 @@ from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 @dataclass
-class Player:
+class PlayerSlot:
     """One player slot in the game (empty or occupied)."""
-
+    index: int = 0
     info: Any = None  # user/bot info dict
-    character: Any = None
-    slot: int = 0
+    character: Any = None #Character object
     ready: bool = False
     team: int = 0  # 0=white, 1=blue
     occupy: int = 0  # 0=empty, 1=occupied, 2=connection-lost
-    pos: Any = None  # position on the game board
+    submission: Optional[Any] = None #ActionContext object
 
 @dataclass
 class Character:
@@ -46,8 +45,6 @@ class CommandContext:
     websocket: Any = None
     sender: str = ""
 
-
-
 @dataclass
 class ActionContext:
     """우선도, 공격력, 특수효과 등이 계산되어 액션 큐에 등록되는 데이터."""
@@ -56,8 +53,8 @@ class ActionContext:
     action_type: str
     skill_chain: Optional[Any] = None
     target: str = "자신"
-    target_slot: Optional[int] = None
+    target_slot_idx: Optional[int] = None  # 0-based
     priority: Optional[int] = None
     attack_power: Optional[int] = None
     resolved: bool = False
-    pos: Any = None
+    destination: Any = None  # character wants to go there, not yet arrived

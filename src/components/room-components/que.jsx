@@ -59,11 +59,12 @@ const ActionQueue = ({
     };
   }, []);
 
-  const submissionBySlot = useMemo(() => {
+  const submissionBySlotIndex = useMemo(() => {
     const map = new Map();
     for (const entry of actionSubmissionStatus || []) {
-      if (entry && typeof entry.slot === "number") {
-        map.set(entry.slot, entry.submitted === true);
+      const idx = entry?.slot_idx ?? entry?.slot;
+      if (entry && typeof idx === "number") {
+        map.set(idx, entry.submitted === true);
       }
     }
     return map;
@@ -119,10 +120,10 @@ const ActionQueue = ({
       return 0;
     }
     return players.reduce((count, player, index) => {
-      const slot = player?.slot ?? index + 1;
-      return submissionBySlot.get(slot) === true ? count + 1 : count;
+      const slotIndex = player?.index ?? player?.slot ?? index;
+      return submissionBySlotIndex.get(slotIndex) === true ? count + 1 : count;
     }, 0);
-  }, [players, playerCount, submissionBySlot]);
+  }, [players, playerCount, submissionBySlotIndex]);
 
   return (
     <div

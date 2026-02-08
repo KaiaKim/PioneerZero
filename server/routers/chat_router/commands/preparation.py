@@ -1,7 +1,7 @@
 """
 Preparation-phase commands: /참여, /관전, /join, /leave
 """
-from ....util.context import CommandContext
+from ....util.models import CommandContext
 from .base import BaseCommand
 
 PREPARATION_COMMANDS = ["참여", "join", "관전", "leave"]

@@ -45,11 +45,11 @@ export function useGame() {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      const storedSlotNum = getPlayerSlot(gameId);
-      const slotNum = storedSlotNum ? parseInt(storedSlotNum, 10) : null;
+      const storedSlotIndex = getPlayerSlot(gameId);
+      const slotIndex = storedSlotIndex != null && storedSlotIndex !== '' ? parseInt(storedSlotIndex, 10) : null;
 
       if (msg.type === "auth_success") {
-        handleAuthSuccess(msg, slotNum);
+        handleAuthSuccess(msg, slotIndex);
       } else if (msg.type === "joined_game") {
         loadGame();
       } else if (msg.type === "join_failed") {
@@ -111,10 +111,10 @@ export function useGame() {
         // Check if this declared attack is for the current user
         const currentUserId = userInfo.id;
         const attackInfo = msg.attack_info;
-        if (attackInfo && attackInfo.slot) {
+        if (attackInfo && typeof attackInfo.slot_idx === 'number') {
           // Find if this slot belongs to the current user
           const currentPlayers = playersRef.current || [];
-          const playerInSlot = currentPlayers.find(p => p?.slot === attackInfo.slot);
+          const playerInSlot = currentPlayers.find(p => (p?.index ?? p?.slot) === attackInfo.slot_idx);
           if (playerInSlot?.info?.id === currentUserId) {
             setDeclaredAttack(attackInfo);
           }
@@ -149,16 +149,16 @@ export function useGame() {
     });
   };
 
-  const handleAuthSuccess = (msg, slotNum) => {
+  const handleAuthSuccess = (msg, slotIndex) => {
     setUserName(msg.user_info.name);
     setUserInfo(msg.user_info);
     // If players_list was already received, try auto-join now that we have user info
-    if (plListReceivedRef.current && !autoJoinAttemptedRef.current && slotNum) {
+    if (plListReceivedRef.current && !autoJoinAttemptedRef.current && slotIndex != null) {
       autoJoinAttemptedRef.current = true;
       setTimeout(() => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          console.log(`Auto-joining slot ${slotNum} after authentication`);
-          joinPlayerSlot(slotNum);
+          console.log(`Auto-joining slot index ${slotIndex} after authentication`);
+          joinPlayerSlot(slotIndex);
         }
       }, 500);
     }
@@ -190,32 +190,32 @@ export function useGame() {
     });
   };
 
-  const joinPlayerSlot = (slotNum) => {
+  const joinPlayerSlot = (slotIndex) => {
     messageGameWS({
       action: 'join_player_slot',
-      slot: slotNum,
+      slotIndex: slotIndex,
     });
   };
   
-  const addBotToSlot = (slotNum) => {
+  const addBotToSlot = (slotIndex) => {
     messageGameWS({
       action: 'add_bot_to_slot',
-      slot: slotNum
+      slotIndex: slotIndex
     });
   };
 
-  const leavePlayerSlot = (slotNum) => {
+  const leavePlayerSlot = (slotIndex) => {
     messageGameWS({
       action: 'leave_player_slot',
-      slot: slotNum
+      slotIndex: slotIndex
     });
     removePlayerSlot(gameId);
   };
 
-  const setReady = (slotNum, ready) => {
+  const setReady = (slotIndex, ready) => {
     messageGameWS({
       action: 'set_ready',
-      slot: slotNum,
+      slotIndex: slotIndex,
       ready: ready
     });
   };
@@ -242,20 +242,20 @@ export function useGame() {
     const currentUserId = userInfo.id;
     const players = playersList || [];
     
-    const storedSlotNum = getPlayerSlot(gameId);
-    const slotNum = storedSlotNum ? parseInt(storedSlotNum, 10) : null;
+    const storedSlotIndex = getPlayerSlot(gameId);
+    const slotIndex = storedSlotIndex != null && storedSlotIndex !== '' ? parseInt(storedSlotIndex, 10) : null;
 
-    let userSlotNum = null;
+    let userSlotIndex = null;
     for (let i = 0; i < players.length; i++) {
       const player = players[i];
       if (player.info && player.info.id === currentUserId) {
-        userSlotNum = i + 1;
+        userSlotIndex = i;
         break;
       }
     }
 
-    if (userSlotNum) {
-      setPlayerSlot(gameId, userSlotNum.toString());
+    if (userSlotIndex != null) {
+      setPlayerSlot(gameId, String(userSlotIndex));
     } else {
       if (autoJoinAttemptedRef.current) {
         removePlayerSlot(gameId);
@@ -267,19 +267,18 @@ export function useGame() {
     // Need to rejoin if:
     // 1. Slot is empty (status 0) or occupied by someone else
     // 2. Slot is connection-lost (status 2) - even if it's the same user, we need to rejoin to change status to occupied
-    if (!autoJoinAttemptedRef.current && slotNum) {
-      const slotIndex = slotNum - 1;
+    if (!autoJoinAttemptedRef.current && slotIndex != null) {
       const playerInSlot = players[slotIndex];
       const slotStatus = playerInSlot?.occupy || 0;          
-      const isUserInSlot = playerInSlot.info && playerInSlot.info.id === currentUserId;
+      const isUserInSlot = playerInSlot?.info && playerInSlot.info.id === currentUserId;
       const needsRejoin = !isUserInSlot || slotStatus === 2;
       if (needsRejoin) {
         autoJoinAttemptedRef.current = true;
         // Wait a bit for WebSocket to be ready, then try to rejoin
         setTimeout(() => {
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log(`Auto-joining slot ${slotNum} after page refresh (status: ${slotStatus})`);
-            joinPlayerSlot(slotNum);
+            console.log(`Auto-joining slot index ${slotIndex} after page refresh (status: ${slotStatus})`);
+            joinPlayerSlot(slotIndex);
           }
         }, 500);
       } else {

@@ -107,9 +107,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # Remove user from game users list
             game.users = [u for u in game.users if u.get('id') != user_info.get('id')]
             # Set player slot to connection-lost instead of removing
-            user_slot = join.get_player_by_user_id(game, user_info.get('id'))
-            if user_slot:
-                join.set_player_connection_lost(game, user_slot)
+            slot_idx = game.get_player_by_user_id(user_info.get('id'))
+            if slot_idx:
+                join.set_player_connection_lost(game, slot_idx)
             # Broadcast updated users list and players list to remaining clients
             await conM.broadcast_to_game(game_id, {
                 'type': 'users_list',

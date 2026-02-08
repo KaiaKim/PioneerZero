@@ -5,29 +5,30 @@ from ...util import conM
 from ...services.game_core import join as join_funcs
 
 async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
-    """Handle join_player_slot action - adds a player to a waiting room slot"""    
-    slot = message.get("slot")
+    """Handle join_player_slot action - adds a player to a waiting room slot (slotIndex 0-based)"""
+    slot_idx = message.get("slotIndex")
+    if slot_idx is None:
+        slot_idx = message.get("slot")
+        if slot_idx is not None:
+            slot_idx = slot_idx - 1  # Legacy: client sent 1-based
     user_info = conM.get_user_info(websocket)
 
-    if not slot or slot < 1 or slot > game.player_num:
+    if slot_idx is None or slot_idx < 0 or slot_idx >= game.player_num:
         await websocket.send_json({
             "type": "join_slot_failed",
-            "message": "Invalid slot number"
+            "message": "Invalid slot index"
         })
         return
     
-    slot_idx = slot - 1
-    
-    # Check if user is already in a different slot
-    existing_slot = join_funcs.get_player_by_user_id(game, user_info.get('id'))
-    if existing_slot and existing_slot != slot:
+    existing_slot_idx = join_funcs.get_player_by_user_id(game, user_info.get('id'))
+    if existing_slot_idx is not None and existing_slot_idx != slot_idx:
         await websocket.send_json({
             "type": "join_slot_failed",
-            "message": f"You are already in slot {existing_slot}"
+            "message": f"You are already in slot {existing_slot_idx + 1}"
         })
         return
     
-    result = join_funcs.add_player(game, slot, slot_idx, user_info)
+    result = join_funcs.add_player(game, slot_idx, user_info)
     
     if result["success"]:
         await conM.broadcast_to_game(game.id, {
@@ -42,19 +43,21 @@ async def handle_join_player_slot(websocket: WebSocket, message: dict, game):
 
 
 async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
-    """Handle add_bot_to_slot action - adds a bot to a waiting room slot"""
-    slot = message.get("slot")
+    """Handle add_bot_to_slot action - adds a bot to a waiting room slot (slotIndex 0-based)"""
+    slot_idx = message.get("slotIndex")
+    if slot_idx is None:
+        slot_idx = message.get("slot")
+        if slot_idx is not None:
+            slot_idx = slot_idx - 1  # Legacy: client sent 1-based
 
-    if not slot or slot < 1 or slot > game.player_num:
+    if slot_idx is None or slot_idx < 0 or slot_idx >= game.player_num:
         await websocket.send_json({
             "type": "add_bot_failed",
-            "message": "Invalid slot number"
+            "message": "Invalid slot index"
         })
         return
     
-    slot_idx = slot - 1
-    
-    result = join_funcs.add_bot(game, slot, slot_idx)
+    result = join_funcs.add_bot(game, slot_idx)
     
     if result["success"]:
         await conM.broadcast_to_game(game.id, {
@@ -69,30 +72,30 @@ async def handle_add_bot_to_slot(websocket: WebSocket, message: dict, game):
 
 
 async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
-    """Handle leave_player_slot action - removes a player from a waiting room slot"""
+    """Handle leave_player_slot action - removes a player from a waiting room slot (slotIndex 0-based)"""
     
-    slot = message.get("slot")
+    slot_idx = message.get("slotIndex")
+    if slot_idx is None:
+        slot_idx = message.get("slot")
+        if slot_idx is not None:
+            slot_idx = slot_idx - 1  # Legacy: client sent 1-based
     user_info = conM.get_user_info(websocket)
     
-    # If slot_num not provided, find the user's slot
-    if not slot:
-        slot = join_funcs.get_player_by_user_id(game, user_info.get('id'))
-        if not slot:
+    if slot_idx is None:
+        slot_idx = game.get_player_by_user_id(user_info.get('id'))
+        if slot_idx is None:
             await websocket.send_json({
                 "type": "leave_slot_failed",
                 "message": "You are not in any slot"
             })
             return
-    elif slot < 1 or slot > game.player_num:
+    elif slot_idx < 0 or slot_idx >= game.player_num:
         await websocket.send_json({
             "type": "leave_slot_failed",
-            "message": "Invalid slot number"
+            "message": "Invalid slot index"
         })
         return
     
-    slot_idx = slot - 1
-    
-    # Check if slot has a bot - anyone can remove bots
     info = game.players[slot_idx].info
     is_bot = info and (info.get('is_bot') is True or (info.get('id') and str(info.get('id')).startswith('bot_')))
     if not is_bot:
@@ -103,7 +106,7 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
             })
             return
     
-    result = join_funcs.remove_player(game, slot, slot_idx)
+    result = join_funcs.remove_player(game, slot_idx)
     
     if result["success"]:
         await conM.broadcast_to_game(game.id, {
@@ -118,15 +121,19 @@ async def handle_leave_player_slot(websocket: WebSocket, message: dict, game):
 
 
 async def handle_set_ready(websocket: WebSocket, message: dict, game):
-    """Handle set_ready action - toggles ready state for a player"""
-    slot = message.get("slot")
+    """Handle set_ready action - toggles ready state for a player (slotIndex 0-based)"""
+    slot_idx = message.get("slotIndex")
+    if slot_idx is None:
+        slot_idx = message.get("slot")
+        if slot_idx is not None:
+            slot_idx = slot_idx - 1  # Legacy: client sent 1-based
     ready = message.get("ready")  # boolean: True or False
     user_info = conM.get_user_info(websocket)
     
-    if slot is None or slot < 1 or slot > game.player_num:
+    if slot_idx is None or slot_idx < 0 or slot_idx >= game.player_num:
         await websocket.send_json({
             "type": "set_ready_failed",
-            "message": "Invalid slot number"
+            "message": "Invalid slot index"
         })
         return
     
@@ -137,8 +144,7 @@ async def handle_set_ready(websocket: WebSocket, message: dict, game):
         })
         return
     
-    slot_idx = slot - 1
-    result = join_funcs.set_player_ready(game, slot, slot_idx, user_info, ready)
+    result = join_funcs.set_player_ready(game, slot_idx, user_info, ready)
     
     if result["success"]:
         await conM.broadcast_to_game(game.id, {
