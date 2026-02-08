@@ -64,12 +64,6 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
         await conM.broadcast_to_game(game.id, msg)
         return
 
-    error = await cmd.validate(ctx)
-    if error:
-        msg = dbM.save_chat(game.id, error, sort="error", user_id=user_id)
-        await conM.broadcast_to_game(game.id, msg)
-        return
-    
     result = await cmd.run(ctx)
     msg = dbM.save_chat(game.id, result, sender=sender, sort="secret", user_id=user_id)
     await conM.broadcast_to_game(game.id, msg)

@@ -71,14 +71,31 @@ class Game():
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
     def declare_position(self, ctx: CommandContext) -> ActionContext:
-        action = ActionContext(
-            action_type="position",
-            destination=ctx.args[0]
+        if not self.in_combat:
+            return "현재 단계에서 사용할 수 없는 명령어입니다."
+        if self.phase != "position_declaration":
+            return "현재 단계에서 사용할 수 없는 명령어입니다."
+        slot_idx = self.get_player_by_user_id(ctx.user_id)
+        if slot_idx is None: #meaning user is not in player_slots
+            return "전투 명령어는 전투 참여자만 사용할 수 있습니다."
+        cell = ctx.args[0].strip().upper()
+        ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
+        if cell[0] not in ROW_MAP:
+            return "유효하지 않은 열 번호입니다."
+        if int(cell[1]) not in (1, 2, 3, 4):
+            return "유효하지 않은 행 번호입니다."
+
+        # Row 0-1 (Y, X) = team 1 (blue), Row 2-3 (A, B) = team 0 (white)
+        called_team = 1 if cell[0] in ["Y", "X"] else 0
+        my_team = self.player_slots[slot_idx].team
+        if called_team != my_team:
+            return "자신의 진영만 선택할 수 있습니다."
+
+        self.player_slots[slot_idx].action = ActionContext(
+            destination=cell
             )
 
-        self.player_slots[ctx.slot_idx].submission = action
-        
-        return action
+        return None
 
     def declare_attack(self, ctx: CommandContext) -> ActionContext:
         pass
