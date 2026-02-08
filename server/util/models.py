@@ -61,12 +61,13 @@ class CommandContext:
 @dataclass
 class ActionContext:
     """우선도, 공격력, 특수효과 등이 계산되어 액션 큐에 등록되는 데이터."""
+    slot_idx: int
     round: int = 0
     attack_type: str = ""
     skill_type: str = ""
     destination: str = ""  # character wants to go there, not yet arrived
+    destination_resolved: bool = False
     target_char: str = "자신"
     target_cell: str = ""
-    priority: Optional[int] = None
-    power: Optional[int] = None
-    resolved: bool = False
+    priority: int = 0
+    power: int = 0

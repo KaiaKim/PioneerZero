@@ -35,13 +35,15 @@ class Game():
 
 
     def resolve_actions(self):
-        unresolved_actions = [player.action for player in self.player_slots if player.action and not player.action.resolved]
+        actions = [player.action for player in self.player_slots if player.action and not player.action.resolved]
         
-        
-        
-        resolved_actions = []
-        return resolved_actions
+        if sum(player.action.priority for player in actions) == 0:
+            import random
+            random.shuffle(actions)
+        else:
+            actions.sort(key=lambda a: a.priority, reverse=True)
 
+        return actions
 
 
     def declare_position(self, ctx: CommandContext) -> ActionContext:
@@ -66,6 +68,7 @@ class Game():
             return "자신의 진영만 선택할 수 있습니다."
 
         self.player_slots[slot_idx].action = ActionContext(
+            slot_idx=slot_idx,
             destination=cell
             )
 
