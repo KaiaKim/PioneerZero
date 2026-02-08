@@ -83,7 +83,7 @@ class DatabaseManager:
 
     def save_game_session(self, game):
         updated_at = datetime.now().isoformat()
-        state_json = game.dict_to_json()
+        state_blob = game.serialize()
         self.cursor.execute('''
             INSERT INTO rooms (game_id, updated_at, player_num, phase_sec, max_round, state_json)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -99,26 +99,22 @@ class DatabaseManager:
             game.player_num,
             game.phase_sec,
             game.max_rounds,
-            state_json
+            state_blob
         ))
         self.conn.commit()
 
     def load_game_session(self, game_id):
         self.cursor.execute('''
-            SELECT state_json, player_num, phase_sec, max_round
+            SELECT state_json
             FROM rooms
             WHERE game_id = ?
         ''', (game_id,))
         row = self.cursor.fetchone()
         if not row:
             return None
-        state_json, player_num, phase_sec, max_round = row
+        (state_blob,) = row
         from ..services.game_core.session import Game
-        game = Game.json_to_dict(state_json)
-        game.player_num = player_num
-        game.phase_sec = phase_sec
-        game.max_rounds = max_round
-        return game
+        return Game.deserialize(state_blob)
 
     def get_room_ids(self):
         self.cursor.execute("SELECT game_id FROM rooms")

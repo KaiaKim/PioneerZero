@@ -1,6 +1,7 @@
-import json
+import base64
+import pickle
 from dataclasses import asdict
-from ...util.context import ActionContext, Player, CommandContext
+from ...util.context import ActionContext, CommandContext, Player
 from . import join, position
 
 class Game():
@@ -76,7 +77,7 @@ class Game():
     # TODO: check_all_declarations_complete() - Check if all declared
     # TODO: calculate_all_priorities() - Calculate all action priorities
     def declare_position(self, ctx: CommandContext) -> ActionContext:
-        pos_data = ActionContext(slot=ctx.slot, pos=position)
+        pos_data = ActionContext()
         self._upsert_action_queue(pos_data)
         return pos_data
 
@@ -92,52 +93,14 @@ class Game():
     # SECTION 7: Utility & Data Export
     # ============================================
 
-    def dict_to_json(self):
-        """Serialize the initial combat snapshot to JSON."""
-        payload = {
-            "id": self.id,
-            "player_num": self.player_num,
-            "players": [asdict(p) for p in self.players],
-            "game_board": self.game_board,
-            "current_round": self.current_round,
-            "connection_lost_timers": self.connection_lost_timers
-        }
-        return json.dumps(payload)
+    def serialize(self) -> str:
+        """Serialize game state to base64-encoded pickle (for DB storage)."""
+        return base64.b64encode(pickle.dumps(self)).decode()
 
     @classmethod
-    def json_to_dict(cls, json_blob):
-        """Deserialize initial combat snapshot JSON into a Game instance."""
-        data = json.loads(json_blob) if isinstance(json_blob, str) else json_blob
-        game_id = data.get("id")
-        player_num = data.get("player_num", 4)
-        game = cls(game_id, player_num)
-
-        players_data = data.get("players", [])
-        players = []
-        for idx in range(player_num):
-            slot_num = idx + 1
-            if idx < len(players_data) and players_data[idx]:
-                stored = players_data[idx]
-                info = stored.get("info") or {}
-                is_bot = info.get("is_bot") or (
-                    info.get("id") and str(info.get("id")).startswith("bot_")
-                )
-                players.append(Player(
-                    info=stored.get("info"),
-                    character=stored.get("character"),
-                    slot=stored.get("slot", slot_num),
-                    team=stored.get("team", slot_num % 2),
-                    occupy=stored.get("occupy", 0),
-                    pos=stored.get("pos"),
-                    ready=True if is_bot else stored.get("ready", False),
-                ))
-            else:
-                players.append(join.player_factory(slot_num))
-        game.players = players
-        game.game_board = data.get("game_board", game.game_board)
-        game.current_round = data.get("current_round", 0)
-        game.connection_lost_timers = data.get("connection_lost_timers", {})
-        return game
+    def deserialize(cls, blob: str):
+        """Deserialize game from base64-encoded pickle."""
+        return pickle.loads(base64.b64decode(blob))
     
     def vomit(self):
         data = {
@@ -167,7 +130,7 @@ class Game():
             if not player.character:
                 continue
             team = player.team
-            current_hp = (player.character or {}).get('current_hp', 0)
+            current_hp = player.character.current_hp
             
             if team == 0:
                 if current_hp > 0:

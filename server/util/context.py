@@ -1,9 +1,9 @@
 """
-Shared context types: command invocation (chat), action declaration (game), and player slot.
+Shared context types: command invocation (chat), action declaration (game),
+player slot, and character. See services.game_core.characters for data constants.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, List, Optional
-
 
 @dataclass
 class Player:
@@ -16,6 +16,20 @@ class Player:
     team: int = 0  # 0=white, 1=blue
     occupy: int = 0  # 0=empty, 1=occupied, 2=connection-lost
     pos: Any = None  # position on the game board
+
+@dataclass
+class Character:
+    """Character data. Shape matches services.game_core.characters (default_character, bots)."""
+
+    name: str = ""
+    profile_image: str = ""
+    token_image: str = ""
+    stats: List[int] = field(default_factory=list)  # [vtl, sen, per, tal, mst]
+    character_class: str = ""  # physical, psychic (key "class" in characters.py)
+    type: str = ""  # none, etc.
+    skills: List[str] = field(default_factory=list)
+    current_hp: int = 0
+    pos: Optional[str] = None  # board position e.g. "A1"
 
 
 @dataclass

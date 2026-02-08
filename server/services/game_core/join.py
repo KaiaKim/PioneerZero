@@ -53,7 +53,7 @@ def add_bot(game, slot: int, slot_idx: int):
     bot_character = bots[bot_index] if bots else default_character
     bot_info = {
         'id': f'bot_{slot}',
-        'name': bot_character.get('name', f'Bot_{slot}'),
+        'name': bot_character.name or f'Bot_{slot}',
         'is_bot': True
     }
     team = 1 if slot_idx < (game.player_num / 2) else 0

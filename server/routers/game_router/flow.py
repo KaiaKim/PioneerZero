@@ -76,12 +76,12 @@ async def position_declaration(game):
 
 async def position_resolution(game):
     for player in game.players:
-        if player.character and (player.character.get('pos') if isinstance(player.character, dict) else None) is None:
+        if player.character and player.character.pos is None:
             # TODO: Implement assign_random_pos or handle position assignment
             pass
 
     pos_list = [
-        f"{p.character['name']}: {p.character['pos']}, " for p in game.players if p.character and isinstance(p.character, dict)]
+        f"{p.character.name}: {p.character.pos}, " for p in game.players if p.character]
     result = f'위치 선언이 종료되었습니다. 시작 위치는 {pos_list} 입니다.'
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)

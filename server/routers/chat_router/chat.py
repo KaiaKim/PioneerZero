@@ -7,19 +7,21 @@ from fastapi import WebSocket
 from ...util import conM, dbM
 from ...util.context import CommandContext
 from .input import parse_input
-from .router import cmdM
+from .command import cmdM
 from . import commands
 
 # --- Router setup: one handler per command name ---
+for _name in commands.position.POSITION_COMMANDS:
+    cmdM.register(_name, commands.position.PositionCommand)
+'''
 for _name in commands.attack.ATTACK_COMMANDS:
     cmdM.register(_name, commands.attack.AttackCommand)
 for _name in commands.skill.SKILL_COMMANDS:
     cmdM.register(_name, commands.skill.SkillCommand)
-for _name in commands.position.POSITION_COMMANDS:
-    cmdM.register(_name, commands.position.PositionCommand)
+
 for _name in commands.preparation.PREPARATION_COMMANDS:
     cmdM.register(_name, commands.preparation.PreparationCommand)
-
+'''
 
 async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
     """Handle chat messages and slash commands. Input pipeline: parse → route → handler."""
@@ -41,7 +43,7 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
 
     if command == "" or args is None:
         # Empty or invalid slash command
-        msg = dbM.save_chat(game.id, "명령어를 잘못 입력했습니다. 다시 시도해주세요.", sort="error", user_id=user_id)
+        msg = dbM.save_chat(game.id, "올바른 명령어 양식이 아닙니다.", sort="error", user_id=user_id)
         await conM.broadcast_to_game(game.id, msg)
         return
 
@@ -56,22 +58,19 @@ async def handle_chat(websocket: WebSocket, message: dict, game) -> None:
         sender=sender,
     )
 
-    if command not in cmdM._handlers:
-        msg = dbM.save_chat(game.id, f"Unknown command: {command}", sort="error", user_id=user_id)
+    cmd = cmdM.get_handler(command)
+    if cmd is None:
+        msg = dbM.save_chat(game.id, f"등록되지 않은 명령어입니다.: {command}", sort="error", user_id=user_id)
         await conM.broadcast_to_game(game.id, msg)
         return
 
-    cmd = cmdM.get_cmd(command)
-
-    await cmd.validate(ctx)
-    if cmd.error:
-        msg = dbM.save_chat(game.id, cmd.error, sort="error", user_id=user_id)
+    error = await cmd.validate(ctx)
+    if error:
+        msg = dbM.save_chat(game.id, error, sort="error", user_id=user_id)
         await conM.broadcast_to_game(game.id, msg)
         return
-
-    await cmd.run(ctx)
-    if cmd.result:
-        msg = dbM.save_chat(game.id, cmd.result, sender=sender, sort="secret", user_id=user_id)
-        await conM.broadcast_to_game(game.id, msg)
-        return
+    
+    result = await cmd.run(ctx)
+    msg = dbM.save_chat(game.id, result, sender=sender, sort="secret", user_id=user_id)
+    await conM.broadcast_to_game(game.id, msg)
 

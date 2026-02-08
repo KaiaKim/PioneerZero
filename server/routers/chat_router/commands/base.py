@@ -8,22 +8,17 @@ from ....util.context import CommandContext, ActionContext
 
 
 class BaseCommand(ABC):
-    """One instance per command invocation. Set result/error/action_data in run()."""
-    result: str | None = None
-    error: str | None = None
-    action_data: ActionContext | None = None
-
     @staticmethod
     def _is_combat_participant(game: Any, user_id: str) -> bool:
         player_ids = [p.info.get("id") for p in game.players if p.info and p.info.get("id")]
         return user_id in player_ids
 
     @abstractmethod
-    async def validate(self, ctx: CommandContext) -> None:
-        """Validate the command; set self.error."""
+    async def validate(self, ctx: CommandContext) -> str | None:
+        """Validate the command; return error string or None."""
         ...
 
     @abstractmethod
-    async def run(self, ctx: CommandContext) -> None:
-        """Execute the command; set self.result, self.error, self.action_data."""
+    async def run(self, ctx: CommandContext) -> str:
+        """Execute the command; return result string."""
         ...
