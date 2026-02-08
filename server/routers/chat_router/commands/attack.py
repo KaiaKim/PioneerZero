@@ -21,6 +21,9 @@ class AttackCommand(BaseCommand):
             return
 
     async def run(self, ctx: CommandContext) -> None:
+        pass
+        #Let's finish position command first, then come back to this.
+        '''
         slot_idx = ctx.game.get_player_by_user_id(ctx.user_id)
         target = ctx.args[0].strip() if ctx.args else "자신"
         action_data, err = ctx.game.declare_attack()
@@ -41,3 +44,4 @@ class AttackCommand(BaseCommand):
             "type": "action_submission_update",
             "submitted": ctx.game.get_action_submission_status(),
         })
+        '''
