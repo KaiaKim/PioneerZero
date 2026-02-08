@@ -32,52 +32,26 @@ class Game():
         self.in_combat = False
         self.current_round = 0
         self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
-        self.resolved_actions = []
 
 
-    def get_action_submission_status(self):
-        submitted = {action.slot_idx for action in self.action_slots}
-        return [{"slot_idx": i, "submitted": i in submitted} for i in range(self.player_num)]
+    def resolve_actions(self):
+        unresolved_actions = [player.action for player in self.player_slots if player.action and not player.action.resolved]
+        
+        
+        
+        resolved_actions = []
+        return resolved_actions
 
-    def get_player_by_user_id(self, user_id: str) -> int | None:
-        """Return slot_idx (0-based) for the given user_id, or None if not found."""
-        for player in self.player_slots:
-            if player.info and player.info.id == user_id:
-                return player.index
-        return None
 
-    # ============================================
-    # SECTION 3: Combat Calculations
-    # ============================================
-    # TODO: calculate_priority()
-    # TODO: calculate_attack_power()
-    # TODO: calculate_max_hp()
-    # TODO: initialize_character_hp()
-    
-    # ============================================
-    # SECTION 5: Combat Validation
-    # ============================================
-    # TODO: check_range() - Check attack range validity
-    # TODO: check_covering() - Check covering for ranged attacks
-    # TODO: get_valid_attack_tiles() - Get valid attack targets
-    # TODO: get_valid_move_tiles() - Get valid move destinations
-    # TODO: get_tile_feedback() - Get tile feedback info
-    
-    # ============================================
-    # SECTION 6: Action Resolution
-    # ============================================
-    # TODO: resolve_action() - Resolve and execute action
-    # TODO: declare_action() - Handle action declaration
-    # TODO: check_all_declarations_complete() - Check if all declared
-    # TODO: calculate_all_priorities() - Calculate all action priorities
+
     def declare_position(self, ctx: CommandContext) -> ActionContext:
         if not self.in_combat:
-            return "현재 단계에서 사용할 수 없는 명령어입니다."
+            return "위치 명령어는 전투 중에만 사용할 수 있습니다."
         if self.phase != "position_declaration":
-            return "현재 단계에서 사용할 수 없는 명령어입니다."
+            return "위치 명령어는 위치선언 단계에만 사용할 수 있습니다."
         slot_idx = self.get_player_by_user_id(ctx.user_id)
         if slot_idx is None: #meaning user is not in player_slots
-            return "전투 명령어는 전투 참여자만 사용할 수 있습니다."
+            return "위치 명령어는 전투 참여자만 사용할 수 있습니다."
         cell = ctx.args[0].strip().upper()
         ROW_MAP = {"Y": 0, "X": 1, "A": 2, "B": 3}
         if cell[0] not in ROW_MAP:
@@ -134,7 +108,13 @@ class Game():
         }
         return data
 
-
+    def get_player_by_user_id(self, user_id: str) -> int | None:
+        """Return slot_idx (0-based) for the given user_id, or None if not found."""
+        for player in self.player_slots:
+            if player.info and player.info.id == user_id:
+                return player.index
+        return None
+        
     def check_all_players_defeated(self):
         """
         한 팀의 모든 플레이어가 전투불능인지 확인
@@ -168,3 +148,30 @@ class Game():
             return True, 1
         else:
             return False, None
+
+
+
+    # ============================================
+    # SECTION 3: Combat Calculations
+    # ============================================
+    # TODO: calculate_priority()
+    # TODO: calculate_attack_power()
+    # TODO: calculate_max_hp()
+    # TODO: initialize_character_hp()
+    
+    # ============================================
+    # SECTION 5: Combat Validation
+    # ============================================
+    # TODO: check_range() - Check attack range validity
+    # TODO: check_covering() - Check covering for ranged attacks
+    # TODO: get_valid_attack_tiles() - Get valid attack targets
+    # TODO: get_valid_move_tiles() - Get valid move destinations
+    # TODO: get_tile_feedback() - Get tile feedback info
+    
+    # ============================================
+    # SECTION 6: Action Resolution
+    # ============================================
+    # TODO: resolve_action() - Resolve and execute action
+    # TODO: declare_action() - Handle action declaration
+    # TODO: check_all_declarations_complete() - Check if all declared
+    # TODO: calculate_all_priorities() - Calculate all action priorities
