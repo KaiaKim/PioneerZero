@@ -34,7 +34,7 @@ async def handle_create_room(websocket: WebSocket, game_id: str, player_num: int
     # Broadcast updated users list to all clients in the game
     await conM.broadcast_to_game(game_id, {
         'type': 'users_list',
-        'users': game.users
+        'users': [asdict(u) for u in game.users]
     })
 
     result = f"방이 생성되었습니다.\n방 ID: {game_id}"
@@ -72,13 +72,13 @@ async def handle_load_room(websocket: WebSocket, game):
     # Send users list to the requesting client
     await websocket.send_json({
         "type": "users_list",
-        "users": game.users
+        "users": [asdict(u) for u in game.users]
     })
     
     # Send players list to the requesting client
     await websocket.send_json({
         "type": "players_list",
-        "players": game.players
+        "players": [asdict(p) for p in game.players]
     })
     
     # Send combat state to the requesting client
@@ -88,10 +88,9 @@ async def handle_load_room(websocket: WebSocket, game):
             'in_combat': game.in_combat,
             'current_round': game.current_round,
             'phase': game.phase,
-            'submitted': game.get_action_submission_status(),
-            'resolved_actions': game.resolved_actions
+            'submitted': game.count_submissions(),
         }
-    })
+    }) ###combat state?? This is makeshift should refactor later
     
     # Load and send chat history to the requesting client
     user_info = conM.get_user_info(websocket)

@@ -81,9 +81,10 @@ async def position_resolution(game):
     for result in results:
         msg = dbM.save_chat(game.id, result)
         await conM.broadcast_to_game(game.id, msg)
+        await asyncio.sleep(1)
     
     final_pos_list = [f"{player.character.name}: {player.pos}" for player in game.player_slots]
-    result = "위치 선언이 종료되었습니다. 시작 위치는 다음과 같습니다: " + "\n".join(final_pos_list)
+    result = "위치 선언이 종료되었습니다. 시작 위치는 다음과 같습니다: \n" + "\n".join(final_pos_list)
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 

@@ -145,8 +145,14 @@ class Game():
     # ============================================
 
     def serialize(self) -> str:
-        """Serialize game state to base64-encoded pickle (for DB storage)."""
-        return base64.b64encode(pickle.dumps(self)).decode()
+        """Serialize game state to base64-encoded pickle (for DB storage).
+        Excludes phase_task (asyncio.Task) since it is not pickleable."""
+        phase_task = getattr(self, "phase_task", None)
+        try:
+            self.phase_task = None
+            return base64.b64encode(pickle.dumps(self)).decode()
+        finally:
+            self.phase_task = phase_task
 
     @classmethod
     def deserialize(cls, blob: str):
@@ -168,7 +174,7 @@ class Game():
             if player.info and player.info.id == user_id:
                 return player.index
         return None
-        
+
     def check_all_players_defeated(self):
         """
         한 팀의 모든 플레이어가 전투불능인지 확인
@@ -203,7 +209,13 @@ class Game():
         else:
             return False, None
 
-
+    def count_submissions(self):
+        submissions = 0
+        if self.in_combat:
+            for player in self.player_slots:
+                if player.action is not None:
+                    submissions += 1
+        return submissions
 
     # ============================================
     # SECTION 3: Combat Calculations

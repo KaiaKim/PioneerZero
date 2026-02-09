@@ -49,14 +49,14 @@ class Character:
 @dataclass
 class CommandContext:
     """관전자도 플레이어도 보낼 수 있는 범용 커맨드 컨텍스트"""
+    # Required (no defaults)
     user_id: str
-    slot_idx: Optional[int] = None
     channel_id: str  # game_id
     raw: str
     args: List[str]
     command: str  # command name (first token after "/")
-
-    # Injected by handle_chat for handler use
+    # Optional (injected by handle_chat for handler use)
+    slot_idx: Optional[int] = None
     game: Any = None
     websocket: Any = None
     sender: str = ""

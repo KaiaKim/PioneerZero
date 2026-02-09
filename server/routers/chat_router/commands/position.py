@@ -14,4 +14,4 @@ class PositionCommand(BaseCommand):
         #I can add custom feedback to clients via websocket here.
         #game commands might not need one, but other commands might need it.
 
-        return "위치 선언이 완료되었습니다."
+        return "위치 선언이 완료되었습니다: " + ctx.args[0]
