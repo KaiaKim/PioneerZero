@@ -14,8 +14,8 @@ default_character = Character(
     character_class="physical",
     type="none",
     skills=["Medikit", "Acceleration", "Contortion"],
-    current_hp=100,
-    pos="A1",
+    initial_hp=100,
+    initial_pos="A1",
 )
 
 bots = [
@@ -27,7 +27,7 @@ bots = [
         character_class="psychic",
         type="none",
         skills=["Telekinesis", "Will-o-Wisp", "Inference"],
-        current_hp=100,
-        pos="B2",
+        initial_hp=100,
+        initial_pos="B2",
     )
 ]

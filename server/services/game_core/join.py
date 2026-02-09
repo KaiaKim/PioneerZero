@@ -35,6 +35,8 @@ def add_player(game, slot_idx: int, user_info: UserInfo):
         ready=False,
         team=team,
         occupy=1,
+        current_hp=default_character.initial_hp,
+        pos=default_character.initial_pos,
     )
     game.connection_lost_timers.pop(slot_idx, None)
     return {"success": True, "message": f"Player added to slot {num}."}
@@ -61,6 +63,8 @@ def add_bot(game, slot_idx: int):
         ready=True,
         team=team,
         occupy=1,
+        current_hp=bot_character.initial_hp,
+        pos=bot_character.initial_pos,
     )
     game.connection_lost_timers.pop(slot_idx, None)
     return {"success": True, "message": f"Bot added to slot {num}."}

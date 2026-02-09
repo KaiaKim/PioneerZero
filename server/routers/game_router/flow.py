@@ -75,14 +75,15 @@ async def position_declaration(game):
     await conM.broadcast_to_game(game.id, msg)
 
 async def position_resolution(game):
-    for player in game.players:
-        if player.character and player.character.pos is None:
-            # TODO: Implement assign_random_pos or handle position assignment
-            pass
+    game.auto_fill_action()
+    results = game.resolve_actions()
 
-    pos_list = [
-        f"{p.character.name}: {p.character.pos}, " for p in game.players if p.character]
-    result = f'위치 선언이 종료되었습니다. 시작 위치는 {pos_list} 입니다.'
+    for result in results:
+        msg = dbM.save_chat(game.id, result)
+        await conM.broadcast_to_game(game.id, msg)
+    
+    final_pos_list = [f"{player.character.name}: {player.pos}" for player in game.player_slots]
+    result = "위치 선언이 종료되었습니다. 시작 위치는 다음과 같습니다: " + "\n".join(final_pos_list)
     msg = dbM.save_chat(game.id, result)
     await conM.broadcast_to_game(game.id, msg)
 

@@ -32,6 +32,36 @@ def is_back_row(pos: str) -> bool:
     return r == 0 or r == 3
 
 
+def get_adjacent_cells(cell: str) -> list[str]:
+    """Return up to 8 neighbors (orthogonal + diagonal, 1 tile distance)."""
+    r, c = pos_to_rc(cell)
+    if r < 0 or c < 0:
+        return []
+    result = []
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            if dr == 0 and dc == 0:
+                continue
+            nr, nc = r + dr, c + dc
+            if 0 <= nr <= 3 and 0 <= nc <= 3:
+                result.append(rc_to_pos(nr, nc))
+    return result
+
+
+def get_same_team_cells(team: int) -> list[str]:
+    """Return all cells for team. 0=white (A,B), 1=blue (Y,X)."""
+    if team == 1:
+        rows = (0, 1)  # Y, X
+    else:
+        rows = (2, 3)  # A, B
+    return [rc_to_pos(row, col) for row in rows for col in range(4)]
+
+
+def get_empty_same_team_cells(team: int, claimed: set[str]) -> list[str]:
+    """Filter same-team cells by excluding claimed."""
+    return [c for c in get_same_team_cells(team) if c not in claimed]
+
+
 def check_move_validity(game, from_pos: str, to_pos: str, player_team: int) -> tuple[bool, str]:
     """Validate move destination (distance, team, occupancy)"""
     fr, fc = pos_to_rc(from_pos)

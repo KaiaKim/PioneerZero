@@ -22,15 +22,18 @@ class PlayerSlot:
     """One player slot in the game (empty or occupied)."""
     index: int = 0
     info: Optional["UserInfo"] = None  # user or bot identity
-    character: Optional["Character"] = None #Character object
+    character: Optional["Character"] = None  # constants only
     ready: bool = False
     team: int = 0  # 0=white, 1=blue
     occupy: int = 0  # 0=empty, 1=occupied, 2=connection-lost
-    action: Optional["ActionContext"] = None #ActionContext object
+    action: Optional["ActionContext"] = None
+    current_hp: int = 0  # mutable state
+    pos: Optional[str] = None  # board position e.g. "A1"
+
 
 @dataclass
 class Character:
-    """Character data. Shape matches services.game_core.characters (default_character, bots)."""
+    """Character constants only. Mutable state (current_hp, pos) lives on PlayerSlot."""
 
     name: str = ""
     profile_image: str = ""
@@ -39,8 +42,8 @@ class Character:
     character_class: str = ""  # physical, psychic (key "class" in characters.py)
     type: str = ""  # none, etc.
     skills: List[str] = field(default_factory=list)
-    current_hp: int = 0
-    pos: Optional[str] = None  # board position e.g. "A1"
+    initial_hp: int = 100
+    initial_pos: Optional[str] = None  # default spawn e.g. "A1"
 
 
 @dataclass

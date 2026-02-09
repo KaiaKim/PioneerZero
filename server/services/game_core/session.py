@@ -1,5 +1,6 @@
 import base64
 import pickle
+import random
 from dataclasses import asdict
 from ...util.models import ActionContext, CommandContext, PlayerSlot
 from . import join, position
@@ -13,6 +14,7 @@ class Game():
             PlayerSlot(index=i)
             for i in range(self.player_num)
         ]  # player list (slots)
+        self.players = self.player_slots  # alias for join, flow, etc.
 
         self.connection_lost_timers = {}  # {slot_idx: timestamp} for tracking connection-lost duration
         self.users = [] #접속자 목록
@@ -34,16 +36,65 @@ class Game():
         self.phase = 'preparation'  # 'preparation', 'kickoff', 'position_declaration', 'action_declaration', 'resolution', 'wrap-up'
 
 
+    def auto_fill_action(self):
+        """Ensure all combat participants have an action and fill empty destinations."""
+        for p in self.player_slots:
+            if not p.action:
+                p.action = ActionContext(slot_idx=p.index, destination="")
+            action = p.action
+            if not action.destination:
+                team = p.team
+                if self.phase == "position_declaration":
+                    cells = position.get_same_team_cells(team)
+                    action.destination = random.choice(cells)
+                elif self.phase == "action_declaration" and p.pos:
+                    action.destination = p.pos
+
     def resolve_actions(self):
-        actions = [player.action for player in self.player_slots if player.action and not player.action.resolved]
-        
-        if sum(player.action.priority for player in actions) == 0:
-            import random
+        # Collect all actions (caller must run auto_fill_action first)
+        actions = [p.action for p in self.player_slots if p.action]
+        result = []
+        # Sort by priority (or shuffle if all 0)
+        if actions and sum(a.priority for a in actions) == 0:
             random.shuffle(actions)
         else:
             actions.sort(key=lambda a: a.priority, reverse=True)
 
-        return actions
+        # Destination resolution loop (butting)
+        claimed_cells = {}  # cell -> slot_idx (who claimed it)
+        for action in actions:
+            slot_idx = action.slot_idx
+            player = self.player_slots[slot_idx]
+            team = player.team
+            name = player.character.name
+
+            if action.destination not in claimed_cells:
+                final_dest = action.destination
+                result.append(f"{name}은 {final_dest}로 이동합니다.")
+            else:
+                # Butting: pick adjacent same-team empty, or any same-team empty
+                winner_slot = claimed_cells[action.destination]
+                winner_name = self.player_slots[winner_slot].character.name
+                same_team = set(position.get_same_team_cells(team))
+                adjacent = [
+                    c for c in position.get_adjacent_cells(action.destination)
+                    if c in same_team and c not in claimed_cells
+                ]
+                empty_same_team = position.get_empty_same_team_cells(team, set(claimed_cells))
+                if adjacent:
+                    final_dest = random.choice(adjacent)
+                else:
+                    final_dest = random.choice(empty_same_team)
+                result.append(
+                    f"{winner_name}와 {name}의 {action.destination} 위치 중복. "
+                    f"{name}는 {final_dest}로 밀려납니다."
+                )
+
+            claimed_cells[final_dest] = slot_idx
+            player.pos = final_dest
+            action.destination_resolved = True
+
+        return result
 
 
     def declare_position(self, ctx: CommandContext) -> ActionContext:
@@ -136,7 +187,7 @@ class Game():
             if not player.character:
                 continue
             team = player.team
-            current_hp = player.character.current_hp
+            current_hp = player.current_hp
             
             if team == 0:
                 if current_hp > 0:
